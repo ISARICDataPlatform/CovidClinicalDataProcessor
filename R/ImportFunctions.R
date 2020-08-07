@@ -1,10 +1,4 @@
 
-# Locations
-location <- "/Users/mdhall/Nexus365/Emmanuelle Dankwa - COVID Reports/data/Data from Laura/SDTM Data/2020-07-23/CVVCORE_2020_07_23/"
-var_remove <-c("STUDYID", "DOMAIN") %>% tolower()
-
-
-
 #' Shared pre-processing of input CSV files
 #' @param file.name Path of the data file (CDISC format)
 #' @param excluded.columns Columns to be removed
@@ -14,9 +8,9 @@ var_remove <-c("STUDYID", "DOMAIN") %>% tolower()
 #' @keywords internal
 #' @export shared.data.import
 shared.data.import <- function(file.name, excluded.columns = c("STUDYID", "DOMAIN"), dtplyr.step = FALSE, immutable = FALSE){
-  out <- fread(paste0(location, "CVVCORE_Demographics_DM_2020_07_23.csv")) %>%
+  out <- fread(file.name, showProgress = FALSE) %>%
     lazy_dt(immutable = immutable) %>%
-    select(-all_of(var_remove)) %>%
+    select(-all_of(excluded.columns)) %>%
     rename_all(function(x){tolower(x)})
   if(dtplyr.step){
     return(out)
@@ -57,7 +51,6 @@ import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step){
     mutate(saterm = str_replace_all(saterm, "/| / ", "_")) %>%
     mutate(saterm = str_replace_all(saterm, " ", "_")) %>%
     distinct(usubjid, saterm, .keep_all =T) 
-  
   if(dtplyr.step){
     return(out)
   } else {
@@ -85,10 +78,9 @@ process.comorbidity.data <- function(input, dtplyr.step = FALSE){
   }
   comorbid <- comorbid %>%
     filter(sacat=="MEDICAL HISTORY") %>%
-    mutate(saterm = glue("comorbid_{saterm}")) %>%
+    mutate(saterm = glue("comorbid_{saterm}", .envir = .SD)) %>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = saterm, values_from = saoccur) 
-  
   if(dtplyr.step){
     return(comorbid %>% lazy_dt(immutable = FALSE))
   } else {
@@ -117,7 +109,7 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
 
   symptom <- symptom %>%
     filter(sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION") %>%
-    mutate(saterm = glue("symptoms_{saterm}")) %>%
+    mutate(saterm = glue("symptoms_{saterm}", .envir = .SD)) %>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = saterm, values_from = saoccur) 
   
@@ -133,7 +125,6 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
 #' @import dplyr tibble tidyfast dtplyr
 #' @importFrom data.table as.data.table
-#' @importFrom glue glue
 #' @return Formatted symptom data as a tibble or \code{dtplyr_step}
 #' @export process.ICU.data
 process.ICU.data <- function(file.name, dtplyr.step = FALSE){
@@ -205,8 +196,8 @@ process.common.treatment.data <- function(input, minimum = 1000, dtplyr.step = F
   treatment <- treatment_all %>%
     group_by(treatment) %>% 
     mutate(n = n()) %>%
-    filter(n>=minimum) %>%
-    mutate(treatment = glue("treat_{treatment}")) %>%
+    filter(n >= eval(!!minimum)) %>%
+    mutate(treatment = glue("treat_{treatment}", treatment = treatment)) %>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur) 
   
@@ -255,7 +246,7 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, ICU.file.
   if(!is.na(symptoms.file.name)){
     comorb.sympt.temp <-  import.symptom.and.comorbidity.data(symptoms.file.name, dtplyr.step = TRUE)
     
-    comorbid <- prcoess.comorbidity.data(comorb.sympt.temp, dtplyr.step = FALSE)
+    comorbid <- process.comorbidity.data(comorb.sympt.temp, dtplyr.step = FALSE)
     symptom <- process.symptom.data(comorb.sympt.temp, dtplyr.step = FALSE)
     
     demographic <- demographic %>%
@@ -280,8 +271,8 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, ICU.file.
   
   
   if(dtplyr.step){
-    return(outcome)
+    return(demographic)
   } else {
-    return(outcome %>% as_tibble())
+    return(demographic %>% as_tibble())
   }
 }
