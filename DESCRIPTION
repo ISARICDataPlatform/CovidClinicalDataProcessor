@@ -1,0 +1,21 @@
+Package: CovidClinicalDataProcessor
+Title: Data Import and Processing for ISARIC COVID-19 Hospital Data
+Version: 0.0.1
+Authors@R: 
+    c(person(given = "Matthew",
+           family = "Hall",
+           role = c("aut", "cre"),
+           email = "matthew.hall@bdi.ox.ac.uk",
+           comment = c(ORCID = "0000-0002-2671-3864")),
+    person(given = "Kenneth",
+           family = "McLean",
+           role = c("aut")))
+Author: Matthew Hall [aut, cre],
+  Kenneth McLean [aut]
+Description: Imports and processes ISARIC COVID-19 clinical data in CDISC format.
+Depends: R (>= 3.5.0)
+Imports: data.table, dtplyr, glue, tidyfast, tidyverse
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
