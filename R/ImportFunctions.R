@@ -3,7 +3,8 @@
 #' @param file.name Path of the data file (CDISC format)
 #' @param excluded.columns Columns to be removed
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
-#' @import dtplyr dplyr tibble data.table
+#' @import dtplyr dplyr tibble
+#' @importFrom data.table fread
 #' @return The contents of \code{file.name} as a tibble or \code{dtplyr_step}
 #' @keywords internal
 #' @export shared.data.import
