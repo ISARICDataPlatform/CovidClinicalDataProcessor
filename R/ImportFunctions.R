@@ -24,12 +24,22 @@ shared.data.import <- function(file.name, excluded.columns = c("STUDYID", "DOMAI
 #' Import demographic data
 #' @param file.name Path of the demographics data file (CDISC format)
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
-#' @import dplyr tibble
+#' @import dplyr tibble ISOcodes
 #' @return Formatted demographic data as a tibble or \code{dtplyr_step}
 #' @export import.demographic.data
 import.demographic.data <- function(file.name, dtplyr.step){
+  country.lookup <- ISO_3166_1 %>% as_tibble %>% select(Alpha_3, Name)
+  
   out <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
-    select(usubjid, age, sex, ethnic, country, "date_admit" = dmdtc) 
+    select(usubjid, age, sex, ethnic, country, "date_admit" = dmdtc) %>%
+    mutate(country = replace(country, country == "", NA)) %>%
+    left_join(country.lookup, by = c("country" = "Alpha_3")) %>%
+    select(-country) %>%
+    rename(country = Name) %>%
+    mutate(sex = case_when(sex == "M" ~ "Male",
+                           sex == "F" ~ "Female",
+                           TRUE ~ NA_character_)) %>%
+    mutate(ethnic = replace(ethnic, ethnic == "", NA))
   if(dtplyr.step){
     return(out)
   } else {
@@ -80,6 +90,9 @@ process.comorbidity.data <- function(input, dtplyr.step = FALSE){
   comorbid <- comorbid %>%
     filter(sacat=="MEDICAL HISTORY") %>%
     mutate(saterm = glue("comorbid_{saterm}", .envir = .SD)) %>%
+    mutate(saoccur = case_when(saoccur == "Y" ~ TRUE,
+                               saoccur == "N" ~ FALSE,
+                               TRUE ~ NA)) %>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = saterm, values_from = saoccur) 
   if(dtplyr.step){
@@ -111,6 +124,9 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
   symptom <- symptom %>%
     filter(sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION") %>%
     mutate(saterm = glue("symptoms_{saterm}", .envir = .SD)) %>%
+    mutate(saoccur = case_when(saoccur == "Y" ~ TRUE,
+                               saoccur == "N" ~ FALSE,
+                               TRUE ~ NA)) %>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = saterm, values_from = saoccur) 
   
@@ -139,7 +155,7 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
     select(usubjid, "hospital_in" = hostdtc_hospital,"hospital_out" = hoendtc_hospital, 
            "icu_in" = hostdtc_icu,  "icu_out" = hoendtc_icu) %>%
     select(-starts_with("hospital_")) %>%
-    filter(is.na(icu_in)==F) 
+    filter(is.na(icu_in)==FALSE) 
   
   if(dtplyr.step){
     return(icu)
@@ -165,6 +181,9 @@ process.treatment.data <- function(file.name, dtplyr.step = FALSE){
     mutate(treatment = str_replace_all(treatment, "-", "_")) %>%
     mutate(treatment = str_replace_all(treatment, "/| / ", "_")) %>%
     mutate(treatment = str_replace_all(treatment, " ", "_")) %>%
+    mutate(inoccur = case_when(inoccur == "Y" ~ TRUE,
+                               inoccur == "N" ~ FALSE,
+                               TRUE ~ NA)) %>%
     distinct(usubjid, treatment, .keep_all =T) 
   
   if(dtplyr.step){
@@ -196,7 +215,7 @@ process.common.treatment.data <- function(input, minimum = 1000, dtplyr.step = F
   
   treatment <- treatment_all %>%
     group_by(treatment) %>% 
-    mutate(n = n()) %>%
+    mutate(n = sum(!is.na(inoccur))) %>%
     filter(n >= eval(!!minimum)) %>%
     mutate(treatment = glue("treat_{treatment}", treatment = treatment)) %>%
     as.data.table() %>%
