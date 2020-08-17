@@ -25,11 +25,11 @@ shared.data.import <- function(file.name, excluded.columns = c("STUDYID", "DOMAI
 #' @param file.name Path of the demographics data file (CDISC format)
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
 #' @import dplyr tibble 
-#' @importFrom ISOcodes ISO_3166_1
 #' @return Formatted demographic data as a tibble or \code{dtplyr_step}
 #' @export import.demographic.data
 import.demographic.data <- function(file.name, dtplyr.step = FALSE){
-  country.lookup <- ISO_3166_1 %>% as_tibble %>% select(Alpha_3, Name)
+  
+  country.lookup <- ISOcodes::ISO_3166_1 %>% as_tibble %>% select(Alpha_3, Name)
   
   out <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
     select(usubjid, age, sex, ethnic, country, "date_admit" = dmdtc) %>%
