@@ -4,7 +4,7 @@
 \alias{process.outcome.data}
 \title{Process data on outcomes}
 \usage{
-process.outcome.data(file.name, dtplyr.step)
+process.outcome.data(file.name, dtplyr.step = FALSE)
 }
 \arguments{
 \item{file.name}{Path of the dispositions data file (CDISC format)}

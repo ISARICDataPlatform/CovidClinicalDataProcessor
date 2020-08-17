@@ -4,7 +4,7 @@
 \alias{import.demographic.data}
 \title{Import demographic data}
 \usage{
-import.demographic.data(file.name, dtplyr.step)
+import.demographic.data(file.name, dtplyr.step = FALSE)
 }
 \arguments{
 \item{file.name}{Path of the demographics data file (CDISC format)}
