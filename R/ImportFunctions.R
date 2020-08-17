@@ -27,7 +27,7 @@ shared.data.import <- function(file.name, excluded.columns = c("STUDYID", "DOMAI
 #' @import dplyr tibble ISOcodes
 #' @return Formatted demographic data as a tibble or \code{dtplyr_step}
 #' @export import.demographic.data
-import.demographic.data <- function(file.name, dtplyr.step){
+import.demographic.data <- function(file.name, dtplyr.step = FALSE){
   country.lookup <- ISO_3166_1 %>% as_tibble %>% select(Alpha_3, Name)
   
   out <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
@@ -53,7 +53,7 @@ import.demographic.data <- function(file.name, dtplyr.step){
 #' @import dplyr tibble stringr
 #' @return Formatted comorbidity and symptom data as a tibble or \code{dtplyr_step}
 #' @export import.symptom.and.comorbidity.data
-import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step){
+import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step = FALSE){
   out <- shared.data.import(file.name, dtplyr.step = TRUE, immutable = TRUE) %>% # this will often by used twice, so should be immutable
     select(usubjid, saterm, sacat, saoccur) %>%
     mutate(saterm = iconv(saterm, to ="ASCII//TRANSLIT") %>% tolower()) %>%
@@ -237,7 +237,7 @@ process.common.treatment.data <- function(input, minimum = 1000, dtplyr.step = F
 #' @import dplyr tibble stringr
 #' @return Formatted outcome data (long format) as a tibble or \code{dtplyr_step}
 #' @export process.outcome.data
-process.outcome.data <- function(file.name, dtplyr.step){
+process.outcome.data <- function(file.name, dtplyr.step = FALSE){
   outcome <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
     select(usubjid, "outcome" = dsterm, "date_outcome" = dsstdtc) %>%
     mutate(outcome = str_to_title(outcome))
@@ -262,7 +262,7 @@ process.outcome.data <- function(file.name, dtplyr.step){
 #' @return Formatted outcome data as a tibble or \code{dtplyr_step}
 #' @export process.all.data
 process.all.data <- function(demog.file.name, symptoms.file.name = NA, ICU.file.name = NA, treatment.file.name = NA, outcome.file.name = NA, minimum.treatments = 1000, dtplyr.step = FALSE){
-  demographic <- import.demographic.data(demog.file.name, dtplyr.step = TRUE)
+  demographic <- import.demographic.data(demog.file.name, dtplyr.step = FALSE)
   if(!is.na(symptoms.file.name)){
     comorb.sympt.temp <-  import.symptom.and.comorbidity.data(symptoms.file.name, dtplyr.step = TRUE)
     
