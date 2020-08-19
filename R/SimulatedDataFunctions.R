@@ -6,13 +6,8 @@
 #' @param data Dataframe to be used as a basis for a synthetic dataset.
 #' @param var_identifier Vector of names of variables that are identifying variables (default = "usubjid")
 #' @return data.frame with values synthesised based on the original dataset
-#' @import dplyr
-#' @import tibble
-#' @import lubridate
+#' @import tidyverse lubridate tidyselect
 #' @importFrom  stats runif
-#' @import tidyr
-#' @import purrr
-#' @import tidyselect
 #' @export
 
 
