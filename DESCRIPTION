@@ -14,7 +14,7 @@ Author: Matthew Hall [aut, cre],
   Kenneth McLean [aut]
 Description: Imports and processes ISARIC COVID-19 clinical data in CDISC format.
 Depends: R (>= 3.5.0)
-Imports: data.table, dtplyr, glue, ISOcodes, tidyfast, tidyverse
+Imports: data.table, dtplyr, glue, ISOcodes, stats, tidyfast, tidyselect, tidyverse
 Encoding: UTF-8
 License: MIT
 LazyData: true
