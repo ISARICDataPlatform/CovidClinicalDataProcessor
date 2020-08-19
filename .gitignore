@@ -3,3 +3,4 @@
 .RData
 .Ruserdata
 CovidClinicalDataProcessor.Rproj
+.DS_Store
