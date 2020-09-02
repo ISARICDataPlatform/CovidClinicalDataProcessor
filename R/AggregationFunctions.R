@@ -87,11 +87,13 @@ outcome.admission.date.prep <- function(input.tbl){
 symptom.prevalence.prep <- function(input.tbl){
   
   symptom.prevalence.input <- input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
     select(sex, agegp5, country, year.epiweek.admit, outcome, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
     select(-`symptoms_covid-19_symptoms`) %>%
     pivot_longer(any_of(starts_with("symptoms")), names_to = "symptom", values_to = "present") %>%
     group_by(sex, agegp5, country,year.epiweek.admit,outcome, symptom, lower.age.bound, upper.age.bound) %>%
-    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)))
+    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
+    as_tibble()
   
   nice.symptom.mapper <- tibble(symptom = unique(symptom.prevalence.input$symptom)) %>%
     mutate(nice.symptom = map_chr(symptom, function(st){
@@ -106,7 +108,9 @@ symptom.prevalence.prep <- function(input.tbl){
                                     TRUE ~ nice.symptom))
   
   symptom.prevalence.input %>%
-    left_join(nice.symptom.mapper) 
+    lazy_dt(immutable = TRUE) %>%
+    left_join(nice.symptom.mapper) %>%
+    as_tibble()
   
 }
 
@@ -121,10 +125,12 @@ symptom.prevalence.prep <- function(input.tbl){
 comorbidity.prevalence.prep <- function(input.tbl){
   
   comorbidity.prevalence.input <- input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
     select(sex, agegp5, country, year.epiweek.admit, outcome, any_of(starts_with("comorb")), lower.age.bound, upper.age.bound) %>%
     pivot_longer(any_of(starts_with("comorb")), names_to = "comorbidity", values_to = "present") %>%
     group_by(sex, agegp5, country,year.epiweek.admit,outcome, comorbidity, lower.age.bound, upper.age.bound) %>%
-    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)))
+    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
+    as_tibble()
   
   nice.comorbidity.mapper <- tibble(comorbidity = unique(comorbidity.prevalence.input$comorbidity)) %>%
     mutate(nice.comorbidity = map_chr(comorbidity, function(st){
@@ -136,7 +142,9 @@ comorbidity.prevalence.prep <- function(input.tbl){
                                         TRUE ~ nice.comorbidity))
   
   comorbidity.prevalence.input %>%
-    left_join(nice.comorbidity.mapper) 
+    lazy_dt(immutable = TRUE) %>%
+    left_join(nice.comorbidity.mapper) %>%
+    as_tibble()
   
 }
 
