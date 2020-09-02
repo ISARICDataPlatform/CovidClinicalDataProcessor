@@ -7,7 +7,7 @@
 age.pyramid.prep(input.tbl)
 }
 \arguments{
-\item{input.tbl}{Input tibble (output of \code{process.all.data})}
+\item{input.tbl}{Input tibble (output of \code{data.preprocessing})}
 }
 \value{
 A \code{tibble} containing the input data for the age pyramid plot

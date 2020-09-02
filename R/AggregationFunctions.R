@@ -1,38 +1,174 @@
 
-#' Aggregate data for age pyramid plot
+#' Preprocessing step for all aggregations. Currently: remaps outcome to death, discharge or NA, cuts age into 5-year age groups, and adds a year-epiweek column
 #' @param input.tbl Input tibble (output of \code{process.all.data})
-#' @import dtplyr dplyr tibble purrr
+#' @import dtplyr dplyr purrr lubridate tibble
 #' @importFrom glue glue
-#' @return A \code{tibble} containing the input data for the age pyramid plot
+#' @return A \code{tibble} intended for input into other aggregation functions (e.g. \code{age.pyramid.prep})
 #' @export age.pyramid.prep
-age.pyramid.prep <- function(input.tbl){
-
-  aggregated.tbl <- input.tbl %>%
-    lazy_dt(immutable = TRUE) %>%
-    select(age, sex, outcome, country, date_admit, date_outcome) %>%
-    filter(!is.na(age) & !is.na(sex)) %>%
-    mutate(outcome2 = map2_chr(outcome, date_outcome, ~(case_when(.x == "Death" ~ "death",
-                                                                  .x == "Discharged Alive" ~ "discharge",
-                                                                  is.na(.y) ~ "censored",
-                                                                  TRUE ~ NA_character_)))) %>%
-    filter(!is.na(outcome2)) %>%
+data.preprocessing <- function(input.tbl){
+  input.tbl %>%
+    lazy_dt(immutable = FALSE) %>%
+    mutate(outcome.3 = map2_chr(outcome, date_outcome, outcome.remap)) %>%
     select(-outcome) %>%
-    rename(outcome = outcome2) %>%
+    rename(outcome = outcome.3) %>%
     mutate(agegp5 = cut(age, right = FALSE, breaks = c(0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 120))) %>%
-    mutate(year.admit = year(date_admit)) %>%
+    mutate(year.admit = map_dbl(date_admit, epiweek.year)) %>%
     mutate(epiweek.admit = epiweek(date_admit)) %>%
     mutate(year.epiweek.admit = glue("{year.admit}-{epiweek.admit}", .envir = .SD)) %>%
     mutate(year.epiweek.admit = replace(year.epiweek.admit, year.epiweek.admit == "NA-NA", NA)) %>%
-    select(sex, agegp5, country, year.epiweek.admit, outcome) %>%
-    group_by(sex, outcome, country, year.epiweek.admit, agegp5) %>%
-    summarise(count =n()) %>%
-    mutate(lower.ag.bound  = map_dbl(agegp5, extract.age.boundaries, TRUE)) %>%
-    mutate(upper.ag.bound  = map_dbl(agegp5, extract.age.boundaries, FALSE)) %>%
+    mutate(lower.age.bound  = map_dbl(agegp5, extract.age.boundaries, TRUE)) %>%
+    mutate(upper.age.bound  = map_dbl(agegp5, extract.age.boundaries, FALSE)) %>%
     mutate(agegp5t = fct_relabel(agegp5, prettify.age.labels)) %>%
     select(-agegp5) %>%
     rename(agegp5 = agegp5t) %>%
     as_tibble()
 }
+
+
+  
+  
+#' Aggregate data for age pyramid plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the age pyramid plot
+#' @export age.pyramid.prep
+age.pyramid.prep <- function(input.tbl){
+  
+  
+
+  input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
+    select(sex, agegp5, country, year.epiweek.admit, outcome, lower.age.bound, upper.age.bound) %>%
+    group_by(sex, outcome, country, year.epiweek.admit, agegp5, lower.age.bound, upper.age.bound) %>%
+    summarise(count = n()) %>%
+    as_tibble()
+
+}
+
+#' Aggregate data for outcome by admission date plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr tidyr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the outcome by admission date plot
+#' @export age.pyramid.prep
+outcome.admission.date.prep <- function(input.tbl){
+  
+  # Since we are using complete, we can't use the upper and lower age bounds from input.tbl
+  
+  age.bound.lookup <- tibble(agegp5 = cut(1:100, right = FALSE, breaks = c(0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 120)) %>% unique()) %>%
+    mutate(lower.age.bound  = map_dbl(agegp5, extract.age.boundaries, TRUE)) %>%
+    mutate(upper.age.bound  = map_dbl(agegp5, extract.age.boundaries, FALSE)) %>%
+    mutate(agegp5t = fct_relabel(agegp5, prettify.age.labels)) %>%
+    select(lower.age.bound, upper.age.bound, agegp5t) %>%
+    rename(agegp5 = agegp5t)
+  
+  
+  input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
+    filter(!is.na(year.epiweek.admit) & !is.na(outcome)) %>%
+    summarise(count = n()) %>%
+    as_tibble() %>%
+    complete(sex, agegp5, country, year.epiweek.admit, outcome, fill = list(count = 0)) %>%
+    arrange(year.epiweek.admit) %>%
+    group_by(sex, outcome, country, agegp5) %>%
+    mutate(cum.count = cumsum(count)) %>%
+    left_join(age.bound.lookup, by="agegp5")
+ 
+}
+
+
+#' Aggregate data for symptom prevalence plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr tidyr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the symptom prevalence plot
+#' @export age.pyramid.prep
+symptom.prevalence.prep <- function(input.tbl){
+  
+  symptom.prevalence.input <- input.tbl %>%
+    select(sex, agegp5, country, year.epiweek.admit, outcome, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
+    select(-`symptoms_covid-19_symptoms`) %>%
+    pivot_longer(any_of(starts_with("symptoms")), names_to = "symptom", values_to = "present") %>%
+    group_by(sex, agegp5, country,year.epiweek.admit,outcome, symptom, lower.age.bound, upper.age.bound) %>%
+    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)))
+
+  nice.symptom.mapper <- tibble(symptom = unique(symptom.prevalence.input$symptom)) %>%
+    mutate(nice.symptom = map_chr(symptom, function(st){
+      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      temp2
+    })) %>%
+    mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
+                                    nice.symptom=="Cough" ~ "Cough (no sputum)",
+                                    nice.symptom=="Cough bloody sputum haemoptysis" ~ "Cough with bloody sputum/haemoptysis",
+                                    nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
+                                    TRUE ~ nice.symptom))
+
+  symptom.prevalence.input %>%
+    left_join(nice.symptom.mapper) 
+  
+}
+
+
+
+#' Aggregate data for comorbidity prevalence plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr tidyr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the comorbidity prevalence plot
+#' @export age.pyramid.prep
+comorbidity.prevalence.prep <- function(input.tbl){
+  
+  comorbidity.prevalence.input <- input.tbl %>%
+    select(sex, agegp5, country, year.epiweek.admit, outcome, any_of(starts_with("comorb")), lower.age.bound, upper.age.bound) %>%
+    pivot_longer(any_of(starts_with("comorb")), names_to = "comorbidity", values_to = "present") %>%
+    group_by(sex, agegp5, country,year.epiweek.admit,outcome, comorbidity, lower.age.bound, upper.age.bound) %>%
+    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)))
+
+  nice.comorbidity.mapper <- tibble(comorbidity = unique(comorbidity.prevalence.input$comorbidity)) %>%
+    mutate(nice.comorbidity = map_chr(comorbidity, function(st){
+      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      temp2
+    })) %>%
+    mutate(nice.comorbidity = case_when(comorbidity=="Aids hiv" ~ "HIV/AIDS",
+                                    TRUE ~ nice.comorbidity))
+
+  comorbidity.prevalence.input %>%
+    left_join(nice.comorbidity.mapper) 
+  
+}
+
+
+#' Aggregate data for treatment use proportion plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr tidyr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the treatment use proportion plot
+#' @export age.pyramid.prep
+treatment.use.proportion.prep <- function(input.tbl){
+  
+  treatment.use.proportion.input <- input.tbl %>%
+    select(sex, agegp5, country, year.epiweek.admit, outcome, any_of(starts_with("treat")), lower.age.bound, upper.age.bound) %>%
+    pivot_longer(any_of(starts_with("treat")), names_to = "treatment", values_to = "present") %>%
+    group_by(sex, agegp5, country,year.epiweek.admit,outcome, treatment, lower.age.bound, upper.age.bound) %>%
+    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)))
+
+  nice.treatment.mapper <- tibble(treatment = unique(treatment.prevalence.input$treatment)) %>%
+    mutate(nice.treatment = map_chr(treatment, function(st){
+      temp <- substr(st, 7, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      temp2
+    }))
+
+  treatment.use.proportion.input %>%
+    left_join(nice.treatment.mapper) 
+
+  write_csv(treatment.prevalence.input, "treatment_prevalence_input.csv")
+
+}
+
 
 #' @keywords internal
 #' @export prettify.age.labels
@@ -58,3 +194,27 @@ extract.age.boundaries <- function(agestring, lower = TRUE){
   }
 }
 
+#' @keywords internal
+#' @export epiweek.year
+epiweek.year <- function(date){
+  if(is.na(date)){
+    return(NA)
+  }
+  if(year(date)==2019 & date > ymd("2019-12-28")){
+    2020
+  } else {
+    year(date)
+  }
+}
+
+#' @keywords internal
+#' @export outcome.remap
+outcome.remap <- function(oc, od){
+  if(is.na(od) & is.na(oc)){
+    "censored"
+  } else {
+    out <- case_when(is.na(oc) ~ NA_character_,
+                     oc == "Death" ~ "death",
+                     oc == "Discharged Alive" ~ "discharge")
+  }
+}
