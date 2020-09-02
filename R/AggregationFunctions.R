@@ -4,7 +4,7 @@
 #' @import dtplyr dplyr purrr lubridate tibble
 #' @importFrom glue glue
 #' @return A \code{tibble} intended for input into other aggregation functions (e.g. \code{age.pyramid.prep})
-#' @export age.pyramid.prep
+#' @export data.preprocessing
 data.preprocessing <- function(input.tbl){
   input.tbl %>%
     lazy_dt(immutable = FALSE) %>%
@@ -51,7 +51,7 @@ age.pyramid.prep <- function(input.tbl){
 #' @import dtplyr dplyr tibble purrr tidyr
 #' @importFrom glue glue
 #' @return A \code{tibble} containing the input data for the outcome by admission date plot
-#' @export age.pyramid.prep
+#' @export outcome.admission.date.prep
 outcome.admission.date.prep <- function(input.tbl){
   
   # Since we are using complete, we can't use the upper and lower age bounds from input.tbl
@@ -83,7 +83,7 @@ outcome.admission.date.prep <- function(input.tbl){
 #' @import dtplyr dplyr tibble purrr tidyr
 #' @importFrom glue glue
 #' @return A \code{tibble} containing the input data for the symptom prevalence plot
-#' @export age.pyramid.prep
+#' @export symptom.prevalence.prep
 symptom.prevalence.prep <- function(input.tbl){
   
   symptom.prevalence.input <- input.tbl %>%
@@ -117,7 +117,7 @@ symptom.prevalence.prep <- function(input.tbl){
 #' @import dtplyr dplyr tibble purrr tidyr
 #' @importFrom glue glue
 #' @return A \code{tibble} containing the input data for the comorbidity prevalence plot
-#' @export age.pyramid.prep
+#' @export comorbidity.prevalence.prep
 comorbidity.prevalence.prep <- function(input.tbl){
   
   comorbidity.prevalence.input <- input.tbl %>%
@@ -146,7 +146,7 @@ comorbidity.prevalence.prep <- function(input.tbl){
 #' @import dtplyr dplyr tibble purrr tidyr
 #' @importFrom glue glue
 #' @return A \code{tibble} containing the input data for the treatment use proportion plot
-#' @export age.pyramid.prep
+#' @export treatment.use.proportion.prep
 treatment.use.proportion.prep <- function(input.tbl){
   
   treatment.use.proportion.input <- input.tbl %>%
