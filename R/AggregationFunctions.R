@@ -177,7 +177,8 @@ treatment.use.proportion.prep <- function(input.tbl){
     pivot_longer(any_of(starts_with("treat")), names_to = "treatment", values_to = "present") %>%
     lazy_dt(immutable = TRUE) %>%
     group_by(sex, agegp5, country,year.epiweek.admit,outcome, treatment, lower.age.bound, upper.age.bound, icu_ever) %>%
-    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)))
+    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
+    as_tibble()
   
   nice.treatment.mapper <- tibble(treatment = unique(treatment.use.proportion.input$treatment)) %>%
     mutate(nice.treatment = map_chr(treatment, function(st){
@@ -188,7 +189,6 @@ treatment.use.proportion.prep <- function(input.tbl){
   
   treatment.use.proportion.input %>%
     left_join(nice.treatment.mapper) %>%
-    as_tibble() %>%
     mutate(year.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[1]))) %>%
     mutate(epiweek.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[2])))
   
