@@ -179,7 +179,7 @@ treatment.use.proportion.prep <- function(input.tbl){
     group_by(sex, agegp5, country,year.epiweek.admit,outcome, treatment, lower.age.bound, upper.age.bound, icu_ever) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)))
   
-  nice.treatment.mapper <- tibble(treatment = unique(treatment.prevalence.input$treatment)) %>%
+  nice.treatment.mapper <- tibble(treatment = unique(treatment.use.proportion.input$treatment)) %>%
     mutate(nice.treatment = map_chr(treatment, function(st){
       temp <- substr(st, 7, nchar(st)) %>% str_replace_all("_", " ")
       temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
