@@ -277,7 +277,8 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, ICU.file.
   if(!is.na(ICU.file.name)){
     icu <- process.ICU.data(ICU.file.name, dtplyr.step = FALSE)
     demographic <- demographic %>%
-      left_join(icu, by = c("usubjid"))
+      left_join(icu, by = c("usubjid")) %>%
+      mutate(icu_ever = !is.na(icu_in))
   }
   if(!is.na(treatment.file.name)){
     treatment <- process.common.treatment.data(treatment.file.name, minimum.treatments, FALSE)
