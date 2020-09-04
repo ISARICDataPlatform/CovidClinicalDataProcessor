@@ -188,6 +188,7 @@ treatment.use.proportion.prep <- function(input.tbl){
   
   treatment.use.proportion.input %>%
     left_join(nice.treatment.mapper) %>%
+    as_tibble() %>%
     mutate(year.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[1]))) %>%
     mutate(epiweek.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[2])))
   
