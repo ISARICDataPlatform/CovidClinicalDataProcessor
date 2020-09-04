@@ -39,7 +39,7 @@ age.pyramid.prep <- function(input.tbl){
     lazy_dt(immutable = TRUE) %>%
     select(sex, agegp5, country, year.epiweek.admit, outcome, lower.age.bound, upper.age.bound, icu_ever) %>%
     group_by(sex, outcome, country, year.epiweek.admit, agegp5, lower.age.bound, upper.age.bound, icu_ever) %>%
-    summarise(count = n()) 
+    summarise(count = n()) %>%
     as_tibble() %>%
     mutate(year.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[1]))) %>%
     mutate(epiweek.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[2])))
