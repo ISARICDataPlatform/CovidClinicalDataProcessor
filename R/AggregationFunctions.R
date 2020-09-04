@@ -37,8 +37,8 @@ age.pyramid.prep <- function(input.tbl){
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(sex, agegp5, country, year.epiweek.admit, outcome, lower.age.bound, upper.age.bound) %>%
-    group_by(sex, outcome, country, year.epiweek.admit, agegp5, lower.age.bound, upper.age.bound) %>%
+    select(sex, agegp5, country, year.epiweek.admit, outcome, lower.age.bound, upper.age.bound, icu_ever) %>%
+    group_by(sex, outcome, country, year.epiweek.admit, agegp5, lower.age.bound, upper.age.bound, icu_ever) %>%
     summarise(count = n()) %>%
     as_tibble()
   
@@ -65,11 +65,11 @@ outcome.admission.date.prep <- function(input.tbl){
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
     filter(!is.na(year.epiweek.admit) & !is.na(outcome)) %>%
-    select(sex, agegp5, country, year.epiweek.admit, outcome) %>%
-    group_by(sex, outcome, country, year.epiweek.admit, agegp5) %>%
+    select(sex, agegp5, country, year.epiweek.admit, outcome, icu_ever) %>%
+    group_by(sex, outcome, country, year.epiweek.admit, agegp5, icu_ever) %>%
     summarise(count = n()) %>%
     as_tibble() %>%
-    complete(sex, agegp5, country, year.epiweek.admit, outcome, fill = list(count = 0)) %>%
+    complete(sex, agegp5, country, year.epiweek.admit, outcome, icu_ever, fill = list(count = 0)) %>%
     arrange(year.epiweek.admit) %>%
     group_by(sex, outcome, country, agegp5) %>%
     mutate(cum.count = cumsum(count)) %>%
@@ -88,10 +88,10 @@ symptom.prevalence.prep <- function(input.tbl){
   
   symptom.prevalence.input <- input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(sex, agegp5, country, year.epiweek.admit, outcome, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
+    select(sex, agegp5, country, year.epiweek.admit, outcome, icu_ever, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
     select(-`symptoms_covid-19_symptoms`) %>%
     pivot_longer(any_of(starts_with("symptoms")), names_to = "symptom", values_to = "present") %>%
-    group_by(sex, agegp5, country,year.epiweek.admit,outcome, symptom, lower.age.bound, upper.age.bound) %>%
+    group_by(sex, agegp5, country,year.epiweek.admit,outcome, symptom, lower.age.bound, upper.age.bound, icu_ever) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
     as_tibble()
   
@@ -126,9 +126,9 @@ comorbidity.prevalence.prep <- function(input.tbl){
   
   comorbidity.prevalence.input <- input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(sex, agegp5, country, year.epiweek.admit, outcome, any_of(starts_with("comorb")), lower.age.bound, upper.age.bound) %>%
+    select(sex, agegp5, country, year.epiweek.admit, outcome, icu_ever, any_of(starts_with("comorb")), lower.age.bound, upper.age.bound) %>%
     pivot_longer(any_of(starts_with("comorb")), names_to = "comorbidity", values_to = "present") %>%
-    group_by(sex, agegp5, country,year.epiweek.admit,outcome, comorbidity, lower.age.bound, upper.age.bound) %>%
+    group_by(sex, agegp5, country,year.epiweek.admit,outcome, comorbidity, lower.age.bound, upper.age.bound, icu_ever) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
     as_tibble()
   
@@ -158,9 +158,9 @@ comorbidity.prevalence.prep <- function(input.tbl){
 treatment.use.proportion.prep <- function(input.tbl){
   
   treatment.use.proportion.input <- input.tbl %>%
-    select(sex, agegp5, country, year.epiweek.admit, outcome, any_of(starts_with("treat")), lower.age.bound, upper.age.bound) %>%
+    select(sex, agegp5, country, year.epiweek.admit, outcome, icu_ever, any_of(starts_with("treat")), lower.age.bound, upper.age.bound) %>%
     pivot_longer(any_of(starts_with("treat")), names_to = "treatment", values_to = "present") %>%
-    group_by(sex, agegp5, country,year.epiweek.admit,outcome, treatment, lower.age.bound, upper.age.bound) %>%
+    group_by(sex, agegp5, country,year.epiweek.admit,outcome, treatment, lower.age.bound, upper.age.bound, icu_ever) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)))
   
   nice.treatment.mapper <- tibble(treatment = unique(treatment.prevalence.input$treatment)) %>%
@@ -173,10 +173,20 @@ treatment.use.proportion.prep <- function(input.tbl){
   treatment.use.proportion.input %>%
     left_join(nice.treatment.mapper) 
   
-  write_csv(treatment.prevalence.input, "treatment_prevalence_input.csv")
-  
 }
 
+
+#' Aggregate data for ICU treatment use proportion plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dplyr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the ICU treatment use proportion plot
+#' @export icu.treatment.use.proportion.prep
+icu.treatment.use.proportion.prep <- function(input.tbl){
+  
+  treatment.use.proportion.prep(input.tbl %>% filter(icu_ever))
+  
+}
 
 #' @keywords internal
 #' @export prettify.age.labels
