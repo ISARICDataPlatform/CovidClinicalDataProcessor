@@ -53,31 +53,19 @@ age.pyramid.prep <- function(input.tbl){
 #' @export outcome.admission.date.prep
 outcome.admission.date.prep <- function(input.tbl){
   
-  # Since we are using complete, we can't use the upper and lower age bounds from input.tbl
-  
-  age.bound.lookup <- tibble(agegp10 = cut(1:100, right = FALSE, breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 120)) %>% unique()) %>%
-    mutate(lower.age.bound  = map_dbl(agegp10, extract.age.boundaries, TRUE)) %>%
-    mutate(upper.age.bound  = map_dbl(agegp10, extract.age.boundaries, FALSE)) %>%
-    mutate(agegp10t = fct_relabel(agegp10, prettify.age.labels)) %>%
-    select(lower.age.bound, upper.age.bound, agegp10t) %>%
-    rename(agegp10 = agegp10t)
-  
-  
+
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
     filter(!is.na(year.epiweek.admit) & !is.na(outcome)) %>%
-    select(sex, agegp10, country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, outcome, icu_ever) %>%
-    group_by(sex, outcome, country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, agegp10, icu_ever) %>%
+    select(sex, agegp10, lower.age.bound, upper.age.bound, country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, outcome, icu_ever) %>%
+    group_by(sex, outcome, country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, agegp10, lower.age.bound, upper.age.bound, icu_ever) %>%
     summarise(count = n()) %>%
     as_tibble() %>%
-    complete(sex, agegp10, country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, outcome, icu_ever, fill = list(count = 0)) %>%
+    complete(sex, nesting(agegp10, lower.age.bound, upper.age.bound), country, nesting(calendar.year.admit, calendar.month.admit, year.epiweek.admit), outcome, icu_ever, fill = list(count = 0)) %>%
     arrange(year.epiweek.admit) %>%
     group_by(sex, outcome, country, agegp10) %>%
     mutate(cum.count = cumsum(count)) %>%
-    left_join(age.bound.lookup, by="agegp10") %>%
-    mutate(year.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[1]))) %>%
-    mutate(epiweek.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[2])))
-  
+    left_join(age.bound.lookup, by="agegp10")
 }
 
 
