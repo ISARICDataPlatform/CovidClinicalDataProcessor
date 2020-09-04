@@ -83,7 +83,7 @@ outcome.admission.date.prep <- function(input.tbl){
 
 #' Aggregate data for symptom prevalence plot
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
-#' @import dtplyr dplyr tibble purrr tidyr tidyfast data.table
+#' @import dtplyr dplyr tibble purrr tidyr tidyfast
 #' @importFrom glue glue
 #' @importFrom data.table as.data.table
 #' @return A \code{tibble} containing the input data for the symptom prevalence plot
