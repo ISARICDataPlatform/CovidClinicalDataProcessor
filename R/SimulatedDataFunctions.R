@@ -37,7 +37,7 @@ synthesise <- function(data, var_identifier = "usubjid"){
     mutate_at(vars(all_of(var_numeric)), function(x){ceiling(runif(x, min(x, na.rm = T), max(x, na.rm = T)))}) %>%
 
     # Randomly assign booleans
-    mutate_at(vars(all_of(var_logical)), function(x){as.logical(sample(c(0,1), 1))}) %>%
+    mutate_at(vars(all_of(var_logical)), function(x){as.logical(sample(c(0,1), nrow(data), replace = T))}) %>%
     
     
     # randomly change values (within a max of 10 options for each var) if not NA
