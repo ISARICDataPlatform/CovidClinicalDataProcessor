@@ -83,7 +83,7 @@ outcome.admission.date.prep <- function(input.tbl){
 
 #' Aggregate data for symptom prevalence plot
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
-#' @import dtplyr dplyr tibble purrr tidyr
+#' @import dtplyr dplyr tibble purrr tidyr tidyfast data.table
 #' @importFrom glue glue
 #' @return A \code{tibble} containing the input data for the symptom prevalence plot
 #' @export symptom.prevalence.prep
@@ -93,7 +93,9 @@ symptom.prevalence.prep <- function(input.tbl){
     lazy_dt(immutable = TRUE) %>%
     select(sex, agegp5, country, year.epiweek.admit, outcome, icu_ever, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
     select(-`symptoms_covid-19_symptoms`) %>%
-    pivot_longer(any_of(starts_with("symptoms")), names_to = "symptom", values_to = "present") %>%
+    as.data.table() %>%
+    dt_pivot_longer(any_of(starts_with("symptoms")), names_to = "symptom", values_to = "present") %>%
+    lazy_dt(immutable = TRUE) %>%
     group_by(sex, agegp5, country,year.epiweek.admit,outcome, symptom, lower.age.bound, upper.age.bound, icu_ever) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
     as_tibble()
