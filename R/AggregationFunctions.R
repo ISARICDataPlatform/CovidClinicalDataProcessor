@@ -39,9 +39,10 @@ age.pyramid.prep <- function(input.tbl){
     lazy_dt(immutable = TRUE) %>%
     select(sex, agegp5, country, year.epiweek.admit, outcome, lower.age.bound, upper.age.bound, icu_ever) %>%
     group_by(sex, outcome, country, year.epiweek.admit, agegp5, lower.age.bound, upper.age.bound, icu_ever) %>%
-    summarise(count = n()) %>%
-    as_tibble()
-  
+    summarise(count = n()) 
+    as_tibble() %>%
+    mutate(year.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[1]))) %>%
+    mutate(epiweek.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[2])))
 }
 
 #' Aggregate data for outcome by admission date plot
@@ -73,7 +74,9 @@ outcome.admission.date.prep <- function(input.tbl){
     arrange(year.epiweek.admit) %>%
     group_by(sex, outcome, country, agegp5) %>%
     mutate(cum.count = cumsum(count)) %>%
-    left_join(age.bound.lookup, by="agegp5")
+    left_join(age.bound.lookup, by="agegp5") %>%
+    mutate(year.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[1]))) %>%
+    mutate(epiweek.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[2])))
   
 }
 
@@ -110,7 +113,9 @@ symptom.prevalence.prep <- function(input.tbl){
   symptom.prevalence.input %>%
     lazy_dt(immutable = TRUE) %>%
     left_join(nice.symptom.mapper) %>%
-    as_tibble()
+    as_tibble() %>%
+    mutate(year.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[1]))) %>%
+    mutate(epiweek.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[2])))
   
 }
 
@@ -144,7 +149,9 @@ comorbidity.prevalence.prep <- function(input.tbl){
   comorbidity.prevalence.input %>%
     lazy_dt(immutable = TRUE) %>%
     left_join(nice.comorbidity.mapper) %>%
-    as_tibble()
+    as_tibble() %>%
+    mutate(year.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[1]))) %>%
+    mutate(epiweek.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[2])))
   
 }
 
@@ -171,7 +178,9 @@ treatment.use.proportion.prep <- function(input.tbl){
     }))
   
   treatment.use.proportion.input %>%
-    left_join(nice.treatment.mapper) 
+    left_join(nice.treatment.mapper) %>%
+    mutate(year.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[1]))) %>%
+    mutate(epiweek.admit = map_dbl(year.epiweek.admit, function(x) as.numeric(str_split_fixed(x, "-", Inf)[2])))
   
 }
 
@@ -236,3 +245,5 @@ outcome.remap <- function(oc, od){
                      oc == "Discharged Alive" ~ "discharge")
   }
 }
+
+
