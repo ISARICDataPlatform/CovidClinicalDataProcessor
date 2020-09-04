@@ -20,7 +20,8 @@ synthesise <- function(data, var_identifier = "usubjid"){
   
   var_date <- data %>% select_if(lubridate::is.Date) %>% names()
   var_numeric <- data %>% select_if(is.numeric) %>% names()
-  var_other <- data %>% select(-all_of(c(var_date, var_numeric, var_identifer))) %>% names()
+  var_logical <- data %>% select_if(is.logical) %>% names()
+  var_other <- data %>% select(-all_of(c(var_date, var_numeric, var_logical, var_identifer))) %>% names()
   
   
   # Synthesise variables--------------
@@ -34,6 +35,10 @@ synthesise <- function(data, var_identifier = "usubjid"){
     
     # Randomly generate numbers for each variable within current range.
     mutate_at(vars(all_of(var_numeric)), function(x){ceiling(runif(x, min(x, na.rm = T), max(x, na.rm = T)))}) %>%
+
+    # Randomly assign booleans
+    mutate_at(vars(all_of(var_logical)), function(x){as.logical(sample(c(0,1), 1))}) %>%
+    
     
     # randomly change values (within a max of 10 options for each var) if not NA
     mutate_at(vars(all_of(var_other)),
