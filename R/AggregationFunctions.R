@@ -85,6 +85,7 @@ outcome.admission.date.prep <- function(input.tbl){
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dtplyr dplyr tibble purrr tidyr tidyfast data.table
 #' @importFrom glue glue
+#' @importFrom data.table as.data.table
 #' @return A \code{tibble} containing the input data for the symptom prevalence plot
 #' @export symptom.prevalence.prep
 symptom.prevalence.prep <- function(input.tbl){
@@ -94,7 +95,7 @@ symptom.prevalence.prep <- function(input.tbl){
     select(sex, agegp5, country, year.epiweek.admit, outcome, icu_ever, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
     select(-`symptoms_covid-19_symptoms`) %>%
     as.data.table() %>%
-    dt_pivot_longer(any_of(starts_with("symptoms")), names_to = "symptom", values_to = "present") %>%
+    pivot_longer(starts_with("symptoms"), names_to = "symptom", values_to = "present") %>%
     lazy_dt(immutable = TRUE) %>%
     group_by(sex, agegp5, country,year.epiweek.admit,outcome, symptom, lower.age.bound, upper.age.bound, icu_ever) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
@@ -127,6 +128,7 @@ symptom.prevalence.prep <- function(input.tbl){
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dtplyr dplyr tibble purrr tidyr
 #' @importFrom glue glue
+#' @importFrom data.table as.data.table
 #' @return A \code{tibble} containing the input data for the comorbidity prevalence plot
 #' @export comorbidity.prevalence.prep
 comorbidity.prevalence.prep <- function(input.tbl){
@@ -134,7 +136,9 @@ comorbidity.prevalence.prep <- function(input.tbl){
   comorbidity.prevalence.input <- input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
     select(sex, agegp5, country, year.epiweek.admit, outcome, icu_ever, any_of(starts_with("comorb")), lower.age.bound, upper.age.bound) %>%
+    as.data.table() %>%
     pivot_longer(any_of(starts_with("comorb")), names_to = "comorbidity", values_to = "present") %>%
+    lazy_dt(immutable = TRUE) %>%
     group_by(sex, agegp5, country,year.epiweek.admit,outcome, comorbidity, lower.age.bound, upper.age.bound, icu_ever) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
     as_tibble()
@@ -162,13 +166,16 @@ comorbidity.prevalence.prep <- function(input.tbl){
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dtplyr dplyr tibble purrr tidyr
 #' @importFrom glue glue
+#' @importFrom data.table as.data.table
 #' @return A \code{tibble} containing the input data for the treatment use proportion plot
 #' @export treatment.use.proportion.prep
 treatment.use.proportion.prep <- function(input.tbl){
   
   treatment.use.proportion.input <- input.tbl %>%
     select(sex, agegp5, country, year.epiweek.admit, outcome, icu_ever, any_of(starts_with("treat")), lower.age.bound, upper.age.bound) %>%
+    as.data.table() %>%
     pivot_longer(any_of(starts_with("treat")), names_to = "treatment", values_to = "present") %>%
+    lazy_dt(immutable = TRUE) %>%
     group_by(sex, agegp5, country,year.epiweek.admit,outcome, treatment, lower.age.bound, upper.age.bound, icu_ever) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)))
   
