@@ -53,19 +53,27 @@ age.pyramid.prep <- function(input.tbl){
 #' @export outcome.admission.date.prep
 outcome.admission.date.prep <- function(input.tbl){
   
+  epiweek.order <- glue("{c(rep(2019,4), rep(2020,max(input.tbl$epiweek.admit[which(input.tbl$year.admit == 2020)], na.rm = T)))}-{c(49:52, 1:max(input.tbl$epiweek.admit[which(input.tbl$year.admit == 2020)], na.rm = T))}")
 
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
+    mutate(year.epiweek.admit = factor(year.epiweek.admit, levels = epiweek.order)) %>%
     filter(!is.na(year.epiweek.admit) & !is.na(outcome)) %>%
     select(sex, agegp10, lower.age.bound, upper.age.bound, country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, outcome, icu_ever) %>%
     group_by(sex, outcome, country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, agegp10, lower.age.bound, upper.age.bound, icu_ever) %>%
     summarise(count = n()) %>%
     as_tibble() %>%
-    complete(sex, nesting(agegp10, lower.age.bound, upper.age.bound), country, nesting(calendar.year.admit, calendar.month.admit, year.epiweek.admit), outcome, icu_ever, fill = list(count = 0)) %>%
-    arrange(year.epiweek.admit) %>%
-    group_by(sex, outcome, country, agegp10) %>%
-    mutate(cum.count = cumsum(count)) %>%
-    left_join(age.bound.lookup, by="agegp10")
+    complete(sex, 
+             nesting(agegp10, lower.age.bound, upper.age.bound), 
+             country, 
+             nesting(gpno, calendar.year.admit, calendar.month.admit, year.epiweek.admit), 
+             outcome, 
+             icu_ever, 
+             fill = list(count = 0)) %>%
+    arrange(gpno) %>%
+    group_by(sex, outcome, country, agegp10, lower.age.bound, upper.age.bound, icu_ever) %>%
+    mutate(cum.count = cumsum(count)) %>% 
+    filter(cum.count > 0)
 }
 
 
