@@ -62,18 +62,7 @@ outcome.admission.date.prep <- function(input.tbl){
     select(sex, agegp10, lower.age.bound, upper.age.bound, country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, outcome, icu_ever) %>%
     group_by(sex, outcome, country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, agegp10, lower.age.bound, upper.age.bound, icu_ever) %>%
     summarise(count = n()) %>%
-    as_tibble() %>%
-    complete(sex, 
-             nesting(agegp10, lower.age.bound, upper.age.bound), 
-             country, 
-             nesting(gpno, calendar.year.admit, calendar.month.admit, year.epiweek.admit), 
-             outcome, 
-             icu_ever, 
-             fill = list(count = 0)) %>%
-    arrange(gpno) %>%
-    group_by(sex, outcome, country, agegp10, lower.age.bound, upper.age.bound, icu_ever) %>%
-    mutate(cum.count = cumsum(count)) %>% 
-    filter(cum.count > 0)
+    as_tibble() 
 }
 
 
