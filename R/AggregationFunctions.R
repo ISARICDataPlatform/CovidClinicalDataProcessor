@@ -14,7 +14,7 @@ data.preprocessing <- function(input.tbl){
     mutate(agegp10 = cut(age, right = FALSE, breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 120))) %>%
     mutate(calendar.year.admit = year(date_admit)) %>%
     mutate(calendar.month.admit = month(date_admit)) %>%
-    mutate(monthyear = map2_chr(calendar.year.admit, calendar.month.admit, my.mapper)) %>%
+    mutate(monthyear = map2_chr(calendar.year.admit, calendar.month.admit, month.year.mapper)) %>%
     mutate(year.admit = map_dbl(date_admit, epiweek.year)) %>%
     mutate(epiweek.admit = epiweek(date_admit)) %>%
     mutate(year.epiweek.admit = glue("{year.admit}-{epiweek.admit}", .envir = .SD)) %>%
