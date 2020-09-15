@@ -32,11 +32,12 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
   country.lookup <- ISOcodes::ISO_3166_1 %>% as_tibble %>% select(Alpha_3, Name)
   
   out <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
-    select(usubjid, age, sex, ethnic, country, "date_admit" = dmdtc) %>%
+    select(usubjid, age, sex, ethnic, country, "date_admit" = dmdtc, invid) %>%
     mutate(country = replace(country, country == "", NA)) %>%
     left_join(country.lookup, by = c("country" = "Alpha_3")) %>%
     select(-country) %>%
     rename(country = Name) %>%
+    rename(site = invid) %>%
     mutate(sex = case_when(sex == "M" ~ "Male",
                            sex == "F" ~ "Female",
                            TRUE ~ NA_character_)) %>%
