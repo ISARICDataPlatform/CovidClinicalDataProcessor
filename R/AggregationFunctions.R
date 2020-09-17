@@ -10,20 +10,22 @@ data.preprocessing <- function(input.tbl){
     lazy_dt(immutable = TRUE) %>%
     mutate(outcome.3 = map2_chr(outcome, date_outcome, outcome.remap)) %>%
     select(-outcome) %>%
-    rename(outcome = outcome.3) %>%
+    rename(slider_outcome = outcome.3) %>%
     mutate(agegp10 = cut(age, right = FALSE, breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 120))) %>%
     mutate(calendar.year.admit = year(date_admit)) %>%
     mutate(calendar.month.admit = month(date_admit)) %>%
-    mutate(monthyear = map2_chr(calendar.year.admit, calendar.month.admit, month.year.mapper)) %>%
+    mutate(slider_monthyear = map2_chr(calendar.year.admit, calendar.month.admit, month.year.mapper)) %>%
     mutate(year.admit = map_dbl(date_admit, epiweek.year)) %>%
     mutate(epiweek.admit = epiweek(date_admit)) %>%
     mutate(year.epiweek.admit = glue("{year.admit}-{epiweek.admit}", .envir = .SD)) %>%
     mutate(year.epiweek.admit = replace(year.epiweek.admit, year.epiweek.admit == "NA-NA", NA)) %>%
     mutate(lower.age.bound  = map_dbl(agegp10, extract.age.boundaries, TRUE)) %>%
     mutate(upper.age.bound  = map_dbl(agegp10, extract.age.boundaries, FALSE)) %>%
-    mutate(agegp10t = fct_relabel(agegp10, prettify.age.labels)) %>%
+    mutate(slider_agegp10 = fct_relabel(agegp10, prettify.age.labels)) %>%
     select(-agegp10) %>%
-    rename(agegp10 = agegp10t) %>%
+    rename(slider_icu_ever = icu_ever) %>%
+    rename(slider_country = country) %>%
+    rename(slider_sex = sex) %>%
     as_tibble()
 }
 
@@ -40,8 +42,8 @@ age.pyramid.prep <- function(input.tbl){
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(sex, agegp10, country, calendar.year.admit, calendar.month.admit, monthyear, outcome, lower.age.bound, upper.age.bound, icu_ever) %>%
-    group_by(sex, outcome, country, calendar.year.admit, calendar.month.admit, monthyear, agegp10, lower.age.bound, upper.age.bound, icu_ever) %>%
+    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    group_by(slider_sex, slider_outcome, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_agegp10, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
     summarise(count = n()) %>%
     as_tibble() 
 }
@@ -59,9 +61,9 @@ outcome.admission.date.prep <- function(input.tbl){
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
     mutate(year.epiweek.admit = factor(year.epiweek.admit, levels = epiweek.order)) %>%
-    filter(!is.na(year.epiweek.admit) & !is.na(outcome)) %>%
-    select(sex, agegp10, lower.age.bound, upper.age.bound, country, calendar.year.admit, calendar.month.admit, monthyear, year.epiweek.admit, outcome, icu_ever) %>%
-    group_by(sex, outcome, country, calendar.year.admit, calendar.month.admit, monthyear, year.epiweek.admit, agegp10, lower.age.bound, upper.age.bound, icu_ever) %>%
+    filter(!is.na(year.epiweek.admit) & !is.na(slider_outcome)) %>%
+    select(slider_sex, slider_agegp10, lower.age.bound, upper.age.bound, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, year.epiweek.admit, slider_outcome, slider_icu_ever) %>%
+    group_by(slider_sex, slider_outcome, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, year.epiweek.admit, slider_agegp10, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
     summarise(count = n()) %>%
     as_tibble() 
 }
@@ -78,12 +80,12 @@ symptom.prevalence.prep <- function(input.tbl){
   
   symptom.prevalence.input <- input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(sex, agegp10, country, calendar.year.admit, calendar.month.admit, monthyear, outcome, icu_ever, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
+    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
     select(-`symptoms_covid-19_symptoms`) %>%
     as.data.table() %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptom", values_to = "present") %>%
     lazy_dt(immutable = TRUE) %>%
-    group_by(sex, agegp10, country, calendar.year.admit, calendar.month.admit, monthyear, outcome, symptom, lower.age.bound, upper.age.bound, icu_ever) %>%
+    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, symptom, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
     as_tibble()
   
@@ -118,11 +120,11 @@ comorbidity.prevalence.prep <- function(input.tbl){
   
   comorbidity.prevalence.input <- input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(sex, agegp10, country, calendar.year.admit, calendar.month.admit, monthyear, outcome, icu_ever, any_of(starts_with("comorb")), lower.age.bound, upper.age.bound) %>%
+    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("comorb")), lower.age.bound, upper.age.bound) %>%
     as.data.table() %>%
     pivot_longer(any_of(starts_with("comorb")), names_to = "comorbidity", values_to = "present") %>%
     lazy_dt(immutable = TRUE) %>%
-    group_by(sex, agegp10, country, calendar.year.admit, calendar.month.admit, monthyear, outcome, comorbidity, lower.age.bound, upper.age.bound, icu_ever) %>%
+    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, comorbidity, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
     as_tibble()
   
@@ -152,11 +154,11 @@ comorbidity.prevalence.prep <- function(input.tbl){
 treatment.use.proportion.prep <- function(input.tbl){
   
   treatment.use.proportion.input <- input.tbl %>%
-    select(sex, agegp10, country, calendar.year.admit, calendar.month.admit, monthyear, outcome, icu_ever, any_of(starts_with("treat")), lower.age.bound, upper.age.bound) %>%
+    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("treat")), lower.age.bound, upper.age.bound) %>%
     as.data.table() %>%
     pivot_longer(any_of(starts_with("treat")), names_to = "treatment", values_to = "present") %>%
     lazy_dt(immutable = TRUE) %>%
-    group_by(sex, agegp10, country, calendar.year.admit, calendar.month.admit, monthyear, outcome, treatment, lower.age.bound, upper.age.bound, icu_ever) %>%
+    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, treatment, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
     as_tibble()
   
@@ -182,7 +184,7 @@ treatment.use.proportion.prep <- function(input.tbl){
 #' @export icu.treatment.use.proportion.prep
 icu.treatment.use.proportion.prep <- function(input.tbl){
   
-  treatment.use.proportion.prep(input.tbl %>% filter(icu_ever))
+  treatment.use.proportion.prep(input.tbl %>% filter(slider_icu_ever))
   
 }
 
