@@ -450,3 +450,112 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
   symptom.upset.input
   
 }
+
+#' Aggregate data for treatments upset plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @param max.treatments The plot will display only the n most common treatments, this parameter is n
+#' @import dplyr purrr tidyr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the treatments upset plot
+#' @export treatment.upset.prep
+treatment.upset.prep <- function(input.tbl, max.treatments = 5){
+  
+  
+  data2 <- input.tbl %>%
+    select(usubjid, starts_with("treat"))
+  
+  n.comorb <- ncol(data2) - 1
+  
+  data2 <- data2 %>%
+    pivot_longer(2:(n.comorb+1), names_to = "Treatment", values_to = "Present") %>%
+    dplyr::mutate(Present = map_lgl(Present, function(x){
+      if(is.na(x)){
+        FALSE
+      } else if(x == 1){
+        TRUE
+      } else if(x == 2){
+        FALSE
+      } else {
+        FALSE
+      }
+    })) 
+  
+  # get the most common
+  
+  most.common <- data2 %>%
+    group_by(Treatment) %>%
+    dplyr::summarise(Total = n(), Present = sum(Present, na.rm = T)) %>%
+    ungroup() %>%
+    arrange(desc(Present)) %>%
+    slice(1:max.treatments) %>%
+    pull(Treatment)
+  
+  
+  nice.treatment.mapper <- tibble(treatment = unique(most.common)) %>%
+    mutate(nice.treatment = map_chr(treatment, function(st){
+      temp <- substr(st, 7, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      temp2
+    }))
+  
+  
+  top.n.treatments.tbl <- input.tbl %>%
+    dplyr::select(usubjid, matches(most.common)) %>%
+    pivot_longer(2:(length(most.common)+1), names_to = "Treatment", values_to = "Present") %>%
+    left_join(nice.treatment.mapper, by=c("Treatment" = "treatment")) %>%
+    select(-Treatment) %>%
+    filter(!is.na(Present)) %>%
+    group_by(usubjid) %>%
+    dplyr::summarise(Treatments = list(nice.treatment), Presence = list(Present)) %>%
+    dplyr::mutate(treatments.present = map2(Treatments, Presence, function(c,p){
+      c[which(p)]
+    })) %>%
+    dplyr::select(-Treatments, -Presence)
+  
+  slider.join <- input.tbl %>% select(usubjid, starts_with("slider"), lower.age.bound, upper.age.bound)
+  
+  top.n.treatments.tbl <- top.n.treatments.tbl %>% left_join(slider.join)
+  
+  treatment.upset.input <- top.n.treatments.tbl %>% 
+    mutate(condstring = map_chr(treatments.present, function(cp){
+      paste(sort(cp), collapse = "-")
+    })) %>%
+    select(-treatments.present) %>%
+    group_by(condstring, 
+             slider_sex, 
+             slider_country,
+             slider_icu_ever,
+             slider_outcome,
+             slider_monthyear,
+             slider_agegp10,
+             lower.age.bound,
+             upper.age.bound) %>% 
+    summarise(count = n()) %>%
+    ungroup() %>%
+    mutate(treatments.present = map(condstring, function(x){
+      out <- str_split(x, "-")
+      if(out == ""){
+        character()
+      } else {
+        unlist(out)
+      }
+    })) %>%
+    select(-condstring)
+  
+  treatment.upset.input
+  
+}
+
+
+#' Aggregate data for ICU treatments upset plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @param max.treatments The plot will display only the n most common treatments, this parameter is n
+#' @import dplyr purrr tidyr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the ICU treatments upset plot
+#' @export icu.treatment.upset.prep
+icu.treatment.upset.prep <- function(input.tbl, max.treatments = 5){
+  treatment.upset.prep(input.tbl %>% filter(slider_icu_ever), max.treatments)
+  
+  
+}
