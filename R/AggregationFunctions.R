@@ -334,7 +334,7 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
              upper.age.bound) %>% 
     summarise(count = n()) %>%
     ungroup() %>%
-    mutate(conditions.present = map(condstring, function(x){
+    mutate(which.present = map(condstring, function(x){
       out <- str_split(x, "-")
       if(out == ""){
         character()
@@ -437,7 +437,7 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
              upper.age.bound) %>% 
     summarise(count = n()) %>%
     ungroup() %>%
-    mutate(conditions.present = map(condstring, function(x){
+    mutate(which.present = map(condstring, function(x){
       out <- str_split(x, "-")
       if(out == ""){
         character()
@@ -532,7 +532,7 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
              upper.age.bound) %>% 
     summarise(count = n()) %>%
     ungroup() %>%
-    mutate(treatments.present = map(condstring, function(x){
+    mutate(which.present = map(condstring, function(x){
       out <- str_split(x, "-")
       if(out == ""){
         character()
