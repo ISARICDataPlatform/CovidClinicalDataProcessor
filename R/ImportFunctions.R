@@ -8,8 +8,19 @@
 #' @return The contents of \code{file.name} as a tibble or \code{dtplyr_step}
 #' @keywords internal
 #' @export shared.data.import
-shared.data.import <- function(file.name, excluded.columns = c("STUDYID", "DOMAIN"), dtplyr.step = FALSE, immutable = FALSE){
-  out <- fread(file.name, showProgress = FALSE) %>%
+shared.data.import <- function(file.name, 
+                               excluded.columns = c("STUDYID", "DOMAIN"),
+                               required.columns = character(), 
+                               dtplyr.step = FALSE, 
+                               immutable = FALSE){
+  
+  blank.columns <- as.list(rep(NA, length(required.columns)))
+  names(blank.columns) <- required.columns
+  
+  out <- fread(file.name, showProgress = FALSE) 
+  
+  out <- out %>%
+    add_column(out, !!!blank.columns[setdiff(names(blank.columns), names(out))]) %>%
     lazy_dt(immutable = immutable) %>%
     select(-all_of(excluded.columns)) %>%
     rename_all(function(x){tolower(x)})
@@ -31,7 +42,15 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
   
   country.lookup <- ISOcodes::ISO_3166_1 %>% as_tibble %>% select(Alpha_3, Name)
   
-  out <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
+  out <- shared.data.import(file.name,
+                            required.columns = c("USUBJID",
+                                                 "AGE",
+                                                 "SEX",
+                                                 "ETHNIC",
+                                                 "COUNTRY",
+                                                 "RFSTDTC",
+                                                 "INVID"),
+                            dtplyr.step = TRUE) %>%
     select(usubjid, age, sex, ethnic, country, "date_admit" = rfstdtc, invid) %>%
     mutate(country = replace(country, country == "", NA)) %>%
     left_join(country.lookup, by = c("country" = "Alpha_3")) %>%
@@ -147,7 +166,7 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
 #' @return Formatted symptom data as a tibble or \code{dtplyr_step}
 #' @export process.ICU.data
 process.ICU.data <- function(file.name, dtplyr.step = FALSE){
-  icu <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
+  icu <- shared.data.import(file.name, dtplyr.step = FALSE) %>%
     filter(hoterm %in% c("Hospitalization", "ICU or High Dependency Unit admission")) %>%
     select(usubjid, hoterm, hostdtc, hoendtc) %>%
     mutate(hoterm = ifelse(hoterm=="Hospitalization", "hospital", "icu")) %>%

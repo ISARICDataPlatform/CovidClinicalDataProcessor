@@ -7,6 +7,7 @@
 shared.data.import(
   file.name,
   excluded.columns = c("STUDYID", "DOMAIN"),
+  required.columns = character(),
   dtplyr.step = FALSE,
   immutable = FALSE
 )
