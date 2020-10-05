@@ -108,8 +108,7 @@ process.comorbidity.data <- function(input, dtplyr.step = FALSE){
       comorbid <- comorbid %>% as.data.table %>% lazy_dt(immutable = FALSE)
     }
   }
-  
-  #comment
+
   comorbid <- comorbid %>%
     filter(sacat=="MEDICAL HISTORY") %>%
     mutate(saterm = glue("comorbid_{saterm}", .envir = .SD)) %>%
