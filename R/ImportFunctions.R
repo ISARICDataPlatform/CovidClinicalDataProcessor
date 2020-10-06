@@ -168,11 +168,11 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
 #' @export process.ICU.data
 process.ICU.data <- function(file.name, dtplyr.step = FALSE){
   icu <- shared.data.import(file.name, dtplyr.step = FALSE) %>%
-    filter(hoterm %in% c("Hospitalization", "ICU or High Dependency Unit admission")) %>%
-    select(usubjid, hoterm, hostdtc, hoendtc) %>%
-    mutate(hoterm = ifelse(hoterm=="Hospitalization", "hospital", "icu")) %>%
+    filter(hodecod %in% c("HOSPITAL", "INTENSIVE CARE UNIT")) %>%
+    select(usubjid, hodecod, hostdtc, hoendtc) %>%
+    mutate(hodecod = ifelse(hodecod=="HOSPITAL", "hospital", "icu")) %>%
     as.data.table() %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = hoterm,  values_from = c(hostdtc, hoendtc)) %>%
+    dt_pivot_wider(id_cols = usubjid, names_from = hodecod,  values_from = c(hostdtc, hoendtc)) %>%
     lazy_dt(immutable = FALSE) %>%
     select(usubjid, "hospital_in" = hostdtc_hospital,"hospital_out" = hoendtc_hospital, 
            "icu_in" = hostdtc_icu,  "icu_out" = hoendtc_icu) %>%
