@@ -240,7 +240,13 @@ process.common.treatment.data <- function(input, minimum = 1000, dtplyr.step = F
     mutate(n = sum(!is.na(inoccur))) %>%
     filter(n >= eval(!!minimum)) %>%
     mutate(treatment = glue("treat_{treatment}", treatment = treatment)) %>%
-    as.data.table() %>%
+    as.data.table()
+  
+  if(nrow(treatment) == 0){
+    stop(glue("No treatments occur more than {minimum} times"))
+  }
+    
+  treatment <- treatment %>%
     dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur) 
   
   if(dtplyr.step){
