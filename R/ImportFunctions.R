@@ -76,7 +76,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
 #' @export import.symptom.and.comorbidity.data
 import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step = FALSE){
   out <- shared.data.import(file.name, dtplyr.step = TRUE, immutable = TRUE) %>% # this will often by used twice, so should be immutable
-    select(usubjid, saterm, sacat, saoccur) %>%
+    select(usubjid, saterm, sacat, saoccur, sapresp) %>%
     mutate(saterm = iconv(saterm, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(saterm = str_remove_all(saterm, "\\s*\\([^)]*\\)")) %>%
     mutate(saterm = str_replace_all(saterm, " - ", "_")) %>%
