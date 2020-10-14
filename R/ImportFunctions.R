@@ -76,7 +76,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
 #' @export import.symptom.and.comorbidity.data
 import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step = FALSE){
   out <- shared.data.import(file.name, dtplyr.step = TRUE, immutable = TRUE) %>% # this will often by used twice, so should be immutable
-    select(usubjid, saterm, sacat, saoccur) %>%
+    select(usubjid, saterm, sacat, sapresp, saoccur) %>%
     mutate(saterm = iconv(saterm, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(saterm = str_remove_all(saterm, "\\s*\\([^)]*\\)")) %>%
     mutate(saterm = str_replace_all(saterm, " - ", "_")) %>%
@@ -110,7 +110,7 @@ process.comorbidity.data <- function(input, dtplyr.step = FALSE){
   }
 
   comorbid <- comorbid %>%
-    filter(sacat=="MEDICAL HISTORY") %>%
+    filter(sacat=="MEDICAL HISTORY" & sapresp=="Y") %>%
     mutate(saterm = glue("comorbid_{saterm}", .envir = .SD)) %>%
     mutate(saoccur = case_when(saoccur == "Y" ~ TRUE,
                                saoccur == "N" ~ FALSE,
@@ -144,7 +144,7 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
   }
 
   symptom <- symptom %>%
-    filter(sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION") %>%
+    filter(sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION" & sapresp=="Y") %>%
     mutate(saterm = glue("symptoms_{saterm}", .envir = .SD)) %>%
     mutate(saoccur = case_when(saoccur == "Y" ~ TRUE,
                                saoccur == "N" ~ FALSE,
