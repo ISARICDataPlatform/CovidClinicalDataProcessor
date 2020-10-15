@@ -224,7 +224,8 @@ process.treatment.data <- function(file.name, dtplyr.step = FALSE){
 #' @importFrom glue glue
 #' @return Formatted common treatment data (wide format) as a tibble or \code{dtplyr_step}
 #' @export process.common.treatment.data
-process.common.treatment.data <- function(input, minimum = 1000, dtplyr.step = FALSE){
+
+process.common.treatment.data <- function(input, minimum = 100, dtplyr.step = FALSE){
   if(is.character(input)){
     # assume it's a path
     treatment_all <- process.treatment.data(input, TRUE)
