@@ -60,7 +60,10 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(sex = case_when(sex == "M" ~ "Male",
                            sex == "F" ~ "Female",
                            TRUE ~ NA_character_)) %>%
-    mutate(ethnic = replace(ethnic, ethnic == "", NA))
+    mutate(ethnic = replace(ethnic, ethnic == "", NA))%>%
+    mutate(date_admit=substr(date_admit,1, 10))%>%
+    mutate(date_admit=as_date(date_admit))
+  
   if(dtplyr.step){
     return(out)
   } else {
