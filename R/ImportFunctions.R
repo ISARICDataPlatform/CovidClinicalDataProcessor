@@ -266,7 +266,9 @@ process.common.treatment.data <- function(input, minimum = 100, dtplyr.step = FA
 process.outcome.data <- function(file.name, dtplyr.step = FALSE){
   outcome <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
     select(usubjid, "outcome" = dsterm, "date_outcome" = dsstdtc) %>%
-    mutate(outcome = str_to_title(outcome))
+    mutate(outcome = str_to_title(outcome))%>%
+    mutate(date_outcome=substr(date_outcome,1, 10))%>%
+    mutate(date_outcome=as_date(date_outcome))
   
   if(dtplyr.step){
     return(outcome)
