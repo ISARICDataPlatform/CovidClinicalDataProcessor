@@ -284,7 +284,7 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
 #' @import dplyr tibble
 #' @return Formatted outcome data as a tibble or \code{dtplyr_step}
 #' @export process.all.data
-process.all.data <- function(demog.file.name, symptoms.file.name = NA, ICU.file.name = NA, treatment.file.name = NA, outcome.file.name = NA, minimum.treatments = 1000, dtplyr.step = FALSE){
+process.all.data <- function(demog.file.name, symptoms.file.name = NA, ICU.file.name = NA, treatment.file.name = NA, outcome.file.name = NA, minimum.treatments = 100, dtplyr.step = FALSE){
   demographic <- import.demographic.data(demog.file.name, dtplyr.step = FALSE)
   if(!is.na(symptoms.file.name)){
     comorb.sympt.temp <-  import.symptom.and.comorbidity.data(symptoms.file.name, dtplyr.step = TRUE)
