@@ -195,7 +195,7 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
 #' @export process.treatment.data
 process.treatment.data <- function(file.name, dtplyr.step = FALSE){
   treatment <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
-    filter(incat == "SUPPORTIVE CARE") %>%
+    filter(incat == "SUPPORTIVE CARE" & inpresp =="Y") %>%
     select(usubjid, "treatment" = intrt, inoccur) %>%
     mutate(treatment = iconv(treatment, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(treatment = str_remove_all(treatment, "\\s*\\([^)]*\\)")) %>%
@@ -231,7 +231,7 @@ process.common.treatment.data <- function(input, minimum = 1000, dtplyr.step = F
   } else {
     treatment_all <- input
     if(is_tibble(treatment_all)){
-      treatment_all <- treatment_all %>% as.data.table %>% lazy_dt(immutable = FALSE)
+      treatment_all <- treatment_all %>% as.data.table  %>% lazy_dt(immutable = FALSE)
     }
   }
   
