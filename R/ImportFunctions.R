@@ -174,6 +174,10 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
     filter(hodecod %in% c("HOSPITAL", "INTENSIVE CARE UNIT")) %>%
     select(usubjid, hodecod, hostdtc, hoendtc) %>%
     mutate(hodecod = ifelse(hodecod=="HOSPITAL", "hospital", "icu")) %>%
+    mutate(hostdtc=substr(hostdtc,1, 10))%>%
+    mutate(hostdtc=as_date(hostdtc))%>%
+    mutate(hoendtc=substr(hoendtc,1, 10))%>%
+    mutate(hoendtc=as_date(hoendtc))%>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = hodecod,  values_from = c(hostdtc, hoendtc)) %>%
     lazy_dt(immutable = FALSE) %>%
