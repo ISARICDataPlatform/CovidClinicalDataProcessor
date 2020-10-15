@@ -171,20 +171,22 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
 #' @export process.ICU.data
 process.ICU.data <- function(file.name, dtplyr.step = FALSE){
   icu <- shared.data.import(file.name, dtplyr.step = FALSE) %>%
-    filter(hodecod %in% c("HOSPITAL", "INTENSIVE CARE UNIT")) %>%
+    filter(hooccur=="Y")%>%
     select(usubjid, hodecod, hostdtc, hoendtc) %>%
     mutate(hodecod = ifelse(hodecod=="HOSPITAL", "hospital", "icu")) %>%
+    distinct(usubjid, hodecod, .keep_all =T)%>%
     mutate(hostdtc=substr(hostdtc,1, 10))%>%
     mutate(hostdtc=as_date(hostdtc))%>%
     mutate(hoendtc=substr(hoendtc,1, 10))%>%
     mutate(hoendtc=as_date(hoendtc))%>%
+    mutate(ever="TRUE")%>%
     as.data.table() %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = hodecod,  values_from = c(hostdtc, hoendtc)) %>%
-    lazy_dt(immutable = FALSE) %>%
-    select(usubjid, "hospital_in" = hostdtc_hospital,"hospital_out" = hoendtc_hospital, 
-           "icu_in" = hostdtc_icu,  "icu_out" = hoendtc_icu) %>%
-    select(-starts_with("hospital_")) %>%
-    filter(is.na(icu_in)==FALSE) 
+    dt_pivot_wider(id_cols = usubjid, names_from = hodecod,  values_from = c(hostdtc, hoendtc, ever))%>%
+    lazy_dt(immutable = FALSE)# %>%
+    #select(usubjid, ever_hospital, "hospital_in" = hostdtc_hospital,"hospital_out" = hoendtc_hospital,
+     #      ever_icu, "icu_in" = hostdtc_icu,  "icu_out" = hoendtc_icu) #%>%
+    #select(-starts_with("hospital_")) %>%
+    #filter(is.na(icu_in)==FALSE) 
   
   if(dtplyr.step){
     return(icu)
@@ -192,6 +194,7 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
     return(icu %>% as_tibble())
   }
 }
+
 
 
 #' Process data on treatments
@@ -308,8 +311,8 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, ICU.file.
   if(!is.na(ICU.file.name)){
     icu <- process.ICU.data(ICU.file.name, dtplyr.step = FALSE)
     demographic <- demographic %>%
-      left_join(icu, by = c("usubjid")) %>%
-      mutate(icu_ever = !is.na(icu_in))
+      left_join(icu, by = c("usubjid")) #%>%
+      #mutate(icu_ever = !is.na(icu_in))
   }
   if(!is.na(treatment.file.name)){
     treatment <- process.common.treatment.data(treatment.file.name, minimum.treatments, FALSE)
