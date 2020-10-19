@@ -182,9 +182,9 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
     mutate(ever="TRUE")%>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = hodecod,  values_from = c(hostdtc, hoendtc, ever))%>%
-    lazy_dt(immutable = FALSE)# %>%
-    #select(usubjid, ever_hospital, "hospital_in" = hostdtc_hospital,"hospital_out" = hoendtc_hospital,
-     #      ever_icu, "icu_in" = hostdtc_icu,  "icu_out" = hoendtc_icu) #%>%
+    lazy_dt(immutable = FALSE)%>%
+    select(usubjid, ever_hospital, "hospital_in" = hostdtc_hospital,"hospital_out" = hoendtc_hospital,
+          ever_icu, "icu_in" = hostdtc_icu,  "icu_out" = hoendtc_icu) #%>%
     #select(-starts_with("hospital_")) %>%
     #filter(is.na(icu_in)==FALSE) 
   
