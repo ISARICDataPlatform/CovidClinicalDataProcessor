@@ -171,20 +171,25 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
 #' @export process.ICU.data
 process.ICU.data <- function(file.name, dtplyr.step = FALSE){
   icu <- shared.data.import(file.name, dtplyr.step = FALSE) %>%
-    filter(hooccur=="Y")%>%
-    select(usubjid, hodecod, hostdtc, hoendtc) %>%
+    filter(hooccur=="Y" | hooccur=="N")%>%
+    mutate(hooccur = case_when(hooccur == "Y" ~ TRUE,
+                               hooccur == "N" ~ FALSE,
+                               TRUE ~ NA)) %>%
+    select(usubjid, hodecod, hostdtc, hoendtc, hooccur) %>%
     mutate(hodecod = ifelse(hodecod=="HOSPITAL", "hospital", "icu")) %>%
+    filter(hodecod=="icu")%>%
     arrange(desc(hostdtc))%>%
-    distinct(usubjid, hodecod, .keep_all =T)%>%
+    distinct(usubjid, .keep_all =T)%>%
     mutate(hostdtc=substr(hostdtc,1, 10))%>%
     mutate(hostdtc=as_date(hostdtc))%>%
     mutate(hoendtc=substr(hoendtc,1, 10))%>%
     mutate(hoendtc=as_date(hoendtc))%>%
-    mutate(ever="TRUE")%>%
-    #rename("in"=hostdtc)%>%
-    #rename("out"=hoendtc)%>%
-    as.data.table() %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = hodecod,  values_from = c(hostdtc, hoendtc, ever))#%>%
+    rename(ever_icu=hooccur)%>%
+    rename(icu_in=hostdtc)%>%
+    rename(icu_out=hoendtc)%>%
+    select(-c(hodecod))
+    #as.data.table() %>%
+    #dt_pivot_wider(id_cols = usubjid, names_from = hodecod,  values_from = c("in", "out", ever))#%>%
     #lazy_dt(immutable = FALSE)#%>%
     #select(usubjid, ever_hospital, "hospital_in" = hostdtc_hospital,"hospital_out" = hoendtc_hospital,
      #     ever_icu, "icu_in" = hostdtc_icu,  "icu_out" = hoendtc_icu) #%>%
