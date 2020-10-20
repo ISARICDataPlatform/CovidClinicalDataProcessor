@@ -174,6 +174,7 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
     filter(hooccur=="Y")%>%
     select(usubjid, hodecod, hostdtc, hoendtc) %>%
     mutate(hodecod = ifelse(hodecod=="HOSPITAL", "hospital", "icu")) %>%
+    arrange(desc(hostdtc))%>%
     distinct(usubjid, hodecod, .keep_all =T)%>%
     mutate(hostdtc=substr(hostdtc,1, 10))%>%
     mutate(hostdtc=as_date(hostdtc))%>%
