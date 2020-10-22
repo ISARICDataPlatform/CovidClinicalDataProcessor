@@ -223,8 +223,8 @@ process.treatment.data <- function(file.name, dtplyr.step = FALSE){
     mutate(treatment = str_replace_all(treatment, " ", "_")) %>%
     mutate(inoccur = case_when(inoccur == "Y" ~ TRUE,
                                inoccur == "N" ~ FALSE,
-                               TRUE ~ NA)) %>%
-    distinct(usubjid, treatment, .keep_all =T) 
+                               TRUE ~ NA))# %>%
+    #distinct(usubjid, treatment, .keep_all =T) 
   
   if(dtplyr.step){
     return(treatment)
@@ -255,6 +255,7 @@ process.common.treatment.data <- function(input, minimum = 100, dtplyr.step = FA
   }
   
   treatment <- treatment_all %>%
+    distinct(usubjid, treatment, .keep_all =T)%>% 
     group_by(treatment) %>% 
     mutate(n = sum(!is.na(inoccur))) %>%
     filter(n >= eval(!!minimum)) %>%
@@ -294,7 +295,7 @@ process.IMV.NIV.data <- function(input, dtplyr.step = FALSE){
     dplyr::filter(treatment %like% "ventilation")%>%
     mutate(indtc=substr(indtc,1, 10))%>%
     mutate(indtc=as_date(indtc))%>%
-    filter(!is.na(indtc))%>%
+    #filter(!is.na(indtc))%>%
     as_tibble() %>%
     dplyr::mutate(vent=ifelse(treatment %like% "non", "niv", "imv"))%>%
     select(-(treatment))
@@ -302,14 +303,16 @@ process.IMV.NIV.data <- function(input, dtplyr.step = FALSE){
   vent_st<-ventilation%>% 
     arrange(indtc)%>%
     distinct(usubjid,vent, .keep_all =T)%>%
+    mutate(ever=inoccur)%>%
     as.data.table() %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = vent,  values_from = indtc)%>%
+    dt_pivot_wider(id_cols = usubjid, names_from = vent,  values_from = c(ever, indtc))%>%
     as.data.frame()%>%
-    select(usubjid, "niv_in" = niv,"imv_in" = imv)
+    select(usubjid, ever_niv,"niv_in" = niv,"imv_in" = imv)
   
   ventilation<-ventilation%>%
     arrange(desc(indtc))%>%
     distinct(usubjid,vent, .keep_all =T)%>%
+    mutate(ever=inoccur)%>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = vent,  values_from = indtc)%>%
     as.data.frame()%>%
