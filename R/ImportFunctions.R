@@ -310,20 +310,20 @@ process.IMV.NIV.data <- function(input, dtplyr.step = FALSE){
     select(-(treatment))
   
   vent_st<-ventilation%>% 
-    arrange(indtc)%>%
-    distinct(usubjid,vent, .keep_all =T)%>%
     mutate(ever=inoccur)%>%
     filter(ever==TRUE)%>%
+    arrange(indtc)%>%
+    distinct(usubjid,vent, .keep_all =T)%>%
     mutate(st=indtc)%>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = vent,  values_from = c(st,ever))
 
   
   ventilation<-ventilation%>%
-    arrange(desc(indtc))%>%
-    distinct(usubjid,vent, .keep_all =T)%>%
     mutate(ever=inoccur)%>%
     filter(ever==TRUE)%>%
+    arrange(desc(indtc))%>%
+    distinct(usubjid,vent, .keep_all =T)%>%
     mutate(end=indtc)%>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = vent,  values_from = c(end, ever))%>%
