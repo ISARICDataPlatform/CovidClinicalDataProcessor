@@ -212,7 +212,16 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
 #' @return Formatted treatment data (long format) as a tibble or \code{dtplyr_step}
 #' @export process.treatment.data
 process.treatment.data <- function(file.name, dtplyr.step = FALSE){
-  treatment <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
+  
+  out <- shared.data.import(file.name,
+                            required.columns = c("USUBJID",
+                                                 "INTRT",
+                                                 "INOCCUR",
+                                                 "INDTC"),
+                            dtplyr.step = TRUE)
+  
+  #treatment <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
+  treatment<-out%>%
     filter(incat == "SUPPORTIVE CARE" & inpresp =="Y") %>%
     select(usubjid, "treatment" = intrt, inoccur, indtc) %>%
     mutate(treatment = iconv(treatment, to ="ASCII//TRANSLIT") %>% tolower()) %>%
@@ -304,21 +313,24 @@ process.IMV.NIV.data <- function(input, dtplyr.step = FALSE){
     arrange(indtc)%>%
     distinct(usubjid,vent, .keep_all =T)%>%
     mutate(ever=inoccur)%>%
+    filter(ever==TRUE)%>%
+    mutate(st=indtc)%>%
     as.data.table() %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = vent,  values_from = c(ever, indtc))%>%
-    as.data.frame()%>%
-    select(usubjid, ever_niv,"niv_in" = niv,"imv_in" = imv)
+    dt_pivot_wider(id_cols = usubjid, names_from = vent,  values_from = c(st,ever))
+
   
   ventilation<-ventilation%>%
     arrange(desc(indtc))%>%
     distinct(usubjid,vent, .keep_all =T)%>%
     mutate(ever=inoccur)%>%
+    filter(ever==TRUE)%>%
+    mutate(end=indtc)%>%
     as.data.table() %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = vent,  values_from = indtc)%>%
+    dt_pivot_wider(id_cols = usubjid, names_from = vent,  values_from = c(end, ever))%>%
     as.data.frame()%>%
-    select(usubjid, "niv_out" = niv,"imv_out" = imv)%>%
-    left_join(vent_st, by = c("usubjid"))%>%
-    select(usubjid, niv_in, niv_out, imv_in, imv_out)
+    select(-contains("ever"))%>%
+    left_join(vent_st, by = c("usubjid"))#%>%
+    #select(usubjid, niv_in, niv_out, imv_in, imv_out)
 
   if(dtplyr.step){
     return(ventilation) %>% lazy_dt(immutable = FALSE)
