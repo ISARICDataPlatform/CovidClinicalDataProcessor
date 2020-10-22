@@ -214,7 +214,7 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
 process.treatment.data <- function(file.name, dtplyr.step = FALSE){
   treatment <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
     filter(incat == "SUPPORTIVE CARE" & inpresp =="Y") %>%
-    select(usubjid, "treatment" = intrt, inoccur) %>%
+    select(usubjid, "treatment" = intrt, inoccur, indtc) %>%
     mutate(treatment = iconv(treatment, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(treatment = str_remove_all(treatment, "\\s*\\([^)]*\\)")) %>%
     mutate(treatment = str_replace_all(treatment, " - ", "_")) %>%
@@ -269,6 +269,63 @@ process.common.treatment.data <- function(input, minimum = 100, dtplyr.step = FA
   }
   
 }
+
+#' Process dates on IMV and NIV
+#' @param input Either the path of the interventions data file (CDISC format) or output of \code{process.treatment.data}
+#' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
+#' @import dplyr tibble dtplyr tidyfast lubridate
+#' @importFrom data.table as.data.table
+#' @importFrom glue glue
+#' @return Formatted start (in) and end (out) dates for IMV and NIV treatment (wide format) as a tibble or \code{dtplyr_step}
+#' @export process.common.treatment.data
+process.IMV.NIV.data <- function(input, dtplyr.step = FALSE){
+  if(is.character(input)){
+    # assume it's a path
+    treatment_all <- process.treatment.data(input, TRUE)
+  } else {
+    treatment_all <- input
+    if(is_tibble(treatment_all)){
+      treatment_all <- treatment_all %>% as.data.table  %>% lazy_dt(immutable = FALSE)
+    }
+  }
+  
+  ventilation <- treatment_all %>% 
+    as_tibble() %>%
+    dplyr::filter(treatment %like% "ventilation")%>%
+    mutate(indtc=substr(indtc,1, 10))%>%
+    mutate(indtc=as_date(indtc))%>%
+    filter(!is.na(indtc))%>%
+    as_tibble() %>%
+    dplyr::mutate(vent=ifelse(treatment %like% "non", "niv", "imv"))%>%
+    select(-(treatment))
+  
+  vent_st<-ventilation%>% 
+    arrange(indtc)%>%
+    distinct(usubjid,vent, .keep_all =T)%>%
+    as.data.table() %>%
+    dt_pivot_wider(id_cols = usubjid, names_from = vent,  values_from = indtc)%>%
+    as.data.frame()%>%
+    select(usubjid, "niv_in" = niv,"imv_in" = imv)
+  
+  ventilation<-ventilation%>%
+    arrange(desc(indtc))%>%
+    distinct(usubjid,vent, .keep_all =T)%>%
+    as.data.table() %>%
+    dt_pivot_wider(id_cols = usubjid, names_from = vent,  values_from = indtc)%>%
+    as.data.frame()%>%
+    select(usubjid, "niv_out" = niv,"imv_out" = imv)%>%
+    left_join(vent_st, by = c("usubjid"))%>%
+    select(usubjid, niv_in, niv_out, imv_in, imv_out)
+
+  if(dtplyr.step){
+    return(ventilation) %>% lazy_dt(immutable = FALSE)
+  } else {
+    return(ventilation %>% as_tibble())
+  }    
+  
+}
+  
+  
 
 
 
@@ -326,6 +383,11 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, ICU.file.
     treatment <- process.common.treatment.data(treatment.file.name, minimum.treatments, FALSE)
     demographic <- demographic %>%
       left_join(treatment, by = c("usubjid"))
+  }
+  if(!is.na(treatment.file.name)){
+    ventilation <- ventilation <- process.IMV.NIV.data(treatment.file.name, dtplyr.step = FALSE)
+    demographic <- demographic %>%
+      left_join(ventilation, by = c("usubjid"))
   }
   if(!is.na(outcome.file.name)){
     outcome <- process.outcome.data(outcome.file.name, dtplyr.step = FALSE)
