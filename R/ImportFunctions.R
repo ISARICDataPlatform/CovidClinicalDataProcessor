@@ -87,7 +87,7 @@ import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step = FALSE){
                                                  "SAOCCUR",
                                                  "SASTDTC"),
                             dtplyr.step = TRUE, immutable = TRUE) %>% # this will often by used twice, so should be immutable
-    select(usubjid, saterm, sacat, sapresp, saoccur) %>%
+    select(usubjid, saterm, sacat, sapresp, saoccur, sastdtc) %>%
     mutate(saterm = iconv(saterm, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(saterm = str_remove_all(saterm, "\\s*\\([^)]*\\)")) %>%
     mutate(saterm = str_replace_all(saterm, " - ", "_")) %>%
@@ -154,14 +154,34 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
     }
   }
 
-  symptom <- symptom %>%
+  symptom_w <- symptom %>%
     filter(sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION" & sapresp=="Y") %>%
     mutate(saterm = glue("symptoms_{saterm}", .envir = .SD)) %>%
     mutate(saoccur = case_when(saoccur == "Y" ~ TRUE,
                                saoccur == "N" ~ FALSE,
                                TRUE ~ NA)) %>%
     as.data.table() %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = saterm, values_from = saoccur) 
+    dt_pivot_wider(id_cols = usubjid, names_from = saterm, values_from = saoccur) %>%
+    as.data.frame()
+  
+  symptom_onset<-symptom%>%
+    filter(sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION" & sapresp=="Y") %>%
+    mutate(saoccur = case_when(saoccur == "Y" ~ TRUE,
+                               saoccur == "N" ~ FALSE,
+                               TRUE ~ NA))%>%
+    filter(saoccur==TRUE)%>%
+    mutate(sastdtc=as.character(sastdtc))%>%
+    #as.character(sastdtc)%>%
+    mutate(sastdtc = replace(sastdtc, sastdtc =="" , NA))%>%
+    mutate(sastdtc=substr(sastdtc,1, 10))%>%
+    mutate(sastdtc=as_date(sastdtc))%>%
+    arrange(sastdtc)%>%
+    distinct(usubjid, .keep_all =T)%>%
+    select(usubjid, "date_onset"=sastdtc)%>%
+    as.data.frame()
+  
+  symptom<- symptom_w%>%
+    left_join(symptom_onset, by = c("usubjid"))
   
   if(dtplyr.step){
     return(symptom %>% lazy_dt(immutable = FALSE))
