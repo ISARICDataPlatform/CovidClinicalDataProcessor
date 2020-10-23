@@ -309,28 +309,44 @@ process.IMV.NIV.data <- function(input, dtplyr.step = FALSE){
     dplyr::mutate(vent=ifelse(treatment %like% "non", "niv", "imv"))%>%
     select(-(treatment))
   
-  vent_st<-ventilation%>% 
-    mutate(ever=inoccur)%>%
-    filter(ever==TRUE)%>%
+  vent_ever <- ventilation %>%
+    filter(vent=="imv" | vent=="niv")%>%
+    arrange(desc(inoccur))%>%
+    distinct(usubjid,vent, .keep_all =T)%>%
+    mutate(vent = glue("ever_{vent}", vent = vent)) %>%
+    as.data.table() %>%
+    dt_pivot_wider(id_cols = usubjid, names_from = vent,  values_from = inoccur)%>%
+    as.data.frame()
+  
+  niv_st<-ventilation%>% 
+    filter(inoccur==TRUE & vent=="niv")%>%
     arrange(indtc)%>%
     distinct(usubjid,vent, .keep_all =T)%>%
-    mutate(st=indtc)%>%
-    as.data.table() %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = vent,  values_from = c(st,ever))
-
+    select(usubjid, "niv_st"=indtc)
   
-  ventilation<-ventilation%>%
-    mutate(ever=inoccur)%>%
-    filter(ever==TRUE)%>%
+  niv_en<-ventilation%>% 
+    filter(inoccur==TRUE & vent=="niv")%>%
     arrange(desc(indtc))%>%
     distinct(usubjid,vent, .keep_all =T)%>%
-    mutate(end=indtc)%>%
-    as.data.table() %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = vent,  values_from = c(end, ever))%>%
-    as.data.frame()%>%
-    select(-contains("ever"))%>%
-    left_join(vent_st, by = c("usubjid"))#%>%
-    #select(usubjid, niv_in, niv_out, imv_in, imv_out)
+    select(usubjid, "niv_en"=indtc)
+ 
+   imv_st<-ventilation%>% 
+    filter(inoccur==TRUE & vent=="imv")%>%
+    arrange(indtc)%>%
+    distinct(usubjid,vent, .keep_all =T)%>%
+    select(usubjid, "imv_st"=indtc)
+  
+  imv_en<-ventilation%>% 
+    filter(inoccur==TRUE & vent=="imv")%>%
+    arrange(desc(indtc))%>%
+    distinct(usubjid,vent, .keep_all =T)%>%
+    select(usubjid, "imv_en"=indtc)
+  
+  ventilation<-vent_ever%>%
+    left_join(niv_st, by = c("usubjid"))%>%
+    left_join(niv_en, by = c("usubjid"))%>%
+    left_join(imv_st, by = c("usubjid"))%>%
+    left_join(imv_en, by = c("usubjid"))
 
   if(dtplyr.step){
     return(ventilation) %>% lazy_dt(immutable = FALSE)
