@@ -78,7 +78,15 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
 #' @return Formatted comorbidity and symptom data as a tibble or \code{dtplyr_step}
 #' @export import.symptom.and.comorbidity.data
 import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step = FALSE){
-  out <- shared.data.import(file.name, dtplyr.step = TRUE, immutable = TRUE) %>% # this will often by used twice, so should be immutable
+
+  out <- shared.data.import(file.name, 
+                            required.columns = c("USUBJID",
+                                                 "SATERM",
+                                                 "SACAT",
+                                                 "SAPRESP",
+                                                 "SAOCCUR",
+                                                 "SASTDTC"),
+                            dtplyr.step = TRUE, immutable = TRUE) %>% # this will often by used twice, so should be immutable
     select(usubjid, saterm, sacat, sapresp, saoccur) %>%
     mutate(saterm = iconv(saterm, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(saterm = str_remove_all(saterm, "\\s*\\([^)]*\\)")) %>%
