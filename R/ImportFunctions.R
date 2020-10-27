@@ -250,8 +250,15 @@ process.treatment.data <- function(file.name, dtplyr.step = FALSE){
   
   #treatment <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
   treatment<-out%>%
-    filter(incat == "SUPPORTIVE CARE" & inpresp =="Y") %>%
-    select(usubjid, "treatment" = intrt, inoccur, indtc) %>%
+    filter(incat == "SUPPORTIVE CARE" | incat == "ANTIBIOTIC AGENTS" | incat == "ANTIFUNGAL AGENTS"
+           | incat == "ANTIVIRAL AGENTS" | incat == "CORTICOSTEROIDS" | intrt == "CONVALESCENT PLASMA") %>%
+    filter(inpresp =="Y") %>%
+    select(usubjid, "treatment" = intrt, inoccur, indtc, incat) %>%
+    mutate(treatment=replace(treatment,incat=="ANTIBIOTIC AGENTS", "ANTIBIOTIC AGENTS"))%>%
+    mutate(treatment=replace(treatment,incat=="ANTIFUNGAL AGENTS", "ANTIFUNGAL AGENTS"))%>%
+    mutate(treatment=replace(treatment,incat=="ANTIVIRAL AGENTS", "ANTIVIRAL AGENTS"))%>%
+    mutate(treatment=replace(treatment,incat=="CORTICOSTEROIDS", "CORTICOSTEROIDS"))%>%
+    select(usubjid, treatment, inoccur, indtc) %>%
     mutate(treatment = iconv(treatment, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(treatment = str_remove_all(treatment, "\\s*\\([^)]*\\)")) %>%
     mutate(treatment = str_replace_all(treatment, " - ", "_")) %>%
