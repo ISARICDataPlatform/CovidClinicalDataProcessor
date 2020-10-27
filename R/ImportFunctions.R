@@ -251,7 +251,7 @@ process.treatment.data <- function(file.name, dtplyr.step = FALSE){
   #treatment <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
   treatment<-out%>%
     filter(incat == "SUPPORTIVE CARE" | incat == "ANTIBIOTIC AGENTS" | incat == "ANTIFUNGAL AGENTS"
-           | incat == "ANTIVIRAL AGENTS" | incat == "CORTICOSTEROIDS" | intrt == "CONVALESCENT PLASMA") %>%
+           | incat == "ANTIVIRAL AGENTS" | incat == "CORTICOSTEROIDS") %>%
     filter(inpresp =="Y") %>%
     select(usubjid, "treatment" = intrt, inoccur, indtc, incat) %>%
     mutate(treatment=replace(treatment,incat=="ANTIBIOTIC AGENTS", "ANTIBIOTIC AGENTS"))%>%
