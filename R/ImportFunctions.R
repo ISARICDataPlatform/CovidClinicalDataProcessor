@@ -301,6 +301,7 @@ process.common.treatment.data <- function(input, minimum = 100, dtplyr.step = FA
   treatment <- treatment_all %>%
     distinct(usubjid, treatment, .keep_all =T)%>% 
     group_by(treatment) %>% 
+    arrange(desc(inoccur))%>%
     mutate(n = sum(!is.na(inoccur))) %>%
     filter(n >= eval(!!minimum)) %>%
     mutate(treatment = glue("treat_{treatment}", treatment = treatment)) %>%
