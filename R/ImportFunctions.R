@@ -429,10 +429,12 @@ process.IMV.NIV.data <- function(input, dtplyr.step = FALSE){
 #' @export process.vital.sign.data
 process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
   vital_sign <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
-    select(usubjid, vstestcd, vscat,vsstresn,vsstresu) %>%
+    select(usubjid, vstestcd, vscat,vsstresn,vsstresu, vsdtc) %>%
     filter(vscat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION" | vscat=="SIGNS AND SYMPTOMS AT ADMISSION")%>%
     filter(!is.na(vsstresn))%>%
     mutate(vstestcd = glue("vs_{vstestcd}", vstestcd = vstestcd)) %>%
+    arrange(desc(vsdtc))%>%
+    distinct(usubjid,vstestcd, .keep_all =T)%>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = vstestcd,  values_from = vsstresn) 
    
