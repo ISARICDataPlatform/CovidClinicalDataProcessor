@@ -135,6 +135,7 @@ process.comorbidity.data <- function(input, dtplyr.step = FALSE){
   }
 }
 
+ 
 #' Process data on symptoms
 #' @param input Either the path of the symptoms/comorbidities data file (CDISC format) or output of \code{import.symptom.and.comorbidity.data}
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
@@ -189,6 +190,32 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
     return(symptom %>% as_tibble())
   }
 }
+
+#' Process data on pregnancy (as comorbidity)
+#' @param file.name Path of the dispositions data file (CDISC format)
+#' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
+#' @import dplyr tibble stringr
+#' @return Formatted pregnancy data as a tibble or \code{dtplyr_step}
+#' @export process.pregnancy.data
+
+
+
+process.pregnancy.data <- function(file.name, dtplyr.step = FALSE){
+  comorbid_pregnancy <- shared.data.import(file.name, dtplyr.step = TRUE)%>%
+    filter(rptestcd=="PREGIND") %>%
+    mutate(comorbid_pregnancy=rpstresc) %>%
+    mutate(comorbid_pregnancy = case_when(comorbid_pregnancy == "Y" ~ TRUE,
+                                          comorbid_pregnancy == "N" ~ FALSE,
+                                          TRUE ~ NA)) %>%
+    select(usubjid,comorbid_pregnancy)
+  if(dtplyr.step){
+    return(comorbid_pregnancy %>% lazy_dt(immutable = FALSE))
+  } else {
+    return(comorbid_pregnancy %>% as_tibble())
+  }
+}
+
+
     
 #' Process data on ICU admission
 #' @param file.name Path of the healthcare encounters data file (CDISC format)
@@ -428,23 +455,40 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
 #' @import dplyr tibble
 #' @return Formatted outcome data as a tibble or \code{dtplyr_step}
 #' @export process.all.data
-process.all.data <- function(demog.file.name, symptoms.file.name = NA, ICU.file.name = NA, treatment.file.name = NA, outcome.file.name = NA, minimum.treatments = 100, dtplyr.step = FALSE){
+process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy.file.name = NA,
+                             ICU.file.name = NA, treatment.file.name = NA, outcome.file.name = NA, 
+                             minimum.treatments = 100, dtplyr.step = FALSE){
+  
   demographic <- import.demographic.data(demog.file.name, dtplyr.step = FALSE)
+  
   if(!is.na(symptoms.file.name)){
     comorb.sympt.temp <-  import.symptom.and.comorbidity.data(symptoms.file.name, dtplyr.step = TRUE)
     
     comorbid <- process.comorbidity.data(comorb.sympt.temp, dtplyr.step = FALSE)
-    symptom <- process.symptom.data(comorb.sympt.temp, dtplyr.step = FALSE)
-    
     demographic <- demographic %>%
-      left_join(comorbid, by = c("usubjid")) %>%
+      left_join(comorbid, by = c("usubjid"))
+  }
+  
+  if(!is.na(pregnancy.file.name)){
+    comorbid_pregnancy <- process.pregnancy.data(pregnancy.file.name, dtplyr.step = FALSE)
+    demographic <- demographic %>%
+      left_join(comorbid_pregnancy, by = c("usubjid")) 
+  }
+  
+  
+  if(!is.na(symptoms.file.name)){
+    comorb.sympt.temp <-  import.symptom.and.comorbidity.data(symptoms.file.name, dtplyr.step = TRUE)
+    symptom <- process.symptom.data(comorb.sympt.temp, dtplyr.step = FALSE)
+    demographic <- demographic %>%
       left_join(symptom, by = c("usubjid")) 
   }
+  
+
+  
   if(!is.na(ICU.file.name)){
     icu <- process.ICU.data(ICU.file.name, dtplyr.step = FALSE)
     demographic <- demographic %>%
-      left_join(icu, by = c("usubjid")) #%>%
-      #mutate(icu_ever = !is.na(icu_in))
+      left_join(icu, by = c("usubjid")) 
   }
   if(!is.na(treatment.file.name)){
     treatment <- process.common.treatment.data(treatment.file.name, minimum.treatments, FALSE)
