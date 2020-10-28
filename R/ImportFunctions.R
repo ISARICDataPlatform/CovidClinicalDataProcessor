@@ -448,6 +448,37 @@ process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
 }  
 
 
+#' Process data on laboratory
+#' @param file.name Path of the dispositions data file (CDISC format)
+#' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
+#' @import dplyr tibble dtplyr tidyfast
+#' @importFrom data.table as.data.table
+#' @importFrom glue glue
+#' @return Formatted laboratory (wide format) as a tibble or \code{dtplyr_step}
+#' @export process.laboratory.data
+process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
+  laboratory <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
+    select(usubjid, lbtestcd, lbcat,lborres,lborresu, lbdtc) %>%
+    filter(lbcat=="LABORATORY RESULTS ON ADMISSION")%>%
+    filter(!is.na(lborres))%>%
+    mutate(lbtestcd = glue("lab_{lbtestcd}", lbtestcd = lbtestcd)) %>%
+    arrange(desc(lbdtc))%>%
+    distinct(usubjid,lbtestcd, .keep_all =T)%>%
+    as.data.table() %>%
+    dt_pivot_wider(id_cols = usubjid, names_from = lbtestcd,  values_from = lborres) 
+  
+  
+  if(dtplyr.step){
+    return(laboratory)
+  } else {
+    return(laboratory%>% as_tibble())
+  }
+  
+}  
+
+
+
+
 
 #' Process data on outcomes
 #' @param file.name Path of the dispositions data file (CDISC format)
@@ -483,7 +514,8 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
 #' @export process.all.data
 process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy.file.name = NA,
                              ICU.file.name = NA, treatment.file.name = NA, vit_sign.file.name = NA, 
-                             outcome.file.name = NA, minimum.treatments = 100, dtplyr.step = FALSE){
+                             outcome.file.name = NA, laboratory.file.name= NA, minimum.treatments = 100, 
+                             dtplyr.step = FALSE){
   
   demographic <- import.demographic.data(demog.file.name, dtplyr.step = FALSE)
   
@@ -531,6 +563,13 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
     demographic <- demographic %>%
       left_join(vit_sign, by = c("usubjid"))
   }
+  
+  if(!is.na(laboratory.file.name)){
+    laboratory <- process.laboratory.data(laboratory.file.name, dtplyr.step = FALSE)
+    demographic <- demographic %>%
+      left_join(laboratory, by = c("usubjid"))
+  }
+  
   if(!is.na(outcome.file.name)){
     outcome <- process.outcome.data(outcome.file.name, dtplyr.step = FALSE)
     demographic <- demographic %>%
