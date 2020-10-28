@@ -419,7 +419,31 @@ process.IMV.NIV.data <- function(input, dtplyr.step = FALSE){
   
 }
   
+#' Process data on vital sign
+#' @param file.name Path of the dispositions data file (CDISC format)
+#' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
+#' @import dplyr tibble dtplyr tidyfast
+#' @importFrom data.table as.data.table
+#' @importFrom glue glue
+#' @return Formatted vital sign (wide format) as a tibble or \code{dtplyr_step}
+#' @export process.vital.sign.data
+process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
+  vital_sign <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
+    select(usubjid, vstestcd, vscat,vsstresn,vsstresu) %>%
+    filter(vscat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION" | vscat=="SIGNS AND SYMPTOMS AT ADMISSION")%>%
+    filter(!is.na(vsstresn))%>%
+    mutate(vstestcd = glue("vs_{vstestcd}", vstestcd = vstestcd)) %>%
+    as.data.table() %>%
+    dt_pivot_wider(id_cols = usubjid, names_from = vstestcd,  values_from = vsstresn) 
+   
   
+  if(dtplyr.step){
+    return(vital_sign)
+  } else {
+    return(vital_sign %>% as_tibble())
+  }
+  
+}  
 
 
 
@@ -456,8 +480,8 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
 #' @return Formatted outcome data as a tibble or \code{dtplyr_step}
 #' @export process.all.data
 process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy.file.name = NA,
-                             ICU.file.name = NA, treatment.file.name = NA, outcome.file.name = NA, 
-                             minimum.treatments = 100, dtplyr.step = FALSE){
+                             ICU.file.name = NA, treatment.file.name = NA, vit_sign.file.name = NA, 
+                             outcome.file.name = NA, minimum.treatments = 100, dtplyr.step = FALSE){
   
   demographic <- import.demographic.data(demog.file.name, dtplyr.step = FALSE)
   
@@ -499,6 +523,11 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
     ventilation <- ventilation <- process.IMV.NIV.data(treatment.file.name, dtplyr.step = FALSE)
     demographic <- demographic %>%
       left_join(ventilation, by = c("usubjid"))
+  }
+  if(!is.na(vit_sign.file.name)){
+    vit_sign <- process.vital.sign.data(vit_sign.file.name, dtplyr.step = FALSE)
+    demographic <- demographic %>%
+      left_join(vit_sign, by = c("usubjid"))
   }
   if(!is.na(outcome.file.name)){
     outcome <- process.outcome.data(outcome.file.name, dtplyr.step = FALSE)
