@@ -43,20 +43,30 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
   country.lookup <- ISOcodes::ISO_3166_1 %>% as_tibble %>% select(Alpha_3, Name)
   
   out <- shared.data.import(file.name,
-                            required.columns = c("USUBJID",
+                            required.columns = c("SUBJID",
+                                                  "USUBJID",
                                                  "AGE",
                                                  "SEX",
                                                  "ETHNIC",
+                                                 "SITEID",
                                                  "COUNTRY",
                                                  "RFSTDTC",
                                                  "INVID"),
                             dtplyr.step = TRUE) %>%
-    select(usubjid, age, sex, ethnic, country, "date_admit" = rfstdtc, invid) %>%
+    select(subjid,usubjid, age, sex, ethnic, country, "date_admit" = rfstdtc, invid,siteid) %>%
     mutate(country = replace(country, country == "", NA)) %>%
     left_join(country.lookup, by = c("country" = "Alpha_3")) %>%
     select(-country) %>%
     rename(country = Name) %>%
     rename(site = invid) %>%
+    as.data.frame()%>%
+    separate(subjid, c("siteid_final","patient"), sep = "-")%>%
+    mutate(dataset=substr(usubjid,1, 7))%>%
+    mutate(siteid_final=replace(siteid_final,site=="00741cca_network","00741cca_network"))%>%
+    mutate(siteid_final=replace(siteid_final,is.na(patient),site))%>%
+    mutate(siteid_final=replace(siteid_final,dataset=="CVTDWXD",siteid))%>%
+    mutate(siteid=paste0("text_",siteid))%>%
+    #select(-patient) %>%
     mutate(sex = case_when(sex == "M" ~ "Male",
                            sex == "F" ~ "Female",
                            TRUE ~ NA_character_)) %>%
