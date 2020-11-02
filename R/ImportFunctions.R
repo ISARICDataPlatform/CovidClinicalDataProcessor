@@ -54,6 +54,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                                                  "RFSTDTC",
                                                  "INVID"),
                             dtplyr.step = TRUE) %>%
+    select(siteid,invid, usubjid, rfstdtc, age, ageu, sex, ethnic, country,subjid)%>%
     mutate(country = replace(country, country == "", NA)) %>%
     left_join(country.lookup, by = c("country" = "Alpha_3")) %>%
     select(-country) %>%
@@ -63,6 +64,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     as.data.frame()%>%
     mutate(studyid=substr(usubjid,1, 7))%>%
     separate(subjid, c("siteid_finala","patient"), sep = "-")%>%
+    select(studyid, siteid,siteid_finala,patient, site, usubjid, date_admit, age, ageu, sex, ethnic, country)%>%
     mutate(siteid_finala=as.character(siteid_finala))%>%
     mutate(siteid_final= case_when(is.na(patient) ~ site,
                                    patient=="" ~ site,
