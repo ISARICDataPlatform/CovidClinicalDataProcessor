@@ -80,7 +80,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(ethnic = replace(ethnic, ethnic == "", NA))%>%
     mutate(date_admit=substr(date_admit,1, 10))%>%
     mutate(date_admit=as_date(date_admit))%>%
-    select(studyid, siteid_final, usubjid, date_admit, dthdtc, dthfl, age, ageu, sex, ethnic, country  )
+    select(studyid, siteid_final, usubjid, date_admit, age, ageu, sex, ethnic, country  )
   
   if(dtplyr.step){
     return(out)
