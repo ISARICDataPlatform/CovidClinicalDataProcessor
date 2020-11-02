@@ -79,6 +79,14 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(sex = case_when(sex == "M" ~ "Male",
                            sex == "F" ~ "Female",
                            TRUE ~ NA_character_)) %>%
+    mutate(ethnic = iconv(ethnic, to ="ASCII//TRANSLIT") %>% tolower()) %>%
+    mutate(ethnic = str_remove_all(ethnic, "\\s*\\([^)]*\\)")) %>%
+    mutate(ethnic = str_replace_all(ethnic, " - ", "_")) %>%
+    mutate(ethnic = str_replace_all(ethnic, "-", "_")) %>%
+    mutate(ethnic = str_replace_all(ethnic, "/| / ", "_")) %>%
+    mutate(ethnic = str_replace_all(ethnic, " ", "_")) %>%
+    mutate(ethnic = str_replace_all(ethnic, ",", "_")) %>%
+    mutate(ethnic = replace(ethnic, ethnic == "n_a", NA))%>%
     mutate(ethnic = replace(ethnic, ethnic == "", NA))%>%
     mutate(date_admit=substr(date_admit,1, 10))%>%
     mutate(date_admit=as_date(date_admit))%>%
