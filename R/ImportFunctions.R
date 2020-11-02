@@ -62,6 +62,12 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     rename(date_admit=rfstdtc)%>%
     rename(site = invid) %>%
     as.data.frame()%>%
+    mutate(age_d=NA)%>%
+    mutate(age_d=replace(age_d,ageu=="MONTHS",12))%>%
+    mutate(age_d=replace(age_d,ageu=="YEARS",1))%>%
+    mutate(age2=age/age_d)%>%
+    select(-(age))%>%
+    rename(age=age2)%>%
     mutate(ethnic = iconv(ethnic, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(ethnic = str_remove_all(ethnic, "\\s*\\([^)]*\\)")) %>%
     mutate(ethnic = str_replace_all(ethnic, " - ", "_")) %>%
@@ -72,7 +78,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(ethnic = replace(ethnic, ethnic == "n_a" | ethnic == "na" | ethnic == "", NA))%>%
     mutate(studyid=substr(usubjid,1, 7))%>%
     separate(subjid, c("siteid_finala","patient"), sep = "-")%>%
-    select(studyid, siteid,siteid_finala,patient, site, usubjid, date_admit, age, ageu, sex, ethnic, country)%>%
+    select(studyid, siteid,siteid_finala,patient, site, usubjid, date_admit, age,sex, ethnic, country)%>%
     mutate(siteid_finala=as.character(siteid_finala))%>%
     mutate(siteid_final= case_when(is.na(patient) ~ site,
                                    patient=="" ~ site,
@@ -89,7 +95,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                            TRUE ~ NA_character_)) %>%
         mutate(date_admit=substr(date_admit,1, 10))%>%
     mutate(date_admit=as_date(date_admit))%>%
-    select(studyid, siteid_final, usubjid, date_admit, age, ageu, sex, ethnic, country  )
+    select(studyid, siteid_final, usubjid, date_admit, age, sex, ethnic, country  )
   
   if(dtplyr.step){
     return(out)
