@@ -478,8 +478,9 @@ process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
 #' @export process.laboratory.data
 process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
   laboratory <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
-    select(usubjid, lbtestcd, lbcat,lborres,lborresu, lbdtc) %>%
+    select(usubjid, lbtestcd, lbcat,lborres,lbdtc) %>%
     filter(lbcat=="LABORATORY RESULTS ON ADMISSION")%>%
+    mutate(lborres=as.numeric(lborres))%>%
     filter(!is.na(lborres))%>%
     mutate(lbtestcd = glue("lab_{lbtestcd}", lbtestcd = lbtestcd)) %>%
     arrange(desc(lbdtc))%>%
