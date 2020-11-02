@@ -46,6 +46,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                             required.columns = c("SUBJID",
                                                   "USUBJID",
                                                  "AGE",
+                                                 "AGEU",
                                                  "SEX",
                                                  "ETHNIC",
                                                  "SITEID",
@@ -53,26 +54,41 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                                                  "RFSTDTC",
                                                  "INVID"),
                             dtplyr.step = TRUE) %>%
-    select(subjid,usubjid, age, sex, ethnic, country, "date_admit" = rfstdtc, invid,siteid) %>%
+    #select(studyid, age, ageu, dthdtc, dthfl, sex, ethnic, country, "date_admit" = rfstdtc, invid,siteid, usubjid, subjid) %>%
     mutate(country = replace(country, country == "", NA)) %>%
     left_join(country.lookup, by = c("country" = "Alpha_3")) %>%
     select(-country) %>%
     rename(country = Name) %>%
+    rename(date_admit=rfstdtc)%>%
     rename(site = invid) %>%
     as.data.frame()%>%
-    separate(subjid, c("siteid_final","patient"), sep = "-")%>%
-    mutate(dataset=substr(usubjid,1, 7))%>%
-    mutate(siteid_final=replace(siteid_final,site=="00741cca_network","00741cca_network"))%>%
-    mutate(siteid_final=replace(siteid_final,is.na(patient),site))%>%
-    mutate(siteid_final=replace(siteid_final,dataset=="CVTDWXD",siteid))%>%
-    mutate(siteid=paste0("text_",siteid))%>%
+    mutate(studyid=substr(usubjid,1, 7))%>%
+    separate(subjid, c("siteid_finala","patient"), sep = "-")%>%
+    mutate(siteid_finala=as.character(siteid_finala))%>%
+    #select(dataset, age, ageu, dthdtc, dthfl, sex, ethnic, country, date_admit, site, siteid, usubjid, siteid_final, patient) %>%
+    #mutate(siteid_final=replace(siteid_final,is.na(patient),site))%>%
+    
+    mutate(siteid_final= case_when(is.na(patient) ~ site,
+                                   patient=="" ~ site,
+                                  #dataset=="CVTDWXD" ~ siteid,
+                                  #dataset=="CVPSICL"~"QECH",
+                                 site=="00741cca_network"~"00741cca_network",
+                                   TRUE ~ siteid_finala
+                                      )) %>%
+    mutate(siteid_final=replace(siteid_final, studyid=="CVTDWXD",siteid))%>%
+    #mutate(siteid_final=replace(siteid_final,site=="00741cca_network","00741cca_network"))%>%
+    mutate(siteid_final=replace(siteid_final,studyid=="CVPSICL","QECH"))%>%
+    #mutate(siteid_final=replace(siteid_final,dataset=="CVTDWXD",siteid))%>%
+    #mutate(siteid_final=replace(siteid_final,dataset=="CVPSICL","QECH"))%>%
+    mutate(siteid_final=paste0("text_",siteid_final))%>%
     #select(-patient) %>%
     mutate(sex = case_when(sex == "M" ~ "Male",
                            sex == "F" ~ "Female",
                            TRUE ~ NA_character_)) %>%
     mutate(ethnic = replace(ethnic, ethnic == "", NA))%>%
     mutate(date_admit=substr(date_admit,1, 10))%>%
-    mutate(date_admit=as_date(date_admit))
+    mutate(date_admit=as_date(date_admit))%>%
+    select(studyid, siteid_final, usubjid, date_admit, dthdtc, dthfl, age, ageu, sex, ethnic, country  )
   
   if(dtplyr.step){
     return(out)
