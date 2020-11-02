@@ -460,6 +460,7 @@ process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
     filter(vscat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION" | vscat=="SIGNS AND SYMPTOMS AT ADMISSION")%>%
     filter(!is.na(vsstresn))%>%
     mutate(vstestcd = glue("vs_{vstestcd}", vstestcd = vstestcd)) %>%
+    mutate(vstestcd = iconv(vstestcd, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     arrange(desc(vsdtc))%>%
     distinct(usubjid,vstestcd, .keep_all =T)%>%
     as.data.table() %>%
@@ -490,6 +491,7 @@ process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
     mutate(lborres=as.numeric(lborres))%>%
     filter(!is.na(lborres))%>%
     mutate(lbtestcd = glue("lab_{lbtestcd}", lbtestcd = lbtestcd)) %>%
+    mutate(lbtestcd = iconv(lbtestcd, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     arrange(desc(lbdtc))%>%
     distinct(usubjid,lbtestcd, .keep_all =T)%>%
     as.data.table() %>%
@@ -532,10 +534,13 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
 #' Fully process data
 #' @param demog.file.name Path of the demographics data file (CDISC format)
 #' @param symptoms.file.name Path of the symptoms data file (CDISC format, optional)
+#' @param pregnancy.file.name Path of the RP data file (CDISC format, optional)
+#' @param minimum.treatments The minimum number of instances of a treatment required for inclusion as a column
 #' @param ICU.file.name Path of the healthcare encounters data file (CDISC format, optional)
 #' @param treatment.file.name Path of the intervention data file (CDISC format, optional)
+#' @param vit_sign.file.name  Path of the VS data file (CDISC format, optional)
+#' @param laboratory.file.name Path of the LB data file (CDISC format, optional)
 #' @param outcome.file.name Path of the dispositions data file (CDISC format, optional)
-#' @param minimum.treatments The minimum number of instances of a treatment required for inclusion as a column
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
 #' @import dplyr tibble
 #' @return Formatted outcome data as a tibble or \code{dtplyr_step}
@@ -600,9 +605,19 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
   
   if(!is.na(outcome.file.name)){
     outcome <- process.outcome.data(outcome.file.name, dtplyr.step = FALSE)
-    demographic <- demographic %>%
-      left_join(outcome, by = c("usubjid"))
+    demographic <- demographic%>%
+      left_join(outcome, by = c("usubjid"))%>%
+      mutate(t_on_ad=date_admit-date_onset)%>%
+      mutate(t_ad_icu=icu_in-date_admit)%>%
+      mutate(t_ad_imv=imv_st-date_admit)%>%
+      mutate(t_ad_niv=niv_st-date_admit)%>%
+      mutate(icu_dur=icu_out-icu_in)%>%
+      mutate(ho_dur=date_outcome-date_admit)%>%
+      mutate(imv_dur=imv_en-imv_st)%>%
+      mutate(niv_dur=niv_en-niv_st)%>%
+      select(-c("comorbid_covid-19_symptoms","comorbid_drinks_beer", "symptoms_covid-19_symptoms"))
   }
+  
   
   
   if(dtplyr.step){
