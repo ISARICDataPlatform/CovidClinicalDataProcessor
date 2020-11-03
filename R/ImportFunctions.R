@@ -621,7 +621,11 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
       mutate(ho_dur=date_outcome-date_admit)%>%
       mutate(imv_dur=imv_en-imv_st)%>%
       mutate(niv_dur=niv_en-niv_st)%>%
-      select(-c("comorbid_covid-19_symptoms","comorbid_drinks_beer", "symptoms_covid-19_symptoms"))
+      select(-c("comorbid_covid-19_symptoms","comorbid_drinks_beer", 
+                "symptoms_covid-19_symptoms", "symptoms_hematuria",
+                "symptoms_hemoglobinuria",
+                "symptoms_leukocyturia",
+               "symptoms_proteinuria"))
   }
   
   
