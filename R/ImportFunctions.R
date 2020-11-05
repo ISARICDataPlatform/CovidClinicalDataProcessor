@@ -121,6 +121,8 @@ import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step = FALSE){
                                                  "SASTDTC"),
                             dtplyr.step = TRUE, immutable = TRUE) %>% # this will often by used twice, so should be immutable
     select(usubjid, saterm, sacat, sapresp, saoccur, sastdtc) %>%
+    mutate(sacat=replace(sacat,saterm=="MALNUTRITION","MEDICAL HISTORY"))%>%#temporary correction
+    mutate(sacat=replace(sacat,saterm=="COVID-19 SYMPTOMS","SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION"))%>%#temporary correction
     mutate(saterm = iconv(saterm, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(saterm = str_remove_all(saterm, "\\s*\\([^)]*\\)")) %>%
     mutate(saterm = str_replace_all(saterm, " - ", "_")) %>%
@@ -620,12 +622,12 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
       mutate(icu_dur=icu_out-icu_in)%>%
       mutate(ho_dur=date_outcome-date_admit)%>%
       mutate(imv_dur=imv_en-imv_st)%>%
-      mutate(niv_dur=niv_en-niv_st)%>%
-      select(-c("comorbid_covid-19_symptoms","comorbid_drinks_beer", 
-                "symptoms_covid-19_symptoms", "symptoms_hematuria",
-                "symptoms_hemoglobinuria",
-                "symptoms_leukocyturia",
-               "symptoms_proteinuria"))
+      mutate(niv_dur=niv_en-niv_st)#%>%
+     # select(-c("comorbid_covid-19_symptoms","comorbid_drinks_beer", 
+      #          "symptoms_covid-19_symptoms", "symptoms_hematuria",
+       #         "symptoms_hemoglobinuria",
+        #        "symptoms_leukocyturia",
+         #      "symptoms_proteinuria"))
   }
   
   
