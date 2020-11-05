@@ -246,7 +246,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                                  usubjid=='CVVCORE_520-0048'~'',
                                  usubjid=='CVVCORE_F135-258'~'',
                                  usubjid=='CVVECMO_00634-0007'~'',
-                                 usubjid=='CVVCORE_A-AF-004-003-0020'~''
+                                 usubjid=='CVVCORE_A-AF-004-003-0020'~'',
                                 TRUE ~ date_admit))%>%
                   mutate(date_admit2=as_date(date_admit2))%>%
     select(studyid, siteid_final, usubjid, date_admit, date_admit2, age, sex, ethnic, country  )
