@@ -95,6 +95,18 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                            TRUE ~ NA_character_)) %>%
         mutate(date_admit=substr(date_admit,1, 10))%>%
     mutate(date_admit=as_date(date_admit))%>%
+    
+    mutates(date_admit=case_when(usubjid=="CVVECMO_007-0001" ~ 2020-02-29,
+                                 usubjid=="CVVECMO_00670-0041" ~ 2020-03-26,
+                                 usubjid=="CVTDWXD_RD070057" ~ 2020-04-01,
+                                 usubjid=="CVVECMO_000743-0004" ~ 2020-04-24,
+                                 usubjid=="CVVECMO_00565-0030" ~ 2020-05-15,
+                                 usubjid=="CVVECMO_00703-0016" ~ 2020-06-19,
+                                 usubjid=="CVVCORE_092-1012" ~ 2020-04-07,
+                                 usubjid=="CVVECMO_000743-0011" ~ 2020-05-31,
+                                 usubjid=="CVVCORE_449-0208" ~ 2020-03-17,
+                                 usubjid==" CVRAPID_PET031-01378" ~ 2020-03-29))%>%
+    
     select(studyid, siteid_final, usubjid, date_admit, age, sex, ethnic, country  )
   
   if(dtplyr.step){
@@ -214,10 +226,17 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
     arrange(sastdtc)%>%
     distinct(usubjid, .keep_all =T)%>%
     select(usubjid, "date_onset"=sastdtc)%>%
-    as.data.frame()
+    as.data.frame()%>%
+    mutates(date_onset=case_when(usubjid=="CVRAPID_00570-0334" ~ 2020-07-20,
+                                 usubjid=="CVVCORE_A-AF-004-002-0216" ~	2020-05-01,
+                  
+
+                                 ))
+    
   
   symptom<- symptom_w%>%
     left_join(symptom_onset, by = c("usubjid"))
+    
   
   if(dtplyr.step){
     return(symptom %>% lazy_dt(immutable = FALSE))
@@ -530,6 +549,18 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
     mutate(outcome = str_to_title(outcome))%>%
     mutate(date_outcome=substr(date_outcome,1, 10))%>%
     mutate(date_outcome=as_date(date_outcome))
+  
+  
+  mutates(date_outcome=case_when(usubjid=="CVVCORE_286-0685" ~ 2020-04-23,
+                                 usubjid=="CVPRQTA_398-323" ~	2020-04-26,
+                                 usubjid=="CVRAPID_00570-0032" ~	2020-04-07
+                                 
+                                 
+                                 
+                                 
+                                 
+                                 
+  ))
   
   if(dtplyr.step){
     return(outcome)
