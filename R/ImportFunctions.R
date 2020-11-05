@@ -94,8 +94,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                            sex == "F" ~ "Female",
                            TRUE ~ NA_character_)) %>%
         mutate(date_admit=substr(date_admit,1, 10))%>%
-    mutate(date_admit=as_date(date_admit))%>%
-    
+    #mutate(date_admit=as_date(date_admit))%>%
    mutate(date_admit2=case_when(usubjid=='CVVCORE_247-0004' ~ '2020-02-25',
                                  usubjid=='CVVECMO_007-0001'~'2020-02-29',
                                  usubjid=='CVPPNSH_53-4'~'2020-03-07',
@@ -248,10 +247,8 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                                  usubjid=='CVVCORE_F135-258'~'',
                                  usubjid=='CVVECMO_00634-0007'~'',
                                  usubjid=='CVVCORE_A-AF-004-003-0020'~''
-                                 ))%>%
-
-   # mutate(date_admit=ymd(date_admit))%>%
-    
+                                TRUE ~ date_admit))%>%
+                  mutate(date_admit2=as_date(date_admit2))%>%
     select(studyid, siteid_final, usubjid, date_admit, date_admit2, age, sex, ethnic, country  )
   
   if(dtplyr.step){
