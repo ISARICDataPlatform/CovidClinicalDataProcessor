@@ -505,8 +505,50 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
     mutate(hoendtc=as_date(hoendtc))%>%
     rename(ever_icu=hooccur)%>%
     rename(icu_in=hostdtc)%>%
-    
+    mutate(icu_in=as.character(icu_in))%>%
+    mutate(icu_in2=case_when(usubjid=='CVVCORE_00721-0001'~'2020-03-04',
+                             usubjid=='CVVCORE_560-0001'~'2020-03-30',
+                             usubjid=='CVRAPID_503-0023'~'2020-04-02',
+                             usubjid=='CVVECMO_025-0006'~'2020-04-14',
+                             usubjid=='CVVECMO_694-0044'~'2020-04-16',
+                             usubjid=='CVVECMO_288-013'~'2020-04-17',
+                             usubjid=='CVVECMO_294-0046'~'2020-04-17',
+                             usubjid=='CVVCORE_403-005'~'2020-04-19',
+                             usubjid=='CVVCORE_498-0020'~'2020-04-25',
+                             usubjid=='CVVCORE_321-0445'~'2020-04-27',
+                             usubjid=='CVVCORE_468-0152'~'2020-04-29',
+                             usubjid=='CVVCORE_498-0019'~'2020-04-30',
+                             usubjid=='CVVECMO_00674-0021'~'2020-05-01',
+                             usubjid=='CVVCORE_692-0029'~'2020-05-05',
+                             usubjid=='CVRAPID_00628-0004'~'2020-05-17',
+                             usubjid=='CVVECMO_516-0025'~'2020-05-18',
+                             usubjid=='CVTDWXD_RD260219'~'2020-06-11',
+                             usubjid=='CVRAPID_00570-0144'~'2020-06-21',
+                             usubjid=='CVVECMO_719-0087'~'2020-07-07',
+                             usubjid=='CVRAPID_00570-0184'~'2020-07-11',
+                             usubjid=='CVRAPID_00570-0155'~'2020-07-13',
+                             usubjid=='CVRAPID_00570-0186'~'2020-07-17',
+                             usubjid=='CVRAPID_00570-0401'~'2020-07-19',
+                             usubjid=='CVRAPID_212-0024'~'',
+                             usubjid=='CVRAPID_00570-0126'~'',
+                             usubjid=='CVVCORE_538-0067'~'',
+                             usubjid=='CVRAPID_00570-0178'~'',
+                                 TRUE ~ icu_in))%>%
+              mutate(icu_in2=as_date(icu_in2))%>%
     rename(icu_out=hoendtc)%>%
+    mutate(icu_out=as.character(icu_out))%>%
+    mutate(icu_out2=case_when(usubjid=='CVRAPID_503-0023'~'2020-04-18',
+                              usubjid=='CVVCORE_498-0019'~'2020-04-30',
+                              usubjid=='CVVECMO_00674-0021'~'2020-05-02',
+                              usubjid=='CVVCORE_692-0029'~'2020-05-11',
+                              usubjid=='CVRAPID_00628-0004'~'2020-05-18',
+                              usubjid=='CVTDWXD_RD260219'~'2020-06-12',
+                              usubjid=='CVRAPID_00570-0155'~'2020-07-16',
+                              usubjid=='CVRAPID_00570-0186'~'2020-07-25',
+                              usubjid=='CVRAPID_00570-0126'~'',
+                              usubjid=='CVRAPID_213-0010'~'',
+                              TRUE ~ icu_out))%>%
+    mutate(icu_out2=as_date(icu_out2))%>%
     select(-c(hodecod))
     #as.data.table() %>%
     #dt_pivot_wider(id_cols = usubjid, names_from = hodecod,  values_from = c("in", "out", ever))#%>%
@@ -759,19 +801,100 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
     select(usubjid, "outcome" = dsterm, "date_outcome" = dsstdtc) %>%
     mutate(outcome = str_to_title(outcome))%>%
     mutate(date_outcome=substr(date_outcome,1, 10))%>%
-    mutate(date_outcome=as_date(date_outcome))
-  
-  
-  mutates(date_outcome=case_when(usubjid=="CVVCORE_286-0685" ~ 2020-04-23,
-                                 usubjid=="CVPRQTA_398-323" ~2020-04-26,
-                                 usubjid=="CVRAPID_00570-0032" ~2020-04-07
-                                 
-                                 
-                                 
-                                 
-                                 
-                                 
-  ))
+    mutates(date_outcome2=case_when(usubjid=='CVVCORE_247-0004'~'2020-02-26',
+                                    usubjid=='CVVCORE_657-0014'~'2020-03-11',
+                                    usubjid=='CVVCORE_425-0010'~'2020-03-16',
+                                    usubjid=='CVKMNLC_1090-88'~'2020-03-18',
+                                    usubjid=='CVVCORE_304-0213'~'2020-03-19',
+                                    usubjid=='CVRAPID_PET029-00027'~'2020-03-23',
+                                    usubjid=='CVRAPID_PET020-00608'~'2020-03-25',
+                                    usubjid=='CVVCORE_062-A011'~'2020-03-26',
+                                    usubjid=='CVVCORE_657-0205'~'2020-03-26',
+                                    usubjid=='CVRAPID_PET028-00621'~'2020-03-26',
+                                    usubjid=='CVVCORE_F135-136'~'2020-03-27',
+                                    usubjid=='CVRAPID_PET001-00899'~'2020-03-27',
+                                    usubjid=='CVRAPID_PET019-00179'~'2020-03-27',
+                                    usubjid=='CVVCORE_538-0050'~'2020-03-28',
+                                    usubjid=='CVVCORE_657-0368'~'2020-03-30',
+                                    usubjid=='CVVCORE_F215-1'~'2020-03-31',
+                                    usubjid=='CVTDWXD_RD070015'~'2020-04-01',
+                                    usubjid=='CVPRQTA_399-127'~'2020-04-01',
+                                    usubjid=='CVPRQTA_354-104'~'2020-04-02',
+                                    usubjid=='CVPRQTA_394-504'~'2020-04-04',
+                                    usubjid=='CVRAPID_212-0028'~'2020-04-06',
+                                    usubjid=='CVVCORE_657-0193'~'2020-04-07',
+                                    usubjid=='CVRAPID_00570-0032'~'2020-04-07',
+                                    usubjid=='CVVCORE_657-0190'~'2020-04-09',
+                                    usubjid=='CVVCORE_292-0011'~'2020-04-10',
+                                    usubjid=='CVVCORE_F173-52'~'2020-04-10',
+                                    usubjid=='CVVCORE_657-0192'~'2020-04-11',
+                                    usubjid=='CVVCORE_321-0137'~'2020-04-13',
+                                    usubjid=='CVVCORE_321-0158'~'2020-04-13',
+                                    usubjid=='CVPRQTA_387-173'~'2020-04-14',
+                                    usubjid=='CVVCORE_657-0233'~'2020-04-16',
+                                    usubjid=='CVPRQTA_394-602'~'2020-04-17',
+                                    usubjid=='CVRAPID_213-0029'~'2020-04-17',
+                                    usubjid=='CVVCORE_657-0219'~'2020-04-18',
+                                    usubjid=='CVVCORE_F279-2'~'2020-04-21',
+                                    usubjid=='CVVCORE_496-0079'~'2020-04-22',
+                                    usubjid=='CVVCORE_286-0685'~'2020-04-23',
+                                    usubjid=='CVVCORE_321-0313'~'2020-04-23',
+                                    usubjid=='CVVCORE_321-0308'~'2020-04-23',
+                                    usubjid=='CVVCORE_321-0337'~'2020-04-23',
+                                    usubjid=='CVVCORE_00561-0075'~'2020-04-23',
+                                    usubjid=='CVVCORE_F195-23'~'2020-04-25',
+                                    usubjid=='CVPRQTA_398-323'~'2020-04-26',
+                                    usubjid=='CVVCORE_F191-211'~'2020-04-26',
+                                    usubjid=='CVVCORE_F191-223'~'2020-04-27',
+                                    usubjid=='CVVCORE_F125-110'~'2020-04-27',
+                                    usubjid=='CVRAPID_433-S058'~'2020-05-01',
+                                    usubjid=='CVVCORE_F170-18'~'2020-05-01',
+                                    usubjid=='CVVCORE_F191-218'~'2020-05-03',
+                                    usubjid=='CVVCORE_286-0531'~'2020-05-04',
+                                    usubjid=='CVVCORE_321-0436'~'2020-05-04',
+                                    usubjid=='CVTDWXD_RD390010'~'2020-05-04',
+                                    usubjid=='CVVCORE_449-0052'~'2020-05-07',
+                                    usubjid=='CVVCORE_276-0351'~'2020-05-07',
+                                    usubjid=='CVVCORE_A-AF-004-002-0218'~'2020-05-08',
+                                    usubjid=='CVVCORE_A-AF-011-001-0066'~'2020-05-09',
+                                    usubjid=='CVVCORE_276-0531'~'2020-05-16',
+                                    usubjid=='CVPRQTA_400-55'~'2020-05-18',
+                                    usubjid=='CVTDWXD_RD100005'~'2020-05-18',
+                                    usubjid=='CVVCORE_F255-16'~'2020-05-18',
+                                    usubjid=='CVVCORE_449-0070'~'2020-05-19',
+                                    usubjid=='CVVECMO_00624-0085'~'2020-05-26',
+                                    usubjid=='CVVCORE_118-0012'~'2020-05-28',
+                                    usubjid=='CVVECMO_00624-0053'~'2020-05-31',
+                                    usubjid=='CVPRQTA_384-210'~'2020-06-01',
+                                    usubjid=='CVPRQTA_384-211'~'2020-06-01',
+                                    usubjid=='CVVCORE_657-0185'~'2020-06-02',
+                                    usubjid=='CVPRQTA_394-777'~'2020-06-03',
+                                    usubjid=='CVVECMO_000743-0010'~'2020-06-04',
+                                    usubjid=='CVVCORE_321-0428'~'2020-06-06',
+                                    usubjid=='CVVCORE_A-AF-024-003-0095'~'2020-06-24',
+                                    usubjid=='CVVCORE_A-AF-026-002-0012'~'2020-07-03',
+                                    usubjid=='CVRAPID_433-E136'~'2020-07-03',
+                                    usubjid=='CVVCORE_276-0711'~'2020-07-03',
+                                    usubjid=='CVVCORE_00727-0057'~'2020-09-02',
+                                    usubjid=='CVVCORE_A-AF-011-001-0094'~'',
+                                    usubjid=='CVPRQTA_400-43'~'',
+                                    usubjid=='CVVCORE_403-005'~'',
+                                    usubjid=='CVRAPID_00570-0144'~'',
+                                    usubjid=='CVRAPID_00570-0178'~'',
+                                    usubjid=='CVPRQTA_388-78'~'',
+                                    usubjid=='CVPRQTA_400-17'~'',
+                                    usubjid=='CVRAPID_213-0010'~'',
+                                    usubjid=='CVRAPID_433-S071'~'',
+                                    usubjid=='CVVECMO_792913'~'',
+                                    usubjid=='CVPRQTA_399-126'~'',
+                                    usubjid=='CVPRQTA_353-1083'~'',
+                                    usubjid=='CVVCORE_F125-114'~'',
+                                    usubjid=='CVPRQTA_399-109'~'',
+                                    usubjid=='CVVCORE_657-0365'~'',
+                                    usubjid=='CVTDWXD_RD390001'~'',
+                                    TRUE ~ date_outcome))%>%
+    mutate(date_outcome2=as_date(date_outcome2))                             
+
   
   if(dtplyr.step){
     return(outcome)
