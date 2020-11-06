@@ -364,18 +364,86 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
     #as.character(sastdtc)%>%
     mutate(sastdtc = replace(sastdtc, sastdtc =="" , NA))%>%
     mutate(sastdtc=substr(sastdtc,1, 10))%>%
-    mutate(sastdtc=as_date(sastdtc))%>%
     arrange(sastdtc)%>%
     distinct(usubjid, .keep_all =T)%>%
     select(usubjid, "date_onset"=sastdtc)%>%
     as.data.frame()%>%
-    mutates(date_onset=case_when(usubjid=="CVRAPID_00570-0334" ~ 2020-07-20,
-                                 usubjid=="CVVCORE_A-AF-004-002-0216" ~2020-05-01,
-                  
-
-                                 ))
-    
-  
+    mutate(date_onset2=case_when(usubjid=='CVPPNSH_53-3'~'2020-02-06',
+                                 usubjid=='CVVECMO_288-015'~'2020-03-10',
+                                 usubjid=='CVRAPID_PET026-01128'~'2020-03-11',
+                                 usubjid=='CVRAPID_PET053-00508'~'2020-03-13',
+                                 usubjid=='CVTDWXD_RD260115'~'2020-03-13',
+                                 usubjid=='CVVCORE_030-0025'~'2020-03-15',
+                                 usubjid=='CVTDWXD_RD260112'~'2020-03-15',
+                                 usubjid=='CVRAPID_PET024-00923'~'2020-03-16',
+                                 usubjid=='CVTDWXD_RD130004'~'2020-03-17',
+                                 usubjid=='CVRAPID_00711-0008'~'2020-03-19',
+                                 usubjid=='CVVCORE_445-5001'~'2020-03-20',
+                                 usubjid=='CVVCORE_489-0001'~'2020-03-21',
+                                 usubjid=='CVVCORE_292-0012'~'2020-03-21',
+                                 usubjid=='CVVCORE_203-0012'~'2020-03-22',
+                                 usubjid=='CVVECMO_203-0012'~'2020-03-22',
+                                 usubjid=='CVVCORE_512-0012'~'2020-03-23',
+                                 usubjid=='CVVCORE_449-0243'~'2020-03-24',
+                                 usubjid=='CVVCORE_450-0015'~'2020-03-25',
+                                 usubjid=='CVVCORE_450-0012'~'2020-03-26',
+                                 usubjid=='CVVCORE_321-0066'~'2020-03-28',
+                                 usubjid=='CVVCORE_512-0007'~'2020-04-01',
+                                 usubjid=='CVTDWXD_RD270088'~'2020-04-03',
+                                 usubjid=='CVPRQTA_394-355'~'2020-04-07',
+                                 usubjid=='CVVCORE_321-0303'~'2020-04-10',
+                                 usubjid=='CVPRQTA_353-905'~'2020-04-10',
+                                 usubjid=='CVVCORE_F199-28'~'2020-04-12',
+                                 usubjid=='CVPRQTA_394-366'~'2020-04-12',
+                                 usubjid=='CVVCORE_276-0314'~'2020-04-25',
+                                 usubjid=='CVVCORE_468-0152'~'2020-04-25',
+                                 usubjid=='CVVECMO_548-0040'~'2020-04-25',
+                                 usubjid=='CVRAPID_00711-0328'~'2020-04-26',
+                                 usubjid=='CVVCORE_321-0431'~'2020-04-28',
+                                 usubjid=='CVVECMO_00565-0029'~'2020-05-07',
+                                 usubjid=='CVVECMO_00668-0044'~'2020-05-12',
+                                 usubjid=='CVRAPID_00570-0028'~'2020-05-17',
+                                 usubjid=='CVVCORE_276-0610'~'2020-05-18',
+                                 usubjid=='CVVCORE_276-0585'~'2020-05-21',
+                                 usubjid=='CVVCORE_118-0031'~'2020-05-21',
+                                 usubjid=='CVVCORE_276-0572'~'2020-05-26',
+                                 usubjid=='CVVCORE_A-AF-002-003-0059'~'2020-05-26',
+                                 usubjid=='CVPRQTA_384-206'~'2020-05-30',
+                                 usubjid=='CVRAPID_00570-0103'~'2020-06-09',
+                                 usubjid=='CVVCORE_A-AF-026-002-0067'~'2020-06-12',
+                                 usubjid=='CVVCORE_A-AF-026-002-0062'~'2020-06-13',
+                                 usubjid=='CVVCORE_A-AF-026-002-0039'~'2020-06-19',
+                                 usubjid=='CVVECMO_435-039'~'2020-06-21',
+                                 usubjid=='CVRAPID_00570-0227'~'2020-06-24',
+                                 usubjid=='CVRAPID_00711-0290'~'',
+                                 usubjid=='CVPRQTA_388-78'~'',
+                                 usubjid=='CVPRQTA_400-17'~'',
+                                 usubjid=='CVTDWXD_IC01029'~'',
+                                 usubjid=='CVVCORE_00561-0064'~'',
+                                 usubjid=='CVVCORE_321-0244'~'',
+                                 usubjid=='CVVECMO_5170001'~'',
+                                 usubjid=='CVRAPID_218-0079'~'',
+                                 usubjid=='CVRAPID_103-0031'~'',
+                                 usubjid=='CVRAPID_212-0049'~'',
+                                 usubjid=='CVVCORE_00561-0040'~'',
+                                 usubjid=='CVVCORE_657-0191'~'',
+                                 usubjid=='CVVCORE_538-0050'~'',
+                                 usubjid=='CVVCORE_505-0031'~'',
+                                 usubjid=='CVVCORE_321-0442'~'',
+                                 usubjid=='CVRAPID_216-0076'~'',
+                                 usubjid=='CVVCORE_00727-0049'~'',
+                                 usubjid=='CVRAPID_005-0089'~'',
+                                 usubjid=='CVVCORE_F191-332'~'',
+                                 usubjid=='CVPRQTA_394-616'~'',
+                                 usubjid=='CVRAPID_433-E087'~'',
+                                 usubjid=='CVVCORE_062-B077'~'',
+                                 usubjid=='CVVCORE_520-0019'~'',
+                                 usubjid=='CVVCORE_449-0053'~'',
+                                 usubjid=='CVTDWXD_RD410067'~'',
+                                 usubjid=='CVVCORE_F219-9'~'',
+                                 usubjid=='CVVCORE_A-AF-007-002-0030'~'',
+                                 TRUE ~ date_onset))%>%
+      mutate(date_onset2=as_date(date_onset2))
   symptom<- symptom_w%>%
     left_join(symptom_onset, by = c("usubjid"))
     
@@ -437,6 +505,7 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
     mutate(hoendtc=as_date(hoendtc))%>%
     rename(ever_icu=hooccur)%>%
     rename(icu_in=hostdtc)%>%
+    
     rename(icu_out=hoendtc)%>%
     select(-c(hodecod))
     #as.data.table() %>%
