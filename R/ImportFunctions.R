@@ -54,7 +54,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                                                  "RFSTDTC",
                                                  "INVID"),
                             dtplyr.step = TRUE) %>%
-    select(siteid,invid, usubjid, rfstdtc, age, ageu, sex, ethnic, country,subjid)%>%
+    select(usubjid,siteid,invid,  rfstdtc, age, ageu, sex, ethnic, country,subjid)%>%
     mutate(country = replace(country, country == "", NA)) %>%
     left_join(country.lookup, by = c("country" = "Alpha_3")) %>%
     select(-country) %>%
@@ -77,18 +77,21 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(ethnic = str_replace_all(ethnic, ",", "_")) %>%
     mutate(ethnic = replace(ethnic, ethnic == "n_a" | ethnic == "na" | ethnic == "", NA))%>%
     mutate(studyid=substr(usubjid,1, 7))%>%
+    mutate(CCA_Network=substr(subjid,1, 12))%>%
     separate(subjid, c("siteid_finala","patient"), sep = "-")%>%
-    select(studyid, siteid,siteid_finala,patient, site, usubjid, date_admit, age,sex, ethnic, country)%>%
+    
+    select(usubjid,CCA_Network, studyid, siteid,siteid_finala,patient, site,  date_admit, age,sex, ethnic, country)%>%
     mutate(siteid_finala=as.character(siteid_finala))%>%
     mutate(siteid_final= case_when(is.na(patient) ~ site,
                                    patient=="" ~ site,
                                   #dataset=="CVTDWXD" ~ siteid,
                                   #dataset=="CVPSICL"~"QECH",
-                                  site=="00741cca_network"~"00741cca_network",
+                                  site=="00741cca_network"~ CCA_Network,
                                    TRUE ~ siteid_finala
                                       )) %>%
     mutate(siteid_final=replace(siteid_final,studyid=="CVPSICL","QECH"))%>%
     mutate(siteid_final=replace(siteid_final,studyid=="CVTDWXD","CVTDWXD"))%>%
+    #mutate(siteid_final=replace(siteid_final,site=="00741cca_network",CCA_Network))%>%
     mutate(siteid_final=paste0("text_",siteid_final))%>%
     mutate(sex = case_when(sex == "M" ~ "Male",
                            sex == "F" ~ "Female",
@@ -247,9 +250,11 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                                  usubjid=='CVVCORE_F135-258'~'',
                                  usubjid=='CVVECMO_00634-0007'~'',
                                  usubjid=='CVVCORE_A-AF-004-003-0020'~'',
+                                 usubjid=='CVVCORE_A-AF-002-003-0078'~'',
+                                 usubjid=='CVRAPID_212-0132'~'2020-05-12',
                                 TRUE ~ date_admit))%>%
                   mutate(date_admit2=as_date(date_admit2))%>%
-    select(studyid, siteid_final, usubjid, date_admit, date_admit2, age, sex, ethnic, country  )
+    select(usubjid, studyid, siteid_final, date_admit, date_admit2, age, sex, ethnic, country  )
   
   if(dtplyr.step){
     return(out)
@@ -442,6 +447,10 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
                                  usubjid=='CVTDWXD_RD410067'~'',
                                  usubjid=='CVVCORE_F219-9'~'',
                                  usubjid=='CVVCORE_A-AF-007-002-0030'~'',
+                                 usubjid=='CVRAPID_212-0132'~'2020-05-07',
+                                 usubjid=='CVVCORE_321-0330'~'2020-04-02',
+                                 usubjid=='CVVCORE_290-Flevoneg1'~'',
+                                 
                                  TRUE ~ date_onset))%>%
       mutate(date_onset2=as_date(date_onset2))
   symptom<- symptom_w%>%
@@ -533,6 +542,30 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
                              usubjid=='CVRAPID_00570-0126'~'',
                              usubjid=='CVVCORE_538-0067'~'',
                              usubjid=='CVRAPID_00570-0178'~'',
+                             usubjid=='CVVECMO_00670-0045'~'2020-03-13',
+                             usubjid=='CVVECMO_288-015'~'2020-03-14',
+                             usubjid=='CVVCORE_403-002'~'2020-03-17',
+                             usubjid=='CVVCORE_291-0005'~'2020-03-17',
+                             usubjid=='CVRAPID_PET025-01084'~'2020-03-19',
+                             usubjid=='CVVCORE_499-0003'~'2020-03-24',
+                             usubjid=='CVVECMO_499-0003'~'2020-03-24',
+                             usubjid=='CVVCORE_291-0143'~'2020-03-25',
+                             usubjid=='CVRAPID_PET051-00515'~'2020-03-26',
+                             usubjid=='CVVCORE_468-0058'~'2020-03-27',
+                             usubjid=='CVVCORE_449-0003'~'2020-03-28',
+                             usubjid=='CVVECMO_025-0003'~'2020-03-29',
+                             usubjid=='CVVECMO_288-044'~'2020-03-29',
+                             usubjid=='CVVCORE_445-7048'~'2020-04-12',
+                             usubjid=='CVVCORE_062-A034'~'2020-04-14',
+                             usubjid=='CVTDWXD_RD390015'~'2020-04-19',
+                             usubjid=='CVRAPID_00603-A006'~'2020-04-25',
+                             usubjid=='CVRAPID_00711-0689'~'2020-05-07',
+                             usubjid=='CVRAPID_00570-0046'~'2020-06-16',
+                             usubjid=='CVVECMO_00665-0025'~'2020-06-19',
+                             usubjid=='CVVECMO_719-0075'~'2020-06-27',
+                             usubjid=='CVVECMO_719-0070'~'2020-07-26',
+                             usubjid=='CVVCORE_498-0033'~'',
+                             usubjid=='CVVECMO_294-0006'~'',
                                  TRUE ~ icu_in))%>%
               mutate(icu_in2=as_date(icu_in2))%>%
     rename(icu_out=hoendtc)%>%
@@ -547,6 +580,49 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
                               usubjid=='CVRAPID_00570-0186'~'2020-07-25',
                               usubjid=='CVRAPID_00570-0126'~'',
                               usubjid=='CVRAPID_213-0010'~'',
+                              usubjid=='CVVCORE_421-A009'~'2020-03-27',
+                              usubjid=='CVRAPID_PET041-00330'~'2020-03-28',
+                              usubjid=='CVVECMO_719-0010'~'2020-04-01',
+                              usubjid=='CVVECMO_719-0011'~'2020-04-02',
+                              usubjid=='CVVCORE_00773-0001'~'2020-04-07',
+                              usubjid=='CVTDWXD_RD070016'~'2020-04-15',
+                              usubjid=='CVVECMO_00656-0005'~'2020-04-17',
+                              usubjid=='CVVCORE_321-0317'~'2020-04-28',
+                              usubjid=='CVTDWXD_RD410004'~'2020-05-13',
+                              usubjid=='CVTDWXD_RD430111'~'2020-05-23',
+                              usubjid=='CVTDWXD_RD410012'~'2020-06-04',
+                              usubjid=='CVVCORE_512-0070'~'2020-06-04',
+                              usubjid=='CVVECMO_00742-0002'~'2020-06-16',
+                              usubjid=='CVRAPID_00570-0046'~'2020-06-18',
+                              usubjid=='CVVECMO_00624-0061'~'2020-06-18',
+                              usubjid=='CVRAPID_00711-0707'~'2020-06-21',
+                              usubjid=='CVVCORE_726-0000'~'2020-07-01',
+                              usubjid=='CVTDWXD_RD240294'~'2020-07-03',
+                              usubjid=='CVVCORE_512-0103'~'2020-07-04',
+                              usubjid=='CVRAPID_00570-0092'~'2020-07-06',
+                              usubjid=='CVVCORE_00727-0001'~'2020-07-14',
+                              usubjid=='CVRAPID_00570-0176'~'2020-07-27',
+                              usubjid=='CVVCORE_498-0033'~'',
+                              usubjid=='CVVCORE_326-0099'~'',
+                              usubjid=='CVVECMO_253-0008'~'',
+                              usubjid=='CVVCORE_286-0050'~'2020-03-20',
+                              usubjid=='CVVECMO_694-0025'~'2020-04-08',
+                              usubjid=='CVVECMO_000743-0002'~'2020-04-17',
+                              usubjid=='CVVCORE_00633-0028'~'',
+                              usubjid=='CVVCORE_449-0057'~'2020-04-14',
+                              usubjid=='CVVCORE_00561-0070'~'',
+                              usubjid=='CVVCORE_00555-2003'~'2020-04-14',
+                              usubjid=='CVVECMO_00670-0018'~'2020-03-27',
+                              usubjid=='CVVCORE_326-0002'~'2020-06-22',
+                              usubjid=='CVVCORE_449-0014'~'2020-04-13',
+                              usubjid=='CVVECMO_536-0016'~'2020-05-25',
+                              usubjid=='CVVCORE_449-0009'~'2020-04-28',
+                              usubjid=='CVVCORE_00721-0006'~'2020-03-15',
+                              usubjid=='CVVCORE_00721-0010'~'2020-03-14',
+                              usubjid=='CVRAPID_PET027-00615'~'2020-03-18',
+                              usubjid=='CVVECMO_694-0024'~'2020-04-25',
+                              
+                              
                               TRUE ~ icu_out))%>%
     mutate(icu_out2=as_date(icu_out2))%>%
     select(-c(hodecod))
@@ -801,7 +877,7 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
     select(usubjid, "outcome" = dsterm, "date_outcome" = dsstdtc) %>%
     mutate(outcome = str_to_title(outcome))%>%
     mutate(date_outcome=substr(date_outcome,1, 10))%>%
-    mutates(date_outcome2=case_when(usubjid=='CVVCORE_247-0004'~'2020-02-26',
+    mutate(date_outcome2=case_when(usubjid=='CVVCORE_247-0004'~'2020-02-26',
                                     usubjid=='CVVCORE_657-0014'~'2020-03-11',
                                     usubjid=='CVVCORE_425-0010'~'2020-03-16',
                                     usubjid=='CVKMNLC_1090-88'~'2020-03-18',
@@ -892,7 +968,13 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
                                     usubjid=='CVPRQTA_399-109'~'',
                                     usubjid=='CVVCORE_657-0365'~'',
                                     usubjid=='CVTDWXD_RD390001'~'',
+                                   usubjid=='CVPRQTA_394-236'~'2020-05-05',
+                                   usubjid=='CVVCORE_F135-51'~'2020-03-13',
+                                   usubjid=='CVTDWXD_RD270049'~'2020-04-17',
+                                   usubjid=='CVPRQTA_353-1199'~'2020-04-12',
+                                   usubjid=='CVTDWXD_RD390001'~'CVPRQTA_399-130',
                                     TRUE ~ date_outcome))%>%
+    
     mutate(date_outcome2=as_date(date_outcome2))                             
 
   
@@ -980,14 +1062,15 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
     outcome <- process.outcome.data(outcome.file.name, dtplyr.step = FALSE)
     demographic <- demographic%>%
       left_join(outcome, by = c("usubjid"))%>%
-      mutate(t_on_ad=date_admit-date_onset)%>%
-      mutate(t_ad_icu=icu_in-date_admit)%>%
-      mutate(t_ad_imv=imv_st-date_admit)%>%
-      mutate(t_ad_niv=niv_st-date_admit)%>%
-      mutate(icu_dur=icu_out-icu_in)%>%
-      mutate(ho_dur=date_outcome-date_admit)%>%
+      mutate(t_on_ad=date_admit2-date_onset2)%>%
+      mutate(t_ad_icu=icu_in2-date_admit2)%>%
+      mutate(t_ad_imv=imv_st-date_admit2)%>%
+      mutate(t_ad_niv=niv_st-date_admit2)%>%
+      mutate(icu_dur=icu_out2-icu_in2)%>%
+      mutate(ho_dur=date_outcome2-date_admit2)%>%
       mutate(imv_dur=imv_en-imv_st)%>%
-      mutate(niv_dur=niv_en-niv_st)#%>%
+      mutate(niv_dur=niv_en-niv_st)%>%
+      mutate(outicu_disch=date_outcome2-icu_out2)
      # select(-c("comorbid_covid-19_symptoms","comorbid_drinks_beer", 
       #          "symptoms_covid-19_symptoms", "symptoms_hematuria",
        #         "symptoms_hemoglobinuria",
