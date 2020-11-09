@@ -68,6 +68,9 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(age2=age/age_d)%>%
     select(-(age))%>%
     rename(age=age2)%>%
+    mutate(agegp10 = cut(age, right = FALSE, breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 120))) %>%
+    mutate(agegp5 = cut(age, right = FALSE, breaks = c(0,5, 10,15, 20,25, 30,35, 40,45, 50,55,
+                                                       60,65, 70,75, 80,85, 90, 95, 100, 120))) %>%
     mutate(ethnic = iconv(ethnic, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(ethnic = str_remove_all(ethnic, "\\s*\\([^)]*\\)")) %>%
     mutate(ethnic = str_replace_all(ethnic, " - ", "_")) %>%
@@ -79,17 +82,14 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(studyid=substr(usubjid,1, 7))%>%
     mutate(CCA_Network=substr(subjid,1, 12))%>%
     separate(subjid, c("siteid_finala","patient"), sep = "-")%>%
-    
     select(usubjid,CCA_Network, studyid, siteid,siteid_finala,patient, site,  date_admit, age,sex, ethnic, country)%>%
     mutate(siteid_finala=as.character(siteid_finala))%>%
     mutate(siteid_final= case_when(is.na(patient) ~ site,
                                    patient=="" ~ site,
                                   site=="00741cca_network"~ CCA_Network,
-                                   TRUE ~ siteid_finala
-                                      )) %>%
+                                   TRUE ~ siteid_finala)) %>%
     mutate(siteid_final=replace(siteid_final,studyid=="CVPSICL","QECH"))%>%
     mutate(siteid_final=replace(siteid_final,studyid=="CVTDWXD","CVTDWXD"))%>%
-    #mutate(siteid_final=replace(siteid_final,site=="00741cca_network",CCA_Network))%>%
     mutate(siteid_final=paste0("text_",siteid_final))%>%
     mutate(sex = case_when(sex == "M" ~ "Male",
                            sex == "F" ~ "Female",
@@ -252,7 +252,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                                  usubjid=='CVRAPID_212-0132'~'2020-05-12',
                                 TRUE ~ date_admit))%>%
                   mutate(date_admit2=as_date(date_admit2))%>%
-    select(usubjid, studyid, siteid_final, date_admit, date_admit2, age, sex, ethnic, country  )
+    select(usubjid, studyid, siteid_final, date_admit, date_admit2, age, agegp5, agegp10, sex, ethnic, country  )
   
   if(dtplyr.step){
     return(out)
@@ -448,7 +448,6 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
                                  usubjid=='CVRAPID_212-0132'~'2020-05-07',
                                  usubjid=='CVVCORE_321-0330'~'2020-04-02',
                                  usubjid=='CVVCORE_290-Flevoneg1'~'',
-                                 
                                  TRUE ~ date_onset))%>%
       mutate(date_onset2=as_date(date_onset2))
   symptom<- symptom_w%>%
@@ -619,8 +618,6 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
                               usubjid=='CVVCORE_00721-0010'~'2020-03-14',
                               usubjid=='CVRAPID_PET027-00615'~'2020-03-18',
                               usubjid=='CVVECMO_694-0024'~'2020-04-25',
-                              
-                              
                               TRUE ~ icu_out))%>%
     mutate(icu_out2=as_date(icu_out2))%>%
     select(-c(hodecod))
@@ -972,8 +969,25 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
                                    usubjid=='CVPRQTA_353-1199'~'2020-04-12',
                                    usubjid=='CVTDWXD_RD390001'~'CVPRQTA_399-130',
                                     TRUE ~ date_outcome))%>%
-    
-    mutate(date_outcome2=as_date(date_outcome2))                             
+    mutate(date_outcome2=as_date(date_outcome2))%>%
+    mutate(outocome=case_when(outocome="Currently Hospitalised"~"Ongoing care",
+                              outocome="Death"~"Death",
+                              outocome="Death In Hospital"~"Death",
+                              outocome="Discharge"~"Discharge",
+                              outocome="Discharge With Palliative Care"~"Transferred",
+                              outocome="Discharged"~"Discharge",
+                              outocome="Discharged Alive"~"Discharge",
+                              outocome="Hospital Discharge"~"Discharge",
+                              outocome="Hospitalization"~"Ongoing care",
+                              outocome="Hospitalized"~"Ongoing care",
+                              outocome="Long Term Care Facility"~"Transferred",
+                              outocome="Palliative Discharge"~"Transferred",
+                              outocome="Quarantine Center"~"Transferred",
+                              outocome="Transfer To Other Facility"~"Transferred",
+                              outocome="Transfer To Other Hospital/Facility"~"Transferred",
+                              outocome="Transferred To Another Facility"~"Transferred",
+                              outocome="Transferred To Another Unit"~"Ongoing care",
+                              TRUE ~ NA_character_)) %>%
 
   
   if(dtplyr.step){
