@@ -84,8 +84,6 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(siteid_finala=as.character(siteid_finala))%>%
     mutate(siteid_final= case_when(is.na(patient) ~ site,
                                    patient=="" ~ site,
-                                  #dataset=="CVTDWXD" ~ siteid,
-                                  #dataset=="CVPSICL"~"QECH",
                                   site=="00741cca_network"~ CCA_Network,
                                    TRUE ~ siteid_finala
                                       )) %>%
