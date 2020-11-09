@@ -82,7 +82,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(studyid=substr(usubjid,1, 7))%>%
     mutate(CCA_Network=substr(subjid,1, 12))%>%
     separate(subjid, c("siteid_finala","patient"), sep = "-")%>%
-    select(usubjid,CCA_Network, studyid, siteid,siteid_finala,patient, site,  date_admit, age,sex, ethnic, country)%>%
+    #select(usubjid,CCA_Network, studyid, siteid,siteid_finala,patient, site,  date_admit, age,sex, ethnic, country)%>%
     mutate(siteid_finala=as.character(siteid_finala))%>%
     mutate(siteid_final= case_when(is.na(patient) ~ site,
                                    patient=="" ~ site,
@@ -252,6 +252,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                                  usubjid=='CVRAPID_212-0132'~'2020-05-12',
                                 TRUE ~ date_admit))%>%
                   mutate(date_admit2=as_date(date_admit2))%>%
+                  mutate(date_admit=as_date(date_admit))%>%
     select(usubjid, studyid, siteid_final, date_admit, date_admit2, age, agegp5, agegp10, sex, ethnic, country  )
   
   if(dtplyr.step){
@@ -449,7 +450,8 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
                                  usubjid=='CVVCORE_321-0330'~'2020-04-02',
                                  usubjid=='CVVCORE_290-Flevoneg1'~'',
                                  TRUE ~ date_onset))%>%
-      mutate(date_onset2=as_date(date_onset2))
+      mutate(date_onset2=as_date(date_onset2))%>%
+      mutate(date_onset=as_date(date_onset))
   symptom<- symptom_w%>%
     left_join(symptom_onset, by = c("usubjid"))
     
@@ -565,6 +567,7 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
                              usubjid=='CVVECMO_294-0006'~'',
                                  TRUE ~ icu_in))%>%
               mutate(icu_in2=as_date(icu_in2))%>%
+              mutate(icu_in=as_date(icu_in))%>%
     rename(icu_out=hoendtc)%>%
     mutate(icu_out=as.character(icu_out))%>%
     mutate(icu_out2=case_when(usubjid=='CVRAPID_503-0023'~'2020-04-18',
@@ -620,6 +623,7 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
                               usubjid=='CVVECMO_694-0024'~'2020-04-25',
                               TRUE ~ icu_out))%>%
     mutate(icu_out2=as_date(icu_out2))%>%
+    mutate(icu_out=as_date(icu_out))%>%
     select(-c(hodecod))
     #as.data.table() %>%
     #dt_pivot_wider(id_cols = usubjid, names_from = hodecod,  values_from = c("in", "out", ever))#%>%
@@ -970,24 +974,26 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
                                    usubjid=='CVTDWXD_RD390001'~'CVPRQTA_399-130',
                                     TRUE ~ date_outcome))%>%
     mutate(date_outcome2=as_date(date_outcome2))%>%
-    mutate(outocome=case_when(outocome="Currently Hospitalised"~"Ongoing care",
-                              outocome="Death"~"Death",
-                              outocome="Death In Hospital"~"Death",
-                              outocome="Discharge"~"Discharge",
-                              outocome="Discharge With Palliative Care"~"Transferred",
-                              outocome="Discharged"~"Discharge",
-                              outocome="Discharged Alive"~"Discharge",
-                              outocome="Hospital Discharge"~"Discharge",
-                              outocome="Hospitalization"~"Ongoing care",
-                              outocome="Hospitalized"~"Ongoing care",
-                              outocome="Long Term Care Facility"~"Transferred",
-                              outocome="Palliative Discharge"~"Transferred",
-                              outocome="Quarantine Center"~"Transferred",
-                              outocome="Transfer To Other Facility"~"Transferred",
-                              outocome="Transfer To Other Hospital/Facility"~"Transferred",
-                              outocome="Transferred To Another Facility"~"Transferred",
-                              outocome="Transferred To Another Unit"~"Ongoing care",
-                              TRUE ~ NA_character_)) %>%
+    mutate(date_outcome=as_date(date_outcome))%>%
+    mutate(outcome=case_when(outcome=='CVVCORE_247-0004'~'2020-02-26',
+                             outcome=="Currently Hospitalised"~"Ongoing care",
+                             outcome=="Death"~"Death",
+                             outcome=="Death In Hospital"~"Death",
+                             outcome=="Discharge"~"Discharge",
+                             outcome=="Discharge With Palliative Care"~"Transferred",
+                             outcome=="Discharged"~"Discharge",
+                             outcome=="Discharged Alive"~"Discharge",
+                             outcome=="Hospital Discharge"~"Discharge",
+                             outcome=="Hospitalization"~"Ongoing care",
+                             outcome=="Hospitalized"~"Ongoing care",
+                             outcome=="Long Term Care Facility"~"Transferred",
+                             outcome=="Palliative Discharge"~"Transferred",
+                             outcome=="Quarantine Center"~"Transferred",
+                             outcome=="Transfer To Other Facility"~"Transferred",
+                             outcome=="Transfer To Other Hospital/Facility"~"Transferred",
+                             outcome=="Transferred To Another Facility"~"Transferred",
+                             outcome=="Transferred To Another Unit"~"Ongoing care",
+                             TRUE ~ NA_character_))
 
   
   if(dtplyr.step){
@@ -1074,20 +1080,24 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
     outcome <- process.outcome.data(outcome.file.name, dtplyr.step = FALSE)
     demographic <- demographic%>%
       left_join(outcome, by = c("usubjid"))%>%
-      mutate(t_on_ad=date_admit2-date_onset2)%>%
-      mutate(t_ad_icu=icu_in2-date_admit2)%>%
-      mutate(t_ad_imv=imv_st-date_admit2)%>%
-      mutate(t_ad_niv=niv_st-date_admit2)%>%
-      mutate(icu_dur=icu_out2-icu_in2)%>%
-      mutate(ho_dur=date_outcome2-date_admit2)%>%
-      mutate(imv_dur=imv_en-imv_st)%>%
-      mutate(niv_dur=niv_en-niv_st)%>%
-      mutate(outicu_disch=date_outcome2-icu_out2)
-     # select(-c("comorbid_covid-19_symptoms","comorbid_drinks_beer", 
-      #          "symptoms_covid-19_symptoms", "symptoms_hematuria",
-       #         "symptoms_hemoglobinuria",
-        #        "symptoms_leukocyturia",
-         #      "symptoms_proteinuria"))
+      mutate(t_son_ad=date_admit-date_onset)%>%
+      mutate(t_son_ad2=date_admit2-date_onset2)%>%
+      mutate(t_ad_icu=icu_in-date_admit)%>%
+      mutate(t_ad_icu2=icu_in2-date_admit2)%>%
+      #mutate(t_ad_imv=imv_st-date_admit2)%>%
+      #mutate(t_ad_niv=niv_st-date_admit2)%>%
+      mutate(icu_dur=icu_out-icu_in)%>%
+      mutate(icu_dur2=icu_out2-icu_in2)%>%
+      mutate(ho_dur=date_outcome-date_admit)%>%
+      mutate(ho_dur2=date_outcome2-date_admit2)%>%
+      #mutate(imv_dur=imv_en-imv_st)%>%
+      #mutate(niv_dur=niv_en-niv_st)%>%
+      #mutate(outicu_disch=date_outcome2-icu_out2)
+      select(-c("comorbid_drinks_beer", 
+                "symptoms_covid-19_symptoms", "symptoms_hematuria",
+               "symptoms_hemoglobinuria",
+              "symptoms_leukocyturia",
+            "symptoms_proteinuria"))
   }
   
   
