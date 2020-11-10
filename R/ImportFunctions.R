@@ -708,6 +708,7 @@ process.common.treatment.data <- function(input, minimum = 100, dtplyr.step = FA
   }
   
   treatment <- treatment_all %>%
+    arrange(desc(inoccur))%>%
     distinct(usubjid, treatment, .keep_all =T)%>% 
     group_by(treatment) %>% 
     arrange(desc(inoccur))%>%
@@ -724,6 +725,7 @@ process.common.treatment.data <- function(input, minimum = 100, dtplyr.step = FA
   }
   
 }
+
 
 #' Process dates on IMV and NIV
 #' @param input Either the path of the interventions data file (CDISC format) or output of \code{process.treatment.data}
@@ -1060,6 +1062,25 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
       left_join(treatment, by = c("usubjid"))
   }
   if(!is.na(treatment.file.name)){
+    icu <- process.ICU.data(ICU.file.name, dtplyr.step = FALSE)
+    treatment_all <- process.treatment.data(treatment.file.name, FALSE)
+    treatment_icu<-icu%>%
+      filter(ever_icu==TRUE)%>%
+      filter(!is.na(icu_in))%>%
+      filter(!is.na(icu_out))%>%
+      left_join(treatment_all, by = c("usubjid"="usubjid"))%>%
+      filter(!is.na(indtc))%>%
+      mutate(int_icu=case_when(indtc>=icu_in & indtc<=icu_out ~ TRUE, 
+                               TRUE ~ FALSE))%>%
+      arrange(desc(inoccur))%>%
+      distinct(usubjid, treatment, .keep_all =T)%>% 
+      mutate(treatment = glue("icu_treat_{treatment}", treatment = treatment)) %>%
+      as.data.table() %>%
+      dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur)
+    demographic <- demographic %>%
+      left_join(treatment_icu, by = c("usubjid"))
+  }
+  if(!is.na(treatment.file.name)){
     ventilation <- ventilation <- process.IMV.NIV.data(treatment.file.name, dtplyr.step = FALSE)
     demographic <- demographic %>%
       left_join(ventilation, by = c("usubjid"))
@@ -1125,14 +1146,14 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
       mutate(year_month_adon2=paste0(year_adon,"-", month_adon))%>%
       mutate(year_month_adon2 = replace(year_month_adon2, year_month_adon2 == "NA-NA", NA)) %>%
       mutate(year_epiweek_adon2=paste0(year_adon,"-", epiweek_adon))%>%
-      mutate(year_epiweek_adon2= replace(year_epiweek_adon2, year_epiweek_adon2 == "NA-NA", NA))
+      mutate(year_epiweek_adon2= replace(year_epiweek_adon2, year_epiweek_adon2 == "NA-NA", NA))#%>%
       #mutate(outicu_disch=date_outcome2-icu_out2)
-      select(-c("comorbid_drinks_beer", 
-                "symptoms_covid-19_symptoms", "symptoms_hematuria",
-                "symptoms_hemoglobinuria",
-                "symptoms_leukocyturia",
-                "symptoms_proteinuria",
-                "year_admit", "month_admit","epiweek_admit","year_adon", "month_adon", "epiweek_adon"))
+      #select(-c("comorbid_drinks_beer", 
+       #         "symptoms_covid-19_symptoms", "symptoms_hematuria",
+        #        "symptoms_hemoglobinuria",
+         #       "symptoms_leukocyturia",
+          #      "symptoms_proteinuria",
+           #     "year_admit", "month_admit","epiweek_admit","year_adon", "month_adon", "epiweek_adon"))
   }
   
   
