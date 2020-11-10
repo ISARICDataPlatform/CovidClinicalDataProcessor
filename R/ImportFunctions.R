@@ -660,13 +660,14 @@ process.treatment.data <- function(file.name, dtplyr.step = FALSE){
   #treatment <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
   treatment<-out%>%
     filter(incat == "SUPPORTIVE CARE" | incat == "ANTIBIOTIC AGENTS" | incat == "ANTIFUNGAL AGENTS"
-           | incat == "ANTIVIRAL AGENTS" | incat == "CORTICOSTEROIDS") %>%
+           | incat == "ANTIVIRAL AGENTS" | incat == "CORTICOSTEROIDS" | incat == "ANTIMALARIAL AGENTS") %>%
     filter(inpresp =="Y") %>%
     select(usubjid, "treatment" = intrt, inoccur, indtc, incat) %>%
     mutate(treatment=replace(treatment,incat=="ANTIBIOTIC AGENTS", "ANTIBIOTIC AGENTS"))%>%
     mutate(treatment=replace(treatment,incat=="ANTIFUNGAL AGENTS", "ANTIFUNGAL AGENTS"))%>%
     mutate(treatment=replace(treatment,incat=="ANTIVIRAL AGENTS", "ANTIVIRAL AGENTS"))%>%
     mutate(treatment=replace(treatment,incat=="CORTICOSTEROIDS", "CORTICOSTEROIDS"))%>%
+    mutate(treatment=replace(treatment,incat=="ANTIMALARIAL AGENTS", "ANTIMALARIAL AGENTS"))%>%
     select(usubjid, treatment, inoccur, indtc) %>%
     mutate(treatment = iconv(treatment, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(treatment = str_remove_all(treatment, "\\s*\\([^)]*\\)")) %>%
@@ -1050,17 +1051,18 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
   }
   
 
+  if(!is.na(treatment.file.name)){
+    treatment <- process.common.treatment.data(treatment.file.name, minimum.treatments, FALSE)
+    demographic <- demographic %>%
+      left_join(treatment, by = c("usubjid"))
+  }
   
   if(!is.na(ICU.file.name)){
     icu <- process.ICU.data(ICU.file.name, dtplyr.step = FALSE)
     demographic <- demographic %>%
       left_join(icu, by = c("usubjid")) 
   }
-  if(!is.na(treatment.file.name)){
-    treatment <- process.common.treatment.data(treatment.file.name, minimum.treatments, FALSE)
-    demographic <- demographic %>%
-      left_join(treatment, by = c("usubjid"))
-  }
+  
   if(!is.na(treatment.file.name)){
     icu <- process.ICU.data(ICU.file.name, dtplyr.step = FALSE)
     treatment_all <- process.treatment.data(treatment.file.name, FALSE)
@@ -1102,15 +1104,15 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
     demographic <- demographic%>%
       left_join(outcome, by = c("usubjid"))%>%
       mutate(t_son_ad=date_admit-date_onset)%>%
-      mutate(t_son_ad2=date_admit2-date_onset2)%>%
+      #mutate(t_son_ad2=date_admit2-date_onset2)%>%
       mutate(t_ad_icu=icu_in-date_admit)%>%
-      mutate(t_ad_icu2=icu_in2-date_admit2)%>%
+      ##mutate(t_ad_icu2=icu_in2-date_admit2)%>%
       #mutate(t_ad_imv=imv_st-date_admit2)%>%
       #mutate(t_ad_niv=niv_st-date_admit2)%>%
       mutate(icu_dur=icu_out-icu_in)%>%
-      mutate(icu_dur2=icu_out2-icu_in2)%>%
+      #mutate(icu_dur2=icu_out2-icu_in2)%>%
       mutate(ho_dur=date_outcome-date_admit)%>%
-      mutate(ho_dur2=date_outcome2-date_admit2)%>%
+      #mutate(ho_dur2=date_outcome2-date_admit2)%>%
       #mutate(imv_dur=imv_en-imv_st)%>%
       #mutate(niv_dur=niv_en-niv_st)%>%
       mutate(year_admit = year(date_admit)) %>%
@@ -1127,33 +1129,33 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
       mutate(year_month_admit2 = replace(year_month_admit2, year_month_admit2 == "NA-NA", NA)) %>%
       mutate(year_epiweek_admit2=paste0(year_admit,"-", epiweek_admit))%>%
       mutate(year_epiweek_admit2= replace(year_epiweek_admit2, year_epiweek_admit2 == "NA-NA", NA))%>%
-      mutate(date_adon=case_when(t_son_ad<0~date_onset,
+      mutate(date_start=case_when(t_son_ad<0~date_onset,
                                  is.na(date_admit) ~ date_onset,
                                  TRUE ~  date_admit  ))%>%
-      mutate(year_adon = year(date_adon)) %>%
-      mutate(month_adon = month(date_adon)) %>%
-      mutate(epiweek_adon = epiweek(date_adon))%>%
-      mutate(year_month_adon=paste0(year_adon,"-", month_adon))%>%
-      mutate(year_month_adon = replace(year_month_adon, year_month_adon == "NA-NA", NA)) %>%
-      mutate(year_epiweek_adon=paste0(year_adon,"-", epiweek_adon))%>%
-      mutate(year_epiweek_adon= replace(year_epiweek_adon, year_epiweek_adon == "NA-NA", NA))%>%
-      mutate(date_adon2=case_when(t_son_ad2<0~date_onset2,
-                                  is.na(date_admit2) ~ date_onset2,
-                                  TRUE ~  date_admit2  ))%>%
-      mutate(year_adon = year(date_adon2)) %>%
-      mutate(month_adon = month(date_adon2)) %>%
-      mutate(epiweek_adon = epiweek(date_adon2))%>%
-      mutate(year_month_adon2=paste0(year_adon,"-", month_adon))%>%
-      mutate(year_month_adon2 = replace(year_month_adon2, year_month_adon2 == "NA-NA", NA)) %>%
-      mutate(year_epiweek_adon2=paste0(year_adon,"-", epiweek_adon))%>%
-      mutate(year_epiweek_adon2= replace(year_epiweek_adon2, year_epiweek_adon2 == "NA-NA", NA))#%>%
+      mutate(year_start = year(date_start)) %>%
+      mutate(month_start = month(date_start)) %>%
+      mutate(epiweek_start = epiweek(date_start))%>%
+      mutate(year_month_start=paste0(year_start,"-", month_start))%>%
+      mutate(year_month_start = replace(year_month_start, year_month_start == "NA-NA", NA)) %>%
+      mutate(year_epiweek_start=paste0(year_start,"-", epiweek_start))%>%
+      mutate(year_epiweek_start= replace(year_epiweek_start, year_epiweek_start == "NA-NA", NA))%>%
+      #mutate(date_adon2=case_when(t_son_ad2<0~date_onset2,
+      #                           is.na(date_admit2) ~ date_onset2,
+      #                            TRUE ~  date_admit2  ))%>%
+      #mutate(year_adon = year(date_adon2)) %>%
+      #mutate(month_adon = month(date_adon2)) %>%
+      #mutate(epiweek_adon = epiweek(date_adon2))%>%
+      #mutate(year_month_adon2=paste0(year_adon,"-", month_adon))%>%
+      #mutate(year_month_adon2 = replace(year_month_adon2, year_month_adon2 == "NA-NA", NA)) %>%
+      #mutate(year_epiweek_adon2=paste0(year_adon,"-", epiweek_adon))%>%
+      #mutate(year_epiweek_adon2= replace(year_epiweek_adon2, year_epiweek_adon2 == "NA-NA", NA))#%>%
       #mutate(outicu_disch=date_outcome2-icu_out2)
-      #select(-c("comorbid_drinks_beer", 
-       #         "symptoms_covid-19_symptoms", "symptoms_hematuria",
-        #        "symptoms_hemoglobinuria",
-         #       "symptoms_leukocyturia",
-          #      "symptoms_proteinuria",
-           #     "year_admit", "month_admit","epiweek_admit","year_adon", "month_adon", "epiweek_adon"))
+      select(-c("comorbid_drinks_beer", 
+                "symptoms_covid-19_symptoms", "symptoms_hematuria",
+                "symptoms_hemoglobinuria",
+                "symptoms_leukocyturia",
+                "symptoms_proteinuria",
+           "year_admit", "month_admit","epiweek_admit","year_start", "month_start", "epiweek_start"))
   }
   
   
