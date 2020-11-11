@@ -7,6 +7,10 @@
 #' @importFrom data.table fread
 #' @return The contents of \code{file.name} as a tibble or \code{dtplyr_step}
 #' @keywords internal
+#' 
+#' 
+#' 
+#' 
 #' @export shared.data.import
 shared.data.import <- function(file.name, 
                                excluded.columns = c("STUDYID", "DOMAIN"),
