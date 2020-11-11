@@ -1,4 +1,8 @@
 
+joaquin_function <- function(try){
+  try + 7
+}  
+  
 #' Preprocessing step for all aggregations. Currently: remaps outcome to death, discharge or NA, cuts age into 5-year age groups, and adds a year-epiweek column
 #' @param input.tbl Input tibble (output of \code{process.all.data})
 #' @import dtplyr dplyr purrr lubridate tibble
@@ -559,3 +563,4 @@ icu.treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   
   
 }
+
