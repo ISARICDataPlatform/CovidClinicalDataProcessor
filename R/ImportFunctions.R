@@ -662,6 +662,25 @@ process.treatment.data <- function(file.name, dtplyr.step = FALSE){
                             dtplyr.step = TRUE)
   
   #treatment <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
+  
+  treatment_a<-out%>%
+    filter(incat == "MEDICATION"  ) %>%
+    #filter(studyid == "CVVCORE" | studyid=="CVVECMO" | studyid=="CVPSICL") %>%
+    filter(inpresp =="Y") %>%
+    as_tibble() %>%
+    dplyr::filter(intrt %like% "antibiotic" | intrt %like% "antiviral" 
+                  | intrt %like% "antifung" | intrt %like% "CORTICOSTEROID"
+                  )%>%
+    mutate(intrt=case_when(intrt=="CORTICOSTEROID"~ "CORTICOSTEROIDS",
+                           intrt=="ANTIVIRAL" | intrt=="ANTIVIRAL AGENT"~ "ANTIVIRAL AGENTS",
+                           intrt=="ANTIBIOTIC" | intrt=="ANTIBIOTIC AGENT"~ "ANTIBIOTIC AGENTS",
+                           intrt=="ANTIMALARIAL AGENT" ~ "ANTIMALARIAL AGENTS",
+                           intrt=="ANTIFUNGAL AGENT" ~ "ANTIFUNGAL AGENTS"
+                           ))%>%
+    select(usubjid, "treatment" = intrt, inoccur, indtc)%>%
+  as.data.frame()
+    
+
   treatment<-out%>%
     filter(incat == "SUPPORTIVE CARE" | incat == "ANTIBIOTIC AGENTS" | incat == "ANTIFUNGAL AGENTS"
            | incat == "ANTIVIRAL AGENTS" | incat == "CORTICOSTEROIDS" | incat == "ANTIMALARIAL AGENTS") %>%
@@ -673,6 +692,8 @@ process.treatment.data <- function(file.name, dtplyr.step = FALSE){
     mutate(treatment=replace(treatment,incat=="CORTICOSTEROIDS", "CORTICOSTEROIDS"))%>%
     mutate(treatment=replace(treatment,incat=="ANTIMALARIAL AGENTS", "ANTIMALARIAL AGENTS"))%>%
     select(usubjid, treatment, inoccur, indtc) %>%
+    as.data.frame()%>%
+    bind_rows(treatment_a)%>%
     mutate(treatment = iconv(treatment, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(treatment = str_remove_all(treatment, "\\s*\\([^)]*\\)")) %>%
     mutate(treatment = str_replace_all(treatment, " - ", "_")) %>%
