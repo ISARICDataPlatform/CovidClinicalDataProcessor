@@ -29,8 +29,9 @@ library(shinyWidgets)
 library(viridis)
 library(hrbrthemes)
 library(splitstackshape)
-
-
+library(glue)
+library(lubridate)
+#month.year.mapper()
 #' Preprocessing step for all aggregations. Currently: remaps outcome to death, discharge or NA, cuts age into 5-year age groups, and adds a year-epiweek column
 #' @param input.tbl Input tibble (output of \code{process.all.data})
 #' @import dtplyr dplyr purrr lubridate tibble
@@ -49,13 +50,13 @@ data.preprocessing <- function(input.tbl){
     mutate(slider_monthyear = map2_chr(calendar.year.admit, calendar.month.admit, month.year.mapper)) %>%
     mutate(year.admit = map_dbl(date_admit, epiweek.year)) %>%
     mutate(epiweek.admit = epiweek(date_admit)) %>%
-    mutate(year.epiweek.admit = glue("{year.admit}-{epiweek.admit}", .envir = .SD)) %>%
+    mutate(year.epiweek.admit = glue("{year.admit}-{epiweek.admit}", .envir = .SD)) %>% #Try replacing with unite if necesary
     mutate(year.epiweek.admit = replace(year.epiweek.admit, year.epiweek.admit == "NA-NA", NA)) %>%
     mutate(lower.age.bound  = map_dbl(agegp10, extract.age.boundaries, TRUE)) %>%
     mutate(upper.age.bound  = map_dbl(agegp10, extract.age.boundaries, FALSE)) %>%
     mutate(slider_agegp10 = fct_relabel(agegp10, prettify.age.labels)) %>%
     select(-agegp10) %>%
-    rename(slider_icu_ever = icu_ever) %>%
+    rename(slider_icu_ever = ever_icu) %>%
     rename(slider_country = country) %>%
     rename(slider_sex = sex) %>%
     as_tibble()
@@ -600,6 +601,15 @@ icu.treatment.upset.prep <- function(input.tbl, max.treatments = 5){
 ###################################################################################
 ###################################################################################
 import  <- read.csv("ISVARIC_dash_db_20201109_.csv")
+
+
+import$date_admit <-import$date_admit %>%
+  as.Date(tryFormats = "%m/%d/%y")
+
+data.preprocessing(import)
+
+
+import <-  data.preprocessing(import) ## Should it be done like this?
 
 ####################################
 #Rename variables from Martina's data set (import file)
