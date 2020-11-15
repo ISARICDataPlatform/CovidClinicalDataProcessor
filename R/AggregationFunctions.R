@@ -265,8 +265,12 @@ outcome.remap <- function(oc, od){
     "censored"
   } else {
     out <- case_when(is.na(oc) ~ NA_character_,
-                     oc == "Death" ~ "death",
-                     oc == "Discharged Alive" ~ "discharge")
+                     oc == "Death" ~ "Death",
+                     oc ==  "Discharge" ~"Discharged Alive",
+                     oc == "Transferred" ~ "Transferred",
+                     oc == "Ongoing care" ~ "Ongoing care",
+                     oc ==  "" ~ "Censored"
+                     )
   }
 }
 
@@ -602,95 +606,16 @@ icu.treatment.upset.prep <- function(input.tbl, max.treatments = 5){
 ###################################################################################
 import  <- read.csv("ISVARIC_dash_db_20201109_.csv")
 
+tabyl(import, outcome)
 
+#Set the date_admit to a date form
 import$date_admit <-import$date_admit %>%
   as.Date(tryFormats = "%m/%d/%y")
 
-data.preprocessing(import)
+#Work the import data
+data_to_proc <-  data.preprocessing(import) ## Should it be done like this?
 
-
-import <-  data.preprocessing(import) ## Should it be done like this?
-
-####################################
-#Rename variables from Martina's data set (import file)
-####################################
-#First you need to create some that are not on Martina's data
-# 1) calendar month 
-import$calendar.month.admit <-import$date_admit %>%
-  as.Date(tryFormats = "%m/%d/%y") %>%
-  format(format = "%m")
-  
-  
-
-# 2) year
-import$calendar.year.admit <-import$date_admit %>%
-  as.Date(tryFormats = "%m/%d/%y") %>%
-  format(format = "%y")
-
-# 3) make the slider_monthyear
-import <- unite(data = import,col = "slider_monthyear",
-                         c(calendar.month.admit,calendar.year.admit),sep = "_",remove = FALSE,
-                         na.rm = FALSE)
-
-
-import <- replace_with_na(import, replace = list(slider_monthyear = "NA_NA")) ##Remove the NA_NA for those that didn't have a date
-
-
-  # 4) age lower 
-import <- import %>% mutate(
-  lower.age.bound = case_when(age <10 ~ '0',
-                             age >= 10  & age < 20 ~ '10',
-                             age >= 20  & age < 30 ~ '20',
-                             age >= 30  & age < 40 ~ '30' ,
-                             age >= 40  & age < 50 ~ '40',
-                             age >= 50  & age < 60 ~ '50',
-                             age >= 60  & age < 70 ~ '60' ,
-                             age >= 70  & age < 80 ~ '70' ,
-                             age >= 80  & age < 90 ~ '80',
-                             age >= 90 ~ '90+')) 
-
-# 5) age upper
-import <- import %>% mutate(
-  upper.age.bound = case_when(age <10 ~ '9',
-                             age >= 10  & age < 20 ~ '19',
-                             age >= 20  & age < 30 ~ '29',
-                             age >= 30  & age < 40 ~ '39' ,
-                             age >= 40  & age < 50 ~ '49',
-                             age >= 50  & age < 60 ~ '59',
-                             age >= 60  & age < 70 ~ '69' ,
-                             age >= 70  & age < 80 ~ '79' ,
-                             age >= 80  & age < 90 ~ '89',
-                             age >= 90 ~ '119')) 
-
-# 6) age categories
-import <- import %>% mutate(
-  slider_agegp10 = case_when(age <10 ~ '0-9',
-                          age >= 10  & age < 20 ~ '10-19',
-                          age >= 20  & age < 30 ~ '20-29',
-                          age >= 30  & age < 40 ~ '30-39' ,
-                          age >= 40  & age < 50 ~ '40-49',
-                          age >= 50  & age < 60 ~ '50-59',
-                          age >= 60  & age < 70 ~ '60-69' ,
-                          age >= 70  & age < 80 ~ '70-79' ,
-                          age >= 80  & age < 90 ~ '80-89',
-                          age >= 90 ~ '90+')) 
-
-
-
-#Now you can rename them and add the missing values to those that have nothing in a cell
-import <- mutate(import, slider_country = country) %>%
-  replace_with_na(import, replace = list(slider_country = ""))
-
-import <- mutate(import, slider_sex = sex) %>%
-  replace_with_na(import, replace = list(slider_sex = ""))
-
-  
-import <- mutate(import, slider_outcome = outcome) %>%
-  replace_with_na(import, replace = list(slider_outcome = ""))
-
-  
-import$slider_icu_ever<- import$ever_icu
-
+tabyl(data_to_proc, slider_outcome)
 
 ################################
 #Run the functions created above
@@ -698,9 +623,9 @@ import$slider_icu_ever<- import$ever_icu
    
 #Figure 2: Age and sex distribution of patients. Bar fills are outcome (death/discharge/ongoing care) at the time of report.
       #Country/year-epiweek-adm/age10/age5/sex/outcome/icu
+age.pyramid.input <- age.pyramid.prep(data_to_proc)
 
-
-age.pyramid.input <- age.pyramid.prep(import)
+tabyl(age.pyramid.input, slider_outcome)
 
 #Figure 7: Box and whisker plots for observations at hospital presentation stratified by age group.
       #Country/year-epiweek-adm/age10/sex/outcome/icu/vital signs
