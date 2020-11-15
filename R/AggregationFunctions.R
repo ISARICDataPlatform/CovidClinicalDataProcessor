@@ -265,11 +265,11 @@ outcome.remap <- function(oc, od){
     "censored"
   } else {
     out <- case_when(is.na(oc) ~ NA_character_,
-                     oc == "Death" ~ "Death",
-                     oc ==  "Discharge" ~"Discharged Alive",
+                     oc == "Death" ~ "death",
+                     oc ==  "Discharge" ~"discharge",
                      oc == "Transferred" ~ "Transferred",
                      oc == "Ongoing care" ~ "Ongoing care",
-                     oc ==  "" ~ "Censored"
+                     oc ==  "" ~ "censored"
                      )
   }
 }
