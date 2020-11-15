@@ -325,3 +325,4 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, ICU.file.
     return(demographic %>% as_tibble())
   }
 }
+
