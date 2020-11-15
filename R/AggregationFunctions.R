@@ -624,8 +624,10 @@ tabyl(data_to_proc, slider_outcome)
 #Figure 2: Age and sex distribution of patients. Bar fills are outcome (death/discharge/ongoing care) at the time of report.
       #Country/year-epiweek-adm/age10/age5/sex/outcome/icu
 age.pyramid.input <- age.pyramid.prep(data_to_proc)
-
 tabyl(age.pyramid.input, slider_outcome)
+
+
+outcome.admission.date <- outcome.admission.date.prep(data_to_proc)
 
 #Figure 7: Box and whisker plots for observations at hospital presentation stratified by age group.
       #Country/year-epiweek-adm/age10/sex/outcome/icu/vital signs
@@ -637,8 +639,7 @@ tabyl(age.pyramid.input, slider_outcome)
 
 
 save(age.pyramid.input, file ="age.pyramid.input.rda")
-
-
+save(outcome.admission.date, file ="outcome_admission_date_input.rda")
 
 
 
