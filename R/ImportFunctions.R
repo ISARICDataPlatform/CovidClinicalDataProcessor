@@ -1043,6 +1043,7 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
                              outcome=="Transfer To Other Hospital/Facility"~"Transferred",
                              outcome=="Transferred To Another Facility"~"Transferred",
                              outcome=="Transferred To Another Unit"~"Ongoing care",
+                             outcome=="Missing In Database"~"Unknown outcome",
                              TRUE ~ NA_character_))
 
   
