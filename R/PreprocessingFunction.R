@@ -13,7 +13,7 @@ data.preprocessing <- function(input.tbl){
                                       is.na(date_in_latest) ~ date_ho_latest,
                                       date_ho_latest>date_in_latest ~ date_ho_latest,
                                       date_ho_latest<=date_in_latest ~ date_in_latest))%>%
-    mutate(date_latest)
+    mutate(date_latest=case_when)
     mutate(outcome.3 = map2_chr(outcome, date_outcome, outcome.remap)) %>%
     select(-outcome) %>%
     rename(slider_outcome = outcome.3) %>%
@@ -41,14 +41,15 @@ data.preprocessing <- function(input.tbl){
 #' @export outcome.remap
 outcome.remap <- function(oc, od){
   if(is.na(od) & is.na(oc)){
-    "censored"
+    "LTFU"
   } else {
     out <- case_when(is.na(oc) ~ NA_character_,
                      oc == "Death" ~ "death",
                      oc == "Discharge" ~ "discharge",
                      oc == "Ongoing care" ~ "Ongoing care",
-                     oc == "Transferred" ~ "transferred"
-    )
+                     oc == "Transferred" ~ "transferred",
+                     oc== "Unknown outcome" ~ "Unknown outcome",
+                     is.na(oc) & !is.na(od) ~"Unknown outcome")
     
   }
 }
