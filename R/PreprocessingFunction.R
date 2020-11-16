@@ -13,7 +13,8 @@ data.preprocessing <- function(input.tbl){
                                       is.na(date_in_latest) ~ date_ho_latest,
                                       date_ho_latest>date_in_latest ~ date_ho_latest,
                                       date_ho_latest<=date_in_latest ~ date_in_latest))%>%
-    mutate(date_latest=case_when)
+    mutate(date_latest=case_when(!is.na(date_outcome)~date_outcome,
+                                 is.na(date_outcome)~date_hoin_latest))%>%
     mutate(outcome.3 = map2_chr(outcome, date_outcome, outcome.remap)) %>%
     select(-outcome) %>%
     rename(slider_outcome = outcome.3) %>%
