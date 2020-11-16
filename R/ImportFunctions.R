@@ -876,6 +876,14 @@ process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
   laboratory <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
     select(usubjid, lbtestcd, lbcat,lborres,lbdtc) %>%
     filter(lbcat=="LABORATORY RESULTS ON ADMISSION")%>%
+    filter(lbtestcd=="ALT"|
+           lbtestcd=="APTT"|
+           lbtestcd=="CRP"|
+           lbtestcd=="LYM"|
+           lbtestcd=="NEUT"|
+           lbtestcd=="PT"|
+           lbtestcd=="UREA"|
+           lbtestcd=="WBC")%>%
     mutate(lborres=as.numeric(lborres))%>%
     filter(!is.na(lborres))%>%
     mutate(lbtestcd = glue("lab_{lbtestcd}", lbtestcd = lbtestcd)) %>%
