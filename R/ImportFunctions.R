@@ -506,15 +506,30 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
     mutate(hooccur = case_when(hooccur == "Y" ~ TRUE,
                                hooccur == "N" ~ FALSE,
                                TRUE ~ NA)) %>%
-    select(usubjid, hodecod, hostdtc, hoendtc, hooccur) %>%
+    select(usubjid, hodecod, hostdtc, hoendtc, hooccur)%>% 
+    mutate(hostdtc=substr(hostdtc,1, 10))%>%
+    mutate(hostdtc=as_date(hostdtc))%>%
+    mutate(hoendtc=substr(hoendtc,1, 10))%>%
+    mutate(hoendtc=as_date(hoendtc))
+  
+    last_ho_datea<-icu%>%
+    filter(hooccur==TRUE)%>%
+    arrange(desc(hostdtc))%>%
+    distinct(usubjid, .keep_all =T)%>%
+    select(usubjid,hostdtc)      
+ 
+    last_ho_dates<-icu%>%
+    filter(hooccur==TRUE)%>%
+    arrange(desc(hoendtc))%>%
+    distinct(usubjid, .keep_all =T)%>%
+    select(usubjid,hoendtc)%>%
+    left_join(last_ho_datea, by = c("usubjid"))
+  
+    icu <-icu%>%
     mutate(hodecod = ifelse(hodecod=="HOSPITAL", "hospital", "icu")) %>%
     filter(hodecod=="icu")%>%
     arrange(desc(hostdtc))%>%
     distinct(usubjid, .keep_all =T)%>%
-    mutate(hostdtc=substr(hostdtc,1, 10))%>%
-    mutate(hostdtc=as_date(hostdtc))%>%
-    mutate(hoendtc=substr(hoendtc,1, 10))%>%
-    mutate(hoendtc=as_date(hoendtc))%>%
     rename(ever_icu=hooccur)%>%
     rename(icu_in=hostdtc)%>%
     mutate(icu_in=as.character(icu_in))%>%
@@ -628,14 +643,9 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
                               TRUE ~ icu_out))%>%
     mutate(icu_out2=as_date(icu_out2))%>%
     mutate(icu_out=as_date(icu_out))%>%
-    select(-c(hodecod))
-    #as.data.table() %>%
-    #dt_pivot_wider(id_cols = usubjid, names_from = hodecod,  values_from = c("in", "out", ever))#%>%
-    #lazy_dt(immutable = FALSE)#%>%
-    #select(usubjid, ever_hospital, "hospital_in" = hostdtc_hospital,"hospital_out" = hoendtc_hospital,
-     #     ever_icu, "icu_in" = hostdtc_icu,  "icu_out" = hoendtc_icu) #%>%
-    #select(-starts_with("hospital_")) %>%
-    #filter(is.na(icu_in)==FALSE) 
+    select(-c(hodecod))%>%
+    full_join(last_ho_dates, by = c("usubjid"))
+ 
   
   if(dtplyr.step){
     return(icu)
@@ -828,6 +838,46 @@ process.IMV.NIV.data <- function(input, dtplyr.step = FALSE){
   }    
   
 }
+
+
+#' Process dates latest treatment date
+#' @param input Either the path of the interventions data file (CDISC format) or output of \code{process.treatment.data}
+#' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
+#' @import dplyr tibble dtplyr tidyfast lubridate
+#' @importFrom data.table as.data.table
+#' @importFrom glue glue
+#' @return Formatted start (in) and end (out) dates for IMV and NIV treatment (wide format) as a tibble or \code{dtplyr_step}
+#' @export process.common.treatment.data
+process.treatment.dates.data <- function(input, dtplyr.step = FALSE){
+  if(is.character(input)){
+    # assume it's a path
+    treatment_all <- process.treatment.data(input, TRUE)
+  } else {
+    treatment_all <- input
+    if(is_tibble(treatment_all)){
+      treatment_all <- treatment_all %>% as.data.table  %>% lazy_dt(immutable = FALSE)
+    }
+  }
+  
+  date_in_last <- treatment_all %>% 
+    filter(inoccur==TRUE)%>% 
+    mutate(date_in_last=substr(indtc,1, 10))%>%
+    mutate(date_in_last=as_date(date_in_last))%>%
+    arrange(desc(date_in_last))%>%
+    distinct(usubjid, .keep_all =T)%>%
+    select(usubjid, date_in_last )
+  
+  
+  if(dtplyr.step){
+    return(date_in_last) %>% lazy_dt(immutable = FALSE)
+  } else {
+    return(date_in_last %>% as_tibble())
+  }    
+  
+}
+
+
+
   
 #' Process data on vital sign
 #' @param file.name Path of the dispositions data file (CDISC format)
@@ -1105,6 +1155,15 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
       left_join(treatment, by = c("usubjid"))
   }
   
+  
+  if(!is.na(treatment.file.name)){
+    date_in_last <- process.treatment.dates.data(treatment.file.name, dtplyr.step = FALSE)
+    demographic <- demographic %>%
+      left_join(date_in_last, by = c("usubjid"))
+  }
+  
+  
+  
   if(!is.na(ICU.file.name)){
     icu <- process.ICU.data(ICU.file.name, dtplyr.step = FALSE)
     demographic <- demographic %>%
@@ -1130,11 +1189,11 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
     demographic <- demographic %>%
       left_join(treatment_icu, by = c("usubjid"))
   }
-  if(!is.na(treatment.file.name)){
-    ventilation <- ventilation <- process.IMV.NIV.data(treatment.file.name, dtplyr.step = FALSE)
-    demographic <- demographic %>%
-      left_join(ventilation, by = c("usubjid"))
-  }
+  #if(!is.na(treatment.file.name)){
+  #  ventilation <- process.IMV.NIV.data(treatment.file.name, dtplyr.step = FALSE)
+  #  demographic <- demographic %>%
+  #    left_join(ventilation, by = c("usubjid"))
+  #}
   if(!is.na(vit_sign.file.name)){
     vit_sign <- process.vital.sign.data(vit_sign.file.name, dtplyr.step = FALSE)
     demographic <- demographic %>%
