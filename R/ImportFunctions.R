@@ -842,18 +842,21 @@ process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
     select(usubjid, vstestcd, vscat,vsstresn,vsstresu, vsdtc) %>%
     filter(vscat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION" | vscat=="SIGNS AND SYMPTOMS AT ADMISSION")%>%
     filter(vstestcd=="HR" |
-           vstestcd=="OXYSAT" |
-           vstestcd=="RESP" |
-           vstestcd=="SYSBP" |
-           vstestcd=="TEMP")%>%
+             vstestcd=="OXYSAT" |
+             vstestcd=="RESP" |
+             vstestcd=="SYSBP" |
+             vstestcd=="TEMP")%>%
+    mutate(vsstresn=as.numeric(vsstresn))%>%
     filter(!is.na(vsstresn))%>%
-    mutate(vstestcd = glue("vs_{vstestcd}", vstestcd = vstestcd)) %>%
-    mutate(vstestcd = iconv(vstestcd, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     arrange(desc(vsdtc))%>%
     distinct(usubjid,vstestcd, .keep_all =T)%>%
+    mutate(vstestcd = glue("vs_{vstestcd}", vstestcd = vstestcd))%>%
+    mutate(vstestcd = iconv(vstestcd, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     as.data.table() %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = vstestcd,  values_from = vsstresn) 
-   
+    dt_pivot_wider(id_cols = usubjid, names_from = vstestcd,  values_from = vsstresn)%>%
+    as.data.frame() %>%
+    mutate(vs_oxysat=replace(vs_oxysat,vs_oxysat< 1 | vs_oxysat> 100, NA))
+
   
   if(dtplyr.step){
     return(vital_sign)
@@ -1194,6 +1197,9 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
               "symptoms_leukocyturia",
               "symptoms_proteinuria",
               "year_start", "month_start", "epiweek_start"))
+    
+    ###validating_vital_signs
+      
   }
   
   
