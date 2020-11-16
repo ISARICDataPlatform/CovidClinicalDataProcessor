@@ -894,6 +894,8 @@ process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
     mutate(lborres=case_when(lbtestcd=="NEUT" & lborres>100 ~ lborres/1000,
                              lbtestcd=="LYM" & lborres>100 ~ lborres/1000,
                              lbtestcd=="WBC" & lborres>100 ~ lborres/1000, 
+                             lbtestcd=="ALT" & lborres>9999 ~ NA_real_, 
+                             lbtestcd=="ALT" & lborres<0 ~ NA_real_,
                              TRUE ~ lborres ))%>%
     mutate(lbtestcd = glue("lab_{lbtestcd}", lbtestcd = lbtestcd)) %>%
     mutate(lbtestcd = iconv(lbtestcd, to ="ASCII//TRANSLIT") %>% tolower()) %>%
