@@ -1152,14 +1152,12 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
       left_join(outcome, by = c("usubjid"))
    
   }
-  
-  
-  
-  
-  
+
   if(dtplyr.step){
     return(demographic)
   } else {
     return(demographic %>% as_tibble())
   }
+  
+
 }
