@@ -880,22 +880,26 @@ process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
     select(usubjid, lbtestcd, lbcat,lborres,lbdtc) %>%
     filter(lbcat=="LABORATORY RESULTS ON ADMISSION")%>%
     filter(lbtestcd=="ALT"|
-           lbtestcd=="APTT"|
-           lbtestcd=="CRP"|
-           lbtestcd=="LYM"|
-           lbtestcd=="NEUT"|
-           lbtestcd=="PT"|
-           lbtestcd=="UREA"|
-           lbtestcd=="WBC")%>%
+             lbtestcd=="APTT"|
+             lbtestcd=="CRP"|
+             lbtestcd=="LYM"|
+             lbtestcd=="NEUT"|
+             lbtestcd=="PT"|
+             lbtestcd=="UREA"|
+             lbtestcd=="WBC")%>%
     mutate(lborres=as.numeric(lborres))%>%
     filter(!is.na(lborres))%>%
-    mutate(lbtestcd = glue("lab_{lbtestcd}", lbtestcd = lbtestcd)) %>%
-    mutate(lbtestcd = iconv(lbtestcd, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     arrange(desc(lbdtc))%>%
     distinct(usubjid,lbtestcd, .keep_all =T)%>%
+    mutate(lborres=case_when(lbtestcd=="NEUT" & lborres>100 ~ lborres/1000,
+                             lbtestcd=="LYM" & lborres>100 ~ lborres/1000,
+                             lbtestcd=="WBC" & lborres>100 ~ lborres/1000, 
+                             TRUE ~ lborres ))%>%
+    mutate(lbtestcd = glue("lab_{lbtestcd}", lbtestcd = lbtestcd)) %>%
+    mutate(lbtestcd = iconv(lbtestcd, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     as.data.table() %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = lbtestcd,  values_from = lborres) 
-  
+    dt_pivot_wider(id_cols = usubjid, names_from = lbtestcd,  values_from = lborres)
+
   
   if(dtplyr.step){
     return(laboratory)
