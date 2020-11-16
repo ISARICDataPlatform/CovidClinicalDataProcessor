@@ -841,6 +841,11 @@ process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
   vital_sign <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
     select(usubjid, vstestcd, vscat,vsstresn,vsstresu, vsdtc) %>%
     filter(vscat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION" | vscat=="SIGNS AND SYMPTOMS AT ADMISSION")%>%
+    filter(vstestcd=="HR" |
+           vstestcd=="OXYSAT" |
+           vstestcd=="RESP" |
+           vstestcd=="SYSBP" |
+           vstestcd=="TEMP")%>%
     filter(!is.na(vsstresn))%>%
     mutate(vstestcd = glue("vs_{vstestcd}", vstestcd = vstestcd)) %>%
     mutate(vstestcd = iconv(vstestcd, to ="ASCII//TRANSLIT") %>% tolower()) %>%
