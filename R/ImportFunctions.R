@@ -745,12 +745,13 @@ process.treatment.data <- function(file.name, dtplyr.step = FALSE){
   
   treatment_a<-out%>%
     filter(incat == "MEDICATION"  ) %>%
-    #filter(studyid == "CVVCORE" | studyid=="CVVECMO" | studyid=="CVPSICL") %>%
+    mutate(studyid=substr(usubjid,1, 7))%>%
+    filter(studyid == "CVVCORE" | studyid=="CVVECMO" | studyid=="CVPSICL") %>%
     filter(inpresp =="Y") %>%
     as_tibble() %>%
-    dplyr::filter(intrt %like% "antibiotic" | intrt %like% "antiviral" 
-                  | intrt %like% "antifung" | intrt %like% "CORTICOSTEROID"
-                  )%>%
+    dplyr::filter(intrt %like% "ANTIBIOTIC" | intrt %like% "ANTIVIRAL" 
+                  | intrt %like% "ANTIFUNG" | intrt %like% "CORTICOSTEROID"
+    )%>%
     mutate(intrt=case_when(intrt=="CORTICOSTEROID"~ "CORTICOSTEROIDS",
                            intrt=="ANTIVIRAL" | intrt=="ANTIVIRAL AGENT"~ "ANTIVIRAL AGENTS",
                            intrt=="ANTIBIOTIC" | intrt=="ANTIBIOTIC AGENT"~ "ANTIBIOTIC AGENTS",
@@ -805,8 +806,8 @@ process.treatment.data <- function(file.name, dtplyr.step = FALSE){
                                incat=='SUPPORTIVE CARE'&treatment=='RE-INTUBATION'~'INVASIVE VENTILATION',
                                incat=='SUPPORTIVE CARE'&treatment=='RENAL REPLACEMENT THERAPY (RRT) OR DIALYSIS'~'RENAL REPLACEMENT THERAPIES',
                                incat=='SUPPORTIVE CARE'&treatment=='RENAL REPLACEMENT THERAPY OR HEMODIALYSIS'~'RENAL REPLACEMENT THERAPIES',
-                               incat=='SUPPORTIVE CARE'&treatment=='TRACHEOSTOMY'~'INVASIVE VENTILATION',
-                               incat=='SUPPORTIVE CARE'&treatment=='TRACHEOSTOMY INSERTED'~'INVASIVE VENTILATION',
+                               incat=='SUPPORTIVE CARE'&treatment=='TRACHEOSTOMY'~'TRACHEOSTOMY',
+                               incat=='SUPPORTIVE CARE'&treatment=='TRACHEOSTOMY INSERTED'~'TRACHEOSTOMY',
                                incat=='SUPPORTIVE CARE'&treatment=='UNKNOWN NON-INVASIVE VENTILATION TYPE'~'NON-INVASIVE VENTILATION',
                                incat=='SUPPORTIVE CARE'&treatment=='UNKNOWN TYPE ECLS/ECMO'~'EXTRACORPOREAL',
                                incat=='SUPPORTIVE CARE'&treatment=='VASOPRESSIN'~'INOTROPES / VASOPRESSORS',
@@ -824,8 +825,10 @@ process.treatment.data <- function(file.name, dtplyr.step = FALSE){
     mutate(treatment = str_replace_all(treatment, " ", "_")) %>%
     mutate(inoccur = case_when(inoccur == "Y" ~ TRUE,
                                inoccur == "N" ~ FALSE,
-                               TRUE ~ NA))# %>%
-    #distinct(usubjid, treatment, .keep_all =T) 
+                               TRUE ~ NA))%>%
+    filter(!is.na(inoccur))%>%
+    arrange(desc(inoccur))%>%
+    distinct(usubjid,treatment, .keep_all =T) 
   
   if(dtplyr.step){
     return(treatment)
@@ -862,8 +865,6 @@ process.common.treatment.data <- function(input, minimum = 100, dtplyr.step = FA
     arrange(desc(inoccur))%>%
     mutate(n = sum(!is.na(inoccur))) %>%
     filter(n >= eval(!!minimum)) %>%
-    arrange(desc(inoccur))%>%
-    distinct(usubjid,treatment, .keep_all =T)%>%
     mutate(treatment = glue("treat_{treatment}", treatment = treatment)) %>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur) 
