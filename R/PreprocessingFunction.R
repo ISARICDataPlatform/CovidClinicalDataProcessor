@@ -9,17 +9,17 @@
 data.preprocessing <- function(input.tbl){
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid-19_symptoms"))%>%
+    select(-c("symptoms_covid-19_symptoms", "treat_NA", "icu_treat_NA"))%>%
     mutate(date_start=case_when(date_onset>date_admit~ date_onset,
                                 is.na(date_admit) ~ date_onset,
                                 TRUE ~  date_admit  ))%>%
-    mutate(date_hoin_latest=case_when(is.na(date_ho_in_latest) ~ date_in_last,
-                                      is.na(date_in_last) ~ date_ho_in_latest,
-                                      date_ho_in_latest>date_in_last ~ date_ho_in_latest,
-                                      date_ho_in_latest<=date_in_last ~ date_ho_in_latest))%>%
-    mutate(date_latest=case_when(!is.na(date_outcome)~date_outcome,
-                                 is.na(date_outcome)~date_hoin_latest,
-                                 is.na(date_outcome)&is.na(date_hoin_latest)~date_start))%>%
+    mutate(date_hoin_last=case_when(is.na(date_ho_last) ~ date_in_last,
+                                    date_ho_last<date_in_last ~ date_in_last,
+                                    TRUE ~ date_ho_last ))%>%
+    mutate(date_last=case_when(is.na(date_hoin_last)~date_start,
+                               TRUE~ date_hoin_last))%>%
+    mutate(date_last=case_when(!is.na(date_outcome)~date_outcome,
+                                TRUE  ~ date_last))%>%
     mutate(outcome.3 = map2_chr(outcome, date_outcome, outcome.remap)) %>%
     select(-outcome) %>%
     rename(slider_outcome = outcome.3) %>%
@@ -46,8 +46,8 @@ data.preprocessing <- function(input.tbl){
     mutate(date_outcome=as_date(date_outcome))%>%
     mutate(year= year(date_outcome)) %>%
     mutate(date_outcome=replace(date_outcome,year!=2020,NA))%>%
-    mutate(year= year(date_latest)) %>%
-    mutate(date_latest=replace(date_latest,year!=2020,NA))%>%
+    mutate(year= year(date_last)) %>%
+    mutate(date_last=replace(date_last,year!=2020,NA))%>%
     select(-year)%>%
     mutate(year= year(date_start)) %>%
     mutate(date_start=replace(date_start,year!=2020,NA))%>%
