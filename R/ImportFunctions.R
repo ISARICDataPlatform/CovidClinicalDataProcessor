@@ -285,6 +285,67 @@ import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step = FALSE){
     select(usubjid, saterm, sacat, sapresp, saoccur, sastdtc) %>%
     mutate(sacat=replace(sacat,saterm=="MALNUTRITION","MEDICAL HISTORY"))%>%#temporary correction
     mutate(sacat=replace(sacat,saterm=="COVID-19 SYMPTOMS","SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION"))%>%#temporary correction
+    mutate(saterm=case_when(sacat=="MEDICAL HISTORY"&saterm=="CARDIAC ARRHYTHMIA" ~  "CHRONIC CARDIAC DISEASE",
+                            sacat=='MEDICAL HISTORY'&saterm=='CARDIAC ARRHYTHMIA'~'CHRONIC CARDIAC DISEASE',
+                            sacat=='MEDICAL HISTORY'&saterm=='CARDIAC ARRHYTHMIA'~'CHRONIC CARDIAC DISEASE',
+                            sacat=='MEDICAL HISTORY'&saterm=='CHRONIC CARDIAC DISEASE, INCLUDING CONGENITAL DISEASE (NOT HYPERTENSION)'~'CHRONIC CARDIAC DISEASE',
+                            sacat=='MEDICAL HISTORY'&saterm=='CHRONIC CARDIAC DISEASE, INCLUDING CONGENITAL HEART DISEASE (NOT HYPERTENSION)'~'CHRONIC CARDIAC DISEASE',
+                            sacat=='MEDICAL HISTORY'&saterm=='CHRONIC HEART DISEASE, INCLUDING CONGENITAL HEART DISEASE (NOT HYPERTENSION)'~'CHRONIC CARDIAC DISEASE',
+                            sacat=='MEDICAL HISTORY'&saterm=='CHRONIC HEMATOLOGICAL DISEASE'~'CHRONIC HEMATOLOGIC DISEASE',
+                            sacat=='MEDICAL HISTORY'&saterm=='CHRONIC LIVER DISEASE'~'LIVER DISEASE',
+                            sacat=='MEDICAL HISTORY'&saterm=='CHRONIC LUNG DISEASE (NOT ASTHMA)'~'CHRONIC PULMONARY DISEASE',
+                            sacat=='MEDICAL HISTORY'&saterm=='CHRONIC NEUROLOGICAL DISEASE'~'CHRONIC NEUROLOGICAL DISORDER',
+                            sacat=='MEDICAL HISTORY'&saterm=='CONGENTIAL CARDIOPATHY'~'CHRONIC CARDIAC DISEASE',
+                            sacat=='MEDICAL HISTORY'&saterm=='CORONARY DISEASE'~'CHRONIC CARDIAC DISEASE',
+                            sacat=='MEDICAL HISTORY'&saterm=='CURRENT SMOKER'~'SMOKING',
+                            sacat=='MEDICAL HISTORY'&saterm=='CURRENT SMOKING'~'SMOKING',
+                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES - TYPE 1'~'DIABETES',
+                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES - TYPE 2'~'DIABETES',
+                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES (ANY) WITH COMPLICATIONS'~'DIABETES',
+                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES (ANY) WITHOUT COMPLICATIONS'~'DIABETES',
+                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES MELLITUS'~'DIABETES',
+                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES MELLITUS TYPE 1'~'DIABETES',
+                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES MELLITUS TYPE 2'~'DIABETES',
+                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES WITH COMPLICATIONS'~'DIABETES',
+                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES WITHOUT COMPLICATIONS'~'DIABETES',
+                            sacat=='MEDICAL HISTORY'&saterm=='HEART FAILURE'~'CHRONIC CARDIAC DISEASE',
+                            sacat=='MEDICAL HISTORY'&saterm=='HISTORY OF PERIPHERAL OR CARDIAC REVASCULARIZATION'~'HISTORY OF PERIPHERAL OR CARDIAC REVASCULARIZATION',
+                            sacat=='MEDICAL HISTORY'&saterm=='HISTORY OF SMOKING'~'SMOKING',
+                            sacat=='MEDICAL HISTORY'&saterm=='HIV'~'AIDS/HIV',
+                            sacat=='MEDICAL HISTORY'&saterm=='MILD LIVER DISEASE'~'LIVER DISEASE',
+                            sacat=='MEDICAL HISTORY'&saterm=='MODERATE OR SEVERE LIVER DISEASE'~'LIVER DISEASE',
+                            sacat=='MEDICAL HISTORY'&saterm=='OROVALVA DISEASE'~'CHRONIC CARDIAC DISEASE',
+                            sacat=='MEDICAL HISTORY'&saterm=='OTHER RELEVANT RISK FACTOR'~'OTHER COMORBIDITIES',
+                            sacat=='MEDICAL HISTORY'&saterm=='OTHER RELEVANT RISK FACTORS'~'OTHER COMORBIDITIES',
+                            sacat=='MEDICAL HISTORY'&saterm=='OTHER RISK FACTOR'~'OTHER COMORBIDITIES',
+                            sacat=='MEDICAL HISTORY'&saterm=='RHEUMATOLOGICAL DISORDERS'~'RHEUMATOLOGIC DISORDER',
+                            sacat=='MEDICAL HISTORY'&saterm=='SMOKER'~'SMOKING',
+                            sacat=='MEDICAL HISTORY'&saterm=='SMOKER - CURRENT'~'SMOKING',
+                            sacat=='MEDICAL HISTORY'&saterm=='SMOKER - FORMER'~'SMOKING - FORMER',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='FEEDING INTOLERANCE (PAEDIATRICS)'~'ANOREXIA',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH - NON-PRODUCTIVE'~'COUGH - NO SPUTUM',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH - PRODUCTIVE'~'COUGH - WITH SPUTUM',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH WITH SPUTUM PRODUCTION'~'COUGH - WITH SPUTUM',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH - WITH HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH BLOODY SPUTUM / HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH BLOODY SPUTUM/HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH WITH BLOODY SPUTUM/HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH WITH HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='FEVER'~'HISTORY OF FEVER',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='ANOSMIA'~'LOSS OF SMELL',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='ANOSMIA (LOSS OF SMELL OR TASTE)'~'LOSS OF SMELL',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='AGEUSIA'~'LOSS OF TASTE',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='AGEUSIA (LOSS OF TASTE)'~'LOSS OF TASTE',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='JOINT PAIN'~'MUSCLE ACHES/JOINT PAIN',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='JOINT PAIN (ARTHRALGIA)'~'MUSCLE ACHES/JOINT PAIN',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='MUSCLE ACHES (MYALGIA)'~'MUSCLE ACHES/JOINT PAIN',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='MUSCLE ACHES/JOINT PAIN'~'MUSCLE ACHES/JOINT PAIN',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='OTHER SIGN OR SYMPTOM'~'OTHER SIGNS AND SYMPTOMS',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='LOWER CHEST WALL INDRAWING'~'SHORTNESS OF BREATH',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='RASH'~'SKIN RASH',
+                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='SKIN ULCERS'~'SKIN ULCERS',
+                            TRUE ~ saterm ))%>%
+    filter(-c(sacat=='MEDICAL HISTORY'& saterm=='DRINKS BEER')) %>%
     mutate(saterm = iconv(saterm, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(saterm = str_remove_all(saterm, "\\s*\\([^)]*\\)")) %>%
     mutate(saterm = str_replace_all(saterm, " - ", "_")) %>%
@@ -323,6 +384,8 @@ process.comorbidity.data <- function(input, dtplyr.step = FALSE){
     mutate(saoccur = case_when(saoccur == "Y" ~ TRUE,
                                saoccur == "N" ~ FALSE,
                                TRUE ~ NA)) %>%
+    arrange(desc(saoccur))%>%
+    distinct(usubjid,saterm, .keep_all =T)%>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = saterm, values_from = saoccur) 
   if(dtplyr.step){
@@ -358,6 +421,8 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
     mutate(saoccur = case_when(saoccur == "Y" ~ TRUE,
                                saoccur == "N" ~ FALSE,
                                TRUE ~ NA)) %>%
+    arrange(desc(saoccur))%>%
+    distinct(usubjid,saterm, .keep_all =T)%>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = saterm, values_from = saoccur) %>%
     as.data.frame()
@@ -706,6 +771,48 @@ process.treatment.data <- function(file.name, dtplyr.step = FALSE){
     mutate(treatment=replace(treatment,incat=="ANTIVIRAL AGENTS", "ANTIVIRAL AGENTS"))%>%
     mutate(treatment=replace(treatment,incat=="CORTICOSTEROIDS", "CORTICOSTEROIDS"))%>%
     mutate(treatment=replace(treatment,incat=="ANTIMALARIAL AGENTS", "ANTIMALARIAL AGENTS"))%>%
+    mutate(treatment=case_when(incat=='SUPPORTIVE CARE'&treatment=='AV ECLS/ECMO'~'EXTRACORPOREAL',
+                               incat=='SUPPORTIVE CARE'&treatment=='BIPAP'~'NON-INVASIVE VENTILATION',
+                               incat=='SUPPORTIVE CARE'&treatment=='CENTRAL ECLS/ECMO'~'EXTRACORPOREAL',
+                               incat=='SUPPORTIVE CARE'&treatment=='CONTINUOUS RENAL REPLACEMENT THERAPIES (CRRT)'~'RENAL REPLACEMENT THERAPIES',
+                               incat=='SUPPORTIVE CARE'&treatment=='CPAP'~'NON-INVASIVE VENTILATION',
+                               incat=='SUPPORTIVE CARE'&treatment=='DIALYSIS/HEMOFILTRATION'~'RENAL REPLACEMENT THERAPIES',
+                               incat=='SUPPORTIVE CARE'&treatment=='DIALYSIS/RENAL TREATMENT'~'RENAL REPLACEMENT THERAPIES',
+                               incat=='SUPPORTIVE CARE'&treatment=='DOBUTAMINE'~'INOTROPES / VASOPRESSORS',
+                               incat=='SUPPORTIVE CARE'&treatment=='DOPAMINE < 5 UG/KG/MIN OR DOBUTAMINE OR MILRINONE OR LEVOSIMENDAN'~'INOTROPES / VASOPRESSORS',
+                               incat=='SUPPORTIVE CARE'&treatment=='DOPAMINE <5 UG/KG/MIN OR DOBUTAMINE OR MILRINONE OR LEVOSIMENDAN'~'INOTROPES / VASOPRESSORS',
+                               incat=='SUPPORTIVE CARE'&treatment=='DOPAMINE > 15 UG/KG/MIN OR EPINEPHRINE/NOREPINEPRINE > 0.1. UG/KG/MIN'~'INOTROPES / VASOPRESSORS',
+                               incat=='SUPPORTIVE CARE'&treatment=='DOPAMINE >15 UG/KG/MIN OR EPINEPHRINE/NOREPINEPHRINE >0.1 UG/KG/MIN'~'INOTROPES / VASOPRESSORS',
+                               incat=='SUPPORTIVE CARE'&treatment=='DOPAMINE 5-15 UG/KG/MIN OR EPINEPHRINE OR NOREPINEPHRINE < 0.1 UG/KG/MIN OR VASOPRESSIN OR PHENYLEPHRINE'~'INOTROPES / VASOPRESSORS',
+                               incat=='SUPPORTIVE CARE'&treatment=='DOPAMINE 5-15 UG/KG/MIN OR EPINEPHRINE/NOREPINEPHRINE <0.1 UG/KG/MIN OR VASOPRESSIN OR PHENYLEPHRINE'~'INOTROPES / VASOPRESSORS',
+                               incat=='SUPPORTIVE CARE'&treatment=='EXTRA CORPOREAL LIFE SUPPORT (ECLS / ECMO)'~'EXTRACORPOREAL',
+                               incat=='SUPPORTIVE CARE'&treatment=='EXTRACORPOREAL (ECMO) SUPPORT'~'EXTRACORPOREAL',
+                               incat=='SUPPORTIVE CARE'&treatment=='EXTRACORPOREAL MEMBRANE OXYGENATION (ECMO)'~'EXTRACORPOREAL',
+                               incat=='SUPPORTIVE CARE'&treatment=='EXTRACORPOREAL MEMBRANE OXYGENATION (ECMO/ECLS)'~'EXTRACORPOREAL',
+                               incat=='SUPPORTIVE CARE'&treatment=='EXTRACORPOREAL SUPPORT'~'EXTRACORPOREAL',
+                               incat=='SUPPORTIVE CARE'&treatment=='EXTRACORPOREAL SUPPORT (ECMO)'~'EXTRACORPOREAL',
+                               incat=='SUPPORTIVE CARE'&treatment=='INVASIVE MECHANICAL LUNG VENTILATION'~'INVASIVE VENTILATION',
+                               incat=='SUPPORTIVE CARE'&treatment=='INVASIVE MECHANICAL VENTILATION'~'INVASIVE VENTILATION',
+                               incat=='SUPPORTIVE CARE'&treatment=='NON-INVASIVE MECHANICAL VENTILATION (BIPAP, CPAP, OCNAF (OPTIFLOW) ...)'~'NON-INVASIVE VENTILATION',
+                               incat=='SUPPORTIVE CARE'&treatment=='NON-INVASIVE VENTILATION'~'NON-INVASIVE VENTILATION',
+                               incat=='SUPPORTIVE CARE'&treatment=='OTHER INTERVENTION OR PROCEDURE'~'OTHER INTERVENTIONS',
+                               incat=='SUPPORTIVE CARE'&treatment=='OTHER INTERVENTIONS OR PROCEDURES'~'OTHER INTERVENTIONS',
+                               incat=='SUPPORTIVE CARE'&treatment=='OTHER NON-INVASIVE VENTILATION TYPE'~'NON-INVASIVE VENTILATION',
+                               incat=='SUPPORTIVE CARE'&treatment=='OXYGEN THERAPY'~'NASAL / MASK OXYGEN THERAPY',
+                               incat=='SUPPORTIVE CARE'&treatment=='OXYGEN THERAPY WITH HIGH FLOW NASAL CANULA'~'NASAL / MASK OXYGEN THERAPY',
+                               incat=='SUPPORTIVE CARE'&treatment=='PRONACIÓN'~'PRONE POSITIONING',
+                               incat=='SUPPORTIVE CARE'&treatment=='PRONE POSITIONING'~'PRONE POSITIONING',
+                               incat=='SUPPORTIVE CARE'&treatment=='RE-INTUBATION'~'INVASIVE VENTILATION',
+                               incat=='SUPPORTIVE CARE'&treatment=='RENAL REPLACEMENT THERAPY (RRT) OR DIALYSIS'~'RENAL REPLACEMENT THERAPIES',
+                               incat=='SUPPORTIVE CARE'&treatment=='RENAL REPLACEMENT THERAPY OR HEMODIALYSIS'~'RENAL REPLACEMENT THERAPIES',
+                               incat=='SUPPORTIVE CARE'&treatment=='TRACHEOSTOMY'~'INVASIVE VENTILATION',
+                               incat=='SUPPORTIVE CARE'&treatment=='TRACHEOSTOMY INSERTED'~'INVASIVE VENTILATION',
+                               incat=='SUPPORTIVE CARE'&treatment=='UNKNOWN NON-INVASIVE VENTILATION TYPE'~'NON-INVASIVE VENTILATION',
+                               incat=='SUPPORTIVE CARE'&treatment=='UNKNOWN TYPE ECLS/ECMO'~'EXTRACORPOREAL',
+                               incat=='SUPPORTIVE CARE'&treatment=='VASOPRESSIN'~'INOTROPES / VASOPRESSORS',
+                               incat=='SUPPORTIVE CARE'&treatment=='VASOPRESSOR/INOTROPIC SUPPORT'~'INOTROPES / VASOPRESSORS',
+                               incat=='SUPPORTIVE CARE'&treatment=='VV ECLS/ECMO'~'EXTRACORPOREAL',
+                               TRUE ~ treatment))%>%
     select(usubjid, treatment, inoccur, indtc) %>%
     as.data.frame()%>%
     bind_rows(treatment_a)%>%
@@ -755,6 +862,8 @@ process.common.treatment.data <- function(input, minimum = 100, dtplyr.step = FA
     arrange(desc(inoccur))%>%
     mutate(n = sum(!is.na(inoccur))) %>%
     filter(n >= eval(!!minimum)) %>%
+    arrange(desc(inoccur))%>%
+    distinct(usubjid,treatment, .keep_all =T)%>%
     mutate(treatment = glue("treat_{treatment}", treatment = treatment)) %>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur) 
@@ -1188,6 +1297,8 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
                                TRUE ~ FALSE))%>%
       arrange(desc(inoccur))%>%
       distinct(usubjid, treatment, .keep_all =T)%>% 
+      arrange(desc(inoccur))%>%
+      distinct(usubjid,treatment, .keep_all =T)%>%
       mutate(treatment = glue("icu_treat_{treatment}", treatment = treatment)) %>%
       as.data.table() %>%
       dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur)
