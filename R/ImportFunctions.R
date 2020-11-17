@@ -589,7 +589,7 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
     distinct(usubjid, .keep_all =T)%>%
     select(usubjid,hoendtc)%>%
     left_join(last_ho_datea, by = c("usubjid"))%>%
-    mutate(date_ho_in_latest=case_when(is.na(hoendtc) ~ hostdtc,
+    mutate(date_ho_last=case_when(is.na(hoendtc) ~ hostdtc,
                                        is.na(hostdtc) ~ hoendtc,
                                        hostdtc>hoendtc ~ hostdtc,
                                        hostdtc<=hoendtc ~ hoendtc)) 
