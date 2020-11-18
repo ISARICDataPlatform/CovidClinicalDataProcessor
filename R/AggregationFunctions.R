@@ -22,8 +22,10 @@ data.preprocessing <- function(input.tbl){
     mutate(lower.age.bound  = map_dbl(agegp10, extract.age.boundaries, TRUE)) %>%
     mutate(upper.age.bound  = map_dbl(agegp10, extract.age.boundaries, FALSE)) %>%
     mutate(slider_agegp10 = fct_relabel(agegp10, prettify.age.labels)) %>%
+    mutate(length.of.stay=date_outcome2-date_admit2) %>% 
+    mutate(admission.to.icu=icu_in2-date_admit2) %>% 
     select(-agegp10) %>%
-    rename(slider_icu_ever = icu_ever) %>%
+    rename(slider_icu_ever = ever_icu) %>%
     rename(slider_country = country) %>%
     rename(slider_sex = sex) %>%
     as_tibble()
@@ -233,7 +235,7 @@ outcome.remap <- function(oc, od){
   } else {
     out <- case_when(is.na(oc) ~ NA_character_,
                      oc == "Death" ~ "death",
-                     oc == "Discharged Alive" ~ "discharge")
+                     oc == "Discharge" ~ "discharge")
   }
 }
 
@@ -559,3 +561,60 @@ icu.treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   
   
 }
+
+
+#' Aggregate data for hospital stay plot by sex
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the age pyramid plot
+#' @export length.of.stay.sex.prep
+length.of.stay.sex.prep <- function(input.tbl){
+  
+  input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
+    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, length.of.stay) %>%
+    mutate(sex=slider_sex) %>% 
+    mutate(sex=factor(sex,levels = c("Male", "Female")))  %>%  
+    filter(!is.na(length.of.stay)) %>% 
+    filter(!is.na(sex)) %>% 
+    filter(length.of.stay > 0) %>% 
+    as_tibble() 
+}
+
+
+#' Aggregate data for hospital stay plot by age 
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the age pyramid plot
+#' @export length.of.stay.age.prep
+length.of.stay.age.prep <- function(input.tbl){
+  
+  input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
+    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, length.of.stay) %>%
+    mutate(agegp10=as.character(slider_agegp10)) %>% 
+    mutate(agegp10=ifelse(agegp10 %in% c("70-79","80-89","90+"), "70+", agegp10)) %>% 
+    filter(!is.na(length.of.stay)) %>% 
+    filter(!is.na(agegp10)) %>% 
+    filter(length.of.stay > 0) %>% 
+    as_tibble() 
+}
+
+#' Aggregate data for hospital admission to ICU admission
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the age pyramid plot
+#' @export admission.to.icu
+admission.to.icu.prep <- function(input.tbl){
+  
+  input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
+    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, admission.to.icu) %>%
+    filter(!is.na(admission.to.icu)) %>% 
+    filter(admission.to.icu >= 0) %>% 
+    as_tibble() 
+}
+
