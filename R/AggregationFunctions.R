@@ -31,6 +31,9 @@ library(hrbrthemes)
 library(splitstackshape)
 library(glue)
 library(lubridate)
+library(grid)
+library(gtable)
+library(gridExtra)
 #month.year.mapper()
 #' Preprocessing step for all aggregations. Currently: remaps outcome to death, discharge or NA, cuts age into 5-year age groups, and adds a year-epiweek column
 #' @param input.tbl Input tibble (output of \code{process.all.data})
@@ -597,8 +600,6 @@ icu.treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   
 }
 
-#Epi year function
-
 ###################################################################################
 ###################################################################################
 #####Create tables for dashboard###################################################
@@ -631,6 +632,19 @@ outcome.admission.date <- outcome.admission.date.prep(data_to_proc)
 
 #Figure 7: Box and whisker plots for observations at hospital presentation stratified by age group.
       #Country/year-epiweek-adm/age10/sex/outcome/icu/vital signs
+#Filter the data (outlier and na)
+data_plot_vs <- select(data_to_proc, c(slider_agegp10, vs_resp,
+                                       vs_hr, vs_oxysat, vs_sysbp, vs_temp)) %>%
+    pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
+  filter(!is.na(value)) #%>%
+  #subset(symptom == "vs_hr" & (value > (mean(value) + 3*(sd(value)))  | value < (mean(value) -  3*(sd(value)))))
+
+#Plot
+p <- ggplot(data = data_plot_vs, aes(x=slider_agegp10, y=value)) + 
+  geom_boxplot(aes(fill=slider_agegp10)) + facet_wrap( ~ symptom, ncol = 2) +
+  xlab("Age groups") + ylab("signs") + 
+  ggtitle("X number of individuals")+ guides(fill=guide_legend(title="Age groups"))
+p 
 
 
 #############################
@@ -638,8 +652,12 @@ outcome.admission.date <- outcome.admission.date.prep(data_to_proc)
 #############################
 
 
+
+
+
+
 save(age.pyramid.input, file ="age.pyramid.input.rda")
-save(outcome.admission.date, file ="outcome_admission_date_input.rda")
+#save(outcome.admission.date, file ="outcome_admission_date_input.rda")
 
 
 
