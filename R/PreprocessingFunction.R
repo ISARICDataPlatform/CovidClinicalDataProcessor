@@ -10,6 +10,14 @@ data.preprocessing <- function(input.tbl){
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
     select(-c("symptoms_covid-19_symptoms", "treat_NA", "icu_treat_NA"))%>%
+    ###cleaning dates
+    mutate(date_admit=replace(date_admit,date_admit>as.Date("2020-10-15") | date_admit < as.Date("2019-01-01"), NA))%>%
+    mutate(date_onset=replace(date_onset,date_onset<as.Date("2020-01-01") | date_onset> as.Date("15/10/2020"), NA))%>%
+    mutate(icu_in=replace(icu_in,icu_in<as.Date("2020-01-01") | icu_in> as.Date("2020-10-15"),NA))%>%
+    mutate(icu_out=replace(icu_out,icu_out<as.Date("2020-01-01") | icu_out> as.Date("2020-10-15"),NA))%>%
+    mutate(date_outcome=replace(date_outcome,date_outcome<as.Date("2020-01-01") | date_outcome> as.Date("2020-10-15"),NA))%>%
+    mutate(date_ho_last=replace(date_ho_last,date_ho_last<as.Date("2020-01-01") | date_ho_last> as.Date("2020-10-15"),NA))%>%
+    mutate(date_in_last=replace(date_in_last,date_in_last<as.Date("2020-01-01") | date_in_last> as.Date("2020-10-15"),NA))%>%
     mutate(date_start=case_when(date_onset>date_admit~ date_onset,
                                 is.na(date_admit) ~ date_onset,
                                 TRUE ~  date_admit  ))%>%
@@ -20,50 +28,36 @@ data.preprocessing <- function(input.tbl){
                                TRUE~ date_hoin_last))%>%
     mutate(date_last=case_when(!is.na(date_outcome)~date_outcome,
                                 TRUE  ~ date_last))%>%
-    mutate(outcome.3 = map2_chr(outcome, date_outcome, outcome.remap)) %>%
+    mutate(slider_outcome=case_when(outcome == "Death" ~ "death",
+                                    outcome == "Discharge" ~ "discharge",
+                                    outcome == "Ongoing care" ~ "Ongoing care",
+                                    outcome == "Transferred" ~ "transferred",
+                                    outcome== "Unknown outcome" ~ "Unknown outcome",
+                                    is.na(outcome) & !is.na(date_outcome) ~"Unknown outcome",
+                                    is.na(outcome) & is.na(date_outcome) & date_last>as.Date("2020-08-15") ~ "censored",
+                                    TRUE~"LTFU" )) %>%
     select(-outcome) %>%
-    rename(slider_outcome = outcome.3) %>%
+    #applying a cut-off value for censored
+    mutate(slider_outcome=replace(slider_outcome,slider_outcome=="LTFU"& date_last>as.Date("2020-08-15"), "censored"))%>%
+    
     mutate(agegp10 = cut(age, right = FALSE, breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 120))) %>%
-    mutate(date_admit=as_date(date_admit))%>%
-    ###cleaning dates
-    mutate(date_admit=as_date(date_admit))%>%
-    mutate(year=year(date_admit)) %>%
-    mutate(year=as.numeric(year))%>%
-    mutate(date_admit=replace(date_admit,year>2020 | year< 2019 ,NA))%>%
-    select(-year)%>%
-    mutate(date_onset=as_date(date_onset))%>%
-    mutate(year=year(date_onset)) %>%
-    mutate(date_onset=replace(date_onset,year!=2020,NA))%>%
-    select(-year)%>%
-    mutate(icu_in=as_date(icu_in))%>%
-    mutate(year= year(icu_in)) %>%
-    mutate(icu_in=replace(icu_in,year!=2020,NA))%>%
-    select(-year)%>%
-    mutate(icu_out=as_date(icu_out))%>%
-    mutate(year= year(icu_out)) %>%
-    mutate(icu_out=replace(icu_out,year!=2020,NA))%>%
-    select(-year)%>%
-    mutate(date_outcome=as_date(date_outcome))%>%
-    mutate(year= year(date_outcome)) %>%
-    mutate(date_outcome=replace(date_outcome,year!=2020,NA))%>%
-    mutate(year= year(date_last)) %>%
-    mutate(date_last=replace(date_last,year!=2020,NA))%>%
-    select(-year)%>%
-    mutate(year= year(date_start)) %>%
-    mutate(date_start=replace(date_start,year!=2020,NA))%>%
-    select(-year)%>%
+
+    ###delete implausible respiratory rates
+    mutate(vs_resp=case_when(vs_resp<= 3 ~ NA_real_,
+                             vs_resp<=5 & age < 10 ~ NA_real_ ,
+                             TRUE ~ vs_resp)) %>%
     mutate(calendar.year.admit = year(date_admit)) %>%
     mutate(calendar.month.admit = month(date_admit)) %>%
     mutate(slider_monthyear = map2_chr(calendar.year.admit, calendar.month.admit, month.year.mapper)) %>%
     mutate(year.admit = map_dbl(date_admit, epiweek.year)) %>%
     mutate(epiweek.admit = epiweek(date_admit)) %>%
     mutate(year.epiweek.admit=paste0(year.admit,"-", epiweek.admit))%>%
-    #mutate(year.epiweek.admit = glue("{year.admit}-{epiweek.admit}", .envir = .SD)) %>%
+    mutate(year.epiweek.admit = glue("{year.admit}-{epiweek.admit}", .envir = .SD)) %>%
     mutate(year.epiweek.admit = replace(year.epiweek.admit, year.epiweek.admit == "NA-NA", NA)) %>%
     mutate(lower.age.bound  = map_dbl(agegp10, extract.age.boundaries, TRUE)) %>%
     mutate(upper.age.bound  = map_dbl(agegp10, extract.age.boundaries, FALSE)) %>%
-    #mutate(slider_agegp10 = fct_relabel(agegp10, prettify.age.labels)) %>%
-    #select(-agegp10) %>%
+    mutate(slider_agegp10 = fct_relabel(agegp10, prettify.age.labels)) %>%
+    select(-agegp10) %>%
     rename(slider_icu_ever = ever_icu) %>%
     rename(slider_country = country) %>%
     rename(slider_sex = sex) %>%
@@ -77,22 +71,6 @@ data.preprocessing <- function(input.tbl){
     as_tibble()
 }
 
-#' @keywords internal
-#' @export outcome.remap
-outcome.remap <- function(oc, od){
-  if(is.na(od) & is.na(oc)){
-    "LTFU"
-  } else {
-    out <- case_when(oc == "Death" ~ "death",
-                     oc == "Discharge" ~ "discharge",
-                     oc == "Ongoing care" ~ "Ongoing care",
-                     oc == "Transferred" ~ "transferred",
-                     oc== "Unknown outcome" ~ "Unknown outcome",
-                     is.na(oc) & !is.na(od) ~"Unknown outcome")
-                     
-    
-  }
-}
 
 #' @keywords internal
 #' @export prettify.age.labels
