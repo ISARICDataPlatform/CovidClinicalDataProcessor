@@ -9,10 +9,18 @@
 ###New dataset_all in one
 folder <- "C:/Users/ESCHERM/OneDrive/Documents/ISARIC/data/2020-10-25"
 setwd(folder)
-input.tbl<- readRDS("ISVARIC_dash_db_20201117_preprocess.rds")
+input.tbl<- read.csv("ISVARIC_dash_db_20201118_preprocess.csv")
+dat <- readRDS("ISVARIC_dash_db_20201118_preprocess.rds")
+input.tbl<-dat%>%
+  as.data.frame()
 
-save(comorbidity.prevalence.tbl, file = "comorbidity.prevalence.input.rda")
-comorbidity.prevalence.tbl<-symptom.prevalence.prep(input.tbl)
+saveRDS(object, file = "", ascii = FALSE, version = NULL,
+        compress = TRUE, refhook = NULL)
+input.tbl<-readRDS("ISVARIC_dash_db_20201118_preprocess.rds", refhook = NULL)
+
+
+save(comorbidity.prevalence.tbl, file = "comorbidity_prevalence_input.rda")
+comorbidity.prevalence.tbl<-comorbidity.prevalence.prep(input.tbl)
 
 comorbidity.prevalence.prep <- function(input.tbl){
   
@@ -46,85 +54,263 @@ comorbidity.prevalence.prep <- function(input.tbl){
 }
 
 
-
-
-
-
-aggregated.tbl<-symptom.prevalence.prep(input.tbl)
-
-
-symptom.prevalence.prep <- function(input.tbl){
-  symptom.prevalence.input <- input.tbl %>%
-    lazy_dt(immutable = TRUE) %>%
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
-    #select(-symptoms_covid-19_symptoms) %>%
-    as.data.table() %>%
-    pivot_longer(starts_with("symptoms"), names_to = "symptom", values_to = "present") %>%
-    lazy_dt(immutable = TRUE) %>%
-    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, symptom, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
-    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
-    as_tibble()
-  nice.symptom.mapper <- tibble(symptom = unique(symptom.prevalence.input$symptom)) %>%
-    mutate(nice.symptom = map_chr(symptom, function(st){
+#' Aggregate data for comorbidities upset plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @param max.comorbidities The plot will display only the n most common comorbidities, this parameter is n
+#' @import dplyr purrr tidyr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the comorbidities upset plot
+#' @export comorbidity.upset.prep
+comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
+  # (max.comorbidities is the n to list; this will be the n most frequent)
+  # just the comorbidity columns
+  
+  data2 <- input.tbl %>%
+    select(usubjid, starts_with("comorb"))
+  
+  n.comorb <- ncol(data2) - 1
+  
+  data2 <- data2 %>%
+    pivot_longer(2:(n.comorb+1), names_to = "Condition", values_to = "Present") %>%
+    dplyr::mutate(Present = map_lgl(Present, function(x){
+      if(is.na(x)){
+        FALSE
+      } else if(x == 1){
+        TRUE
+      } else if(x == 2){
+        FALSE
+      } else {
+        FALSE
+      }
+    })) 
+  
+  # get the most common
+  
+  most.common <- data2 %>%
+    group_by(Condition) %>%
+    dplyr::summarise(Total = n(), Present = sum(Present, na.rm = T)) %>%
+    ungroup() %>%
+    filter(Condition != "other_mhyn") %>%
+    arrange(desc(Present)) %>%
+    slice(1:max.comorbidities) %>%
+    pull(Condition)
+  
+  
+  nice.comorbidity.mapper <- tibble(comorbidity = unique(most.common)) %>%
+    mutate(nice.comorbidity = map_chr(comorbidity, function(st){
       temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
       temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
       temp2
     })) %>%
-    mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
-                                    nice.symptom=="Cough" ~ "Cough (no sputum)",
-                                    nice.symptom=="Cough bloody sputum haemoptysis" ~ "Cough with bloody sputum/haemoptysis",
-                                    nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
-                                    TRUE ~ nice.symptom))
-  symptom.prevalence.input %>%
+    mutate(nice.comorbidity = case_when(comorbidity=="Aids hiv" ~ "HIV/AIDS",
+                                        TRUE ~ nice.comorbidity))
+  
+  
+  top.n.conditions.tbl <- input.tbl %>%
+    dplyr::select(usubjid, matches(most.common)) %>%
+    pivot_longer(2:(length(most.common)+1), names_to = "Condition", values_to = "Present") %>%
+    left_join(nice.comorbidity.mapper, by=c("Condition" = "comorbidity")) %>%
+    select(-Condition) %>%
+    filter(!is.na(Present)) %>%
+    group_by(usubjid) %>%
+    dplyr::summarise(Conditions = list(nice.comorbidity), Presence = list(Present)) %>%
+    dplyr::mutate(conditions.present = map2(Conditions, Presence, function(c,p){
+      c[which(p)]
+    })) %>%
+    dplyr::select(-Conditions, -Presence)
+  
+  slider.join <- input.tbl %>% select(usubjid, starts_with("slider"), lower.age.bound, upper.age.bound)
+  
+  top.n.conditions.tbl <- top.n.conditions.tbl %>% left_join(slider.join)
+  
+  comorbidity.upset.input <- top.n.conditions.tbl %>% 
+    mutate(condstring = map_chr(conditions.present, function(cp){
+      paste(sort(cp), collapse = "-")
+    })) %>%
+    select(-conditions.present) %>%
+    group_by(condstring, 
+             slider_sex, 
+             slider_country,
+             slider_icu_ever,
+             slider_outcome,
+             slider_monthyear,
+             slider_agegp10,
+             lower.age.bound,
+             upper.age.bound) %>% 
+    summarise(count = n()) %>%
+    ungroup() %>%
+    mutate(which.present = map(condstring, function(x){
+      out <- str_split(x, "-")
+      if(out == ""){
+        character()
+      } else {
+        unlist(out)
+      }
+    })) %>%
+    select(-condstring)
+  
+  comorbidity.upset.input
+  
+}
+
+folder <- "C:/Users/ESCHERM/OneDrive/Documents/ISARIC/data/2020-10-25"
+setwd(folder)
+input.tbl<- readRDS("ISVARIC_dash_db_20201117_preprocess.rds")
+
+
+comorbidity.upset.input<-comorbidity.upset.prep(input.tbl)
+save(comorbidity.upset.input, file = "comorbidity.upset.input.rda")
+aggregated.tbl<-comorbidity_upset_input
+
+
+
+
+
+
+#' Aggregate data for treatment use proportion plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr tidyr
+#' @importFrom glue glue
+#' @importFrom data.table as.data.table
+#' @return A \code{tibble} containing the input data for the treatment use proportion plot
+#' @export treatment.use.proportion.prep
+treatment.use.proportion.prep <- function(input.tbl){
+  
+  treatment.use.proportion.input <- input.tbl %>%
+    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("treat")), lower.age.bound, upper.age.bound) %>%
+    as.data.table() %>%
+    pivot_longer(any_of(starts_with("treat")), names_to = "treatment", values_to = "present") %>%
     lazy_dt(immutable = TRUE) %>%
-    left_join(nice.symptom.mapper) %>%
+    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, treatment, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
+    as_tibble()
+  
+  nice.treatment.mapper <- tibble(treatment = unique(treatment.use.proportion.input$treatment)) %>%
+    mutate(nice.treatment = map_chr(treatment, function(st){
+      temp <- substr(st, 7, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      temp2
+    }))
+  
+  treatment.use.proportion.input %>%
+    lazy_dt(immutable = TRUE) %>%
+    left_join(nice.treatment.mapper) %>%
     as_tibble()
 }
 
-aggregated.tbl <- comorbidity.prevalence.input
+input.tbl<- readRDS("ISVARIC_dash_db_20201117_preprocess.rds")
 
-comorbidity.prevalence.plot <- function(aggregated.tbl, ...){
-  aggregated.tbl <- aggregated.tbl %>%
-    group_by(comorbidity)%>% 
-    summarise(present = sum(times.present, na.rm = TRUE), recorded = sum(times.recorded, na.rm = TRUE))%>% 
-    mutate(label = glue("{present}/{recorded}"))%>%
-    mutate(proportion=present/recorded)%>%
-    mutate(affected="Yes")
 
+treatment.use.proportion.input<-treatment.use.proportion.prep(input.tbl)
+save(treatment.use.proportion.input, file = "treatment.use.proportion.input.rda")
+
+
+#' Aggregate data for treatments upset plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @param max.treatments The plot will display only the n most common treatments, this parameter is n
+#' @import dplyr purrr tidyr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the treatments upset plot
+#' @export treatment.upset.prep
+treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   
-  plt <- ggplot(aggregated.tbl, aes(x = comorbidity, y = proportion, fill = affected)) +
-    geom_col(position = "stack") +
-    geom_text(data = aggregated.tbl, aes(x=comorbidity, y = 1, label = label), hjust = 1, nudge_y = -0.01, size = 2)+
-    theme_bw() +
-    xlab("Comorbidity") +
-    ylab("Proportion") +
-    coord_flip() +
-    ylim(0, 1) +
-    scale_fill_manual(values = c("indianred1", "indianred4"), name = "Condition\npresent", labels = c("No", "Yes")) +
-    theme(axis.text.y = element_text(size = 7))
   
-  plt
+  data2 <- input.tbl %>%
+    select(usubjid, starts_with("treat"))
+  
+  n.treat <- ncol(data2) - 1
+  
+  data2 <- data2 %>%
+    pivot_longer(2:(n.treat+1), names_to = "Treatment", values_to = "Present") %>%
+    dplyr::mutate(Present = map_lgl(Present, function(x){
+      if(is.na(x)){
+        FALSE
+      } else if(x == 1){
+        TRUE
+      } else if(x == 2){
+        FALSE
+      } else {
+        FALSE
+      }
+    })) 
+  
+  # get the most common
+  
+  most.common <- data2 %>%
+    group_by(Treatment) %>%
+    dplyr::summarise(Total = n(), Present = sum(Present, na.rm = T)) %>%
+    ungroup() %>%
+    arrange(desc(Present)) %>%
+    slice(1:max.treatments) %>%
+    pull(Treatment)
+  
+  
+  nice.treatment.mapper <- tibble(treatment = unique(most.common)) %>%
+    mutate(nice.treatment = map_chr(treatment, function(st){
+      temp <- substr(st, 7, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      temp2
+    }))
+  
+  
+  top.n.treatments.tbl <- input.tbl %>%
+    dplyr::select(usubjid,starts_with("treat"))%>%
+    dplyr::select(usubjid, matches(most.common)) %>%
+    pivot_longer(2:(length(most.common)+1), names_to = "Treatment", values_to = "Present") %>%
+    left_join(nice.treatment.mapper, by=c("Treatment" = "treatment")) %>%
+    select(-Treatment) %>%
+    filter(!is.na(Present)) %>%
+    group_by(usubjid) %>%
+    dplyr::summarise(Treatments = list(nice.treatment), Presence = list(Present)) %>%
+    dplyr::mutate(treatments.present = map2(Treatments, Presence, function(c,p){
+      c[which(p)]
+    })) %>%
+    dplyr::select(-Treatments, -Presence)
+  
+  slider.join <- input.tbl %>% select(usubjid, starts_with("slider"), lower.age.bound, upper.age.bound)
+  
+  top.n.treatments.tbl <- top.n.treatments.tbl %>% left_join(slider.join)
+  
+  treatment.upset.input <- top.n.treatments.tbl %>% 
+    mutate(condstring = map_chr(treatments.present, function(cp){
+      paste(sort(cp), collapse = "-")
+    })) %>%
+    select(-treatments.present) %>%
+    group_by(condstring, 
+             slider_sex, 
+             slider_country,
+             slider_icu_ever,
+             slider_outcome,
+             slider_monthyear,
+             slider_agegp10,
+             lower.age.bound,
+             upper.age.bound) %>% 
+    summarise(count = n()) %>%
+    ungroup() %>%
+    mutate(which.present = map(condstring, function(x){
+      out <- str_split(x, "-")
+      if(out == ""){
+        character()
+      } else {
+        unlist(out)
+      }
+    })) %>%
+    select(-condstring)
+  
+  treatment.upset.input
   
 }
 
-aggregated.tbl<-symptom.prevalence.prep(input.tbl)
 
-symptom.prevalence.plot <- function(aggregated.tbl, ...){
-  aggregated.tbl <- aggregated.tbl %>%
-    mutate(label = glue("{times.present}/{times.recorded}"))
-  plt <- ggplot(aggregated.tbl) +
-    geom_col(aes(x = nice.symptom, y = proportion, fill = affected)) +
-    geom_text(data = aggregated.tbl %>% filter(affected), aes(x=nice.symptom, y = 1, label = label), hjust = 1, nudge_y = -0.01, size = 2)+
-    theme_bw() +
-    xlab("Symptom") +
-    ylab("Proportion") +
-    coord_flip() +
-    ylim(0, 1) +
-    scale_fill_manual(values = c("deepskyblue1", "deepskyblue4"), name = "Symptom\npresent", labels = c("No", "Yes")) +
-    theme(axis.text.y = element_text(size = 7))
-  plt
-}
+treatment.upset.input<-treatment.upset.prep(input.tbl)
 
-This is the one I use for another project and I do get them decreasing, but I'm not sure why is not working when I add the mapping and reorder to the code above:
-ggplot(filtered_1,mapping = aes(x=reorder(symptom,(times.recorded/times.present)), y=(times.recorded/times.present))) +
-      geom_bar(stat = "identity",  fill  = "#C4961A") + my_theme + ylab("Number of patients") + xlab("Symptom") + coord_flip()
+save(treatment.upset.input, file = "treatment.upset.input.rda")
+save(treatment.upset.input, file = "treatment.upset.input.csv")
+write.table(treatment.upset.input, "treatment.upset.input.csv", sep=",", row.names=F, na="")
+
+
+test<-treatment.upset.input%>%
+  as.data.frame()%>%
+  as.vector()
+
+
