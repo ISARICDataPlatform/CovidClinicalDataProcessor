@@ -619,3 +619,118 @@ admission.to.icu.prep <- function(input.tbl){
     as_tibble() 
 }
 
+#' Aggregate data for timeline plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the age pyramid plot
+#' @export status.by.time.after.admission
+status.by.time.after.admission.prep <- function(input.tbl){
+  
+  timings.wrangle <- input.tbl %>% 
+    filter(!is.na(date_admit)) %>% 
+    select(usubjid, date_admit, icu_in, icu_out, icu_dur, ho_dur, t_ad_icu, date_outcome, date_last, slider_outcome) %>% 
+    mutate(subjid=usubjid,
+           final.status=slider_outcome,
+           hospital.start = 0,
+           hospital.end=ho_dur,
+           ICU.start = t_ad_icu,
+           ICU.end= t_ad_icu+icu_dur,
+           censored.date=date_last-date_admit,
+           censored=ifelse(slider_outcome == "censored",T,F)) %>% 
+    filter(hospital.end >= 0 | is.na(hospital.end))  %>%
+    mutate(ever.ICU = !is.na(ICU.start)) %>%
+    # If hospital end is known but ICU end is not, impossible to resolve
+    filter(!(!is.na(hospital.end) & is.na(ICU.end) & ever.ICU)) %>%
+    mutate(last.date = pmax(hospital.end, ICU.end, censored.date, na.rm = T))%>%
+    filter(last.date>=0) %>% 
+    filter(!(censored & is.na(censored.date)))  # Drop patients who are censored but do not have censored dates 
+  
+  overall.start <- 0
+  overall.end <- quantile(timings.wrangle$hospital.end, 0.99, na.rm = T)
+ 
+   # this generates a table of the status of every patient on every day
+  complete.timeline <- map(1:nrow(timings.wrangle), function(pat.no){
+    times <- map(overall.start:overall.end, function(day){
+      if(!timings.wrangle$ever.ICU[pat.no]){
+        if(!timings.wrangle$censored[pat.no] & is.na(timings.wrangle$hospital.end[pat.no])){
+          # this happens with an exit code but no exit date. We don't know what happened after admission
+          "unknown"
+        } else if(timings.wrangle$censored[pat.no]){
+          if(day <= timings.wrangle$censored.date[pat.no]){
+            "Ward"
+          } else {
+            "Censored"
+          }
+        } else {
+          if(day <= timings.wrangle$hospital.end[pat.no]){
+            "Ward"
+          } else {
+            as.character(timings.wrangle$final.status[pat.no])
+          }
+        }
+      } else {
+        if(!timings.wrangle$censored[pat.no] & is.na(timings.wrangle$hospital.end[pat.no])){
+          # this happens with an exit code but no exit date. We don't know what happened after ICU admission or ICU exit if recorded
+          if(day <= timings.wrangle$ICU.start[pat.no]){
+            "Ward"
+          } else if(!is.na(timings.wrangle$ICU.end[pat.no]) & day <= timings.wrangle$ICU.end[pat.no]){
+            "ICU"
+          } else {
+            "unknown"
+          }
+        } else if(timings.wrangle$censored[pat.no]){
+          if(day <= timings.wrangle$censored.date[pat.no]){
+            if(day <= timings.wrangle$ICU.start[pat.no]) {
+              "Ward"
+            } else if(is.na(timings.wrangle$ICU.end[pat.no]) | day <= timings.wrangle$ICU.end[pat.no]) {
+              "ICU"
+            } else {
+              "Ward"
+            }
+          } else {
+            "Censored"
+          }
+        } else {
+          if(day <= timings.wrangle$hospital.end[pat.no]){
+            if(day <= timings.wrangle$ICU.start[pat.no]) {
+              "Ward"
+            } else if(is.na(timings.wrangle$ICU.end[pat.no]) | day <= timings.wrangle$ICU.end[pat.no]) {
+              "ICU"
+            } else {
+              "Ward"
+            }
+          } else {
+            as.character(timings.wrangle$final.status[pat.no])
+          }
+        }
+      }
+    })
+    names(times) <- glue::glue("day_{overall.start:overall.end}")
+    times$subjid <- timings.wrangle$subjid[pat.no]
+    times
+  }) %>%
+    bind_rows()
+  
+  n.days <- ncol(complete.timeline) - 1
+  
+  complete.timeline.2 <- complete.timeline %>%
+    pivot_longer(all_of(1:n.days), names_to = "day", values_to = "status") %>%
+    dplyr::select(subjid, day, status) %>%
+    dplyr::mutate(day = map_dbl(day, function(x) as.numeric(str_split_fixed(x, "_", 2)[2]))) %>%     
+    mutate(status=replace(status, status=="Unknown outcome", "unknown"),
+           status=replace(status, status=="Censored", "Ongoing care")) %>%  #LTFU as unknown? censored as ongoing care?
+    dplyr::mutate(status = factor(status, levels = c("discharge", "transferred","unknown", "Ongoing care", "Ward", "ICU", "death"))) %>%
+    ungroup()
+  
+  slider <-  input.tbl %>%
+    select(usubjid, slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    mutate(subjid=usubjid) %>% 
+    select(-usubjid)
+  
+  final_dt <- complete.timeline.2 %>% 
+    left_join(slider, by="subjid") %>% 
+    as_tibble()
+  
+  final_dt
+}
