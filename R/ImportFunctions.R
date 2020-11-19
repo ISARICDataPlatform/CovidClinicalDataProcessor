@@ -1053,7 +1053,8 @@ process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
              lbtestcd=="UREA"|
              lbtestcd=="WBC"|
               lbtestcd=="BILI"|
-             lbtestcd=="AST")%>%
+             lbtestcd=="AST"|
+             lbtestcd=="UREAN")%>%
     mutate(lborres=as.numeric(lborres))%>%
     filter(!is.na(lborres))%>%
     arrange(desc(lbdtc))%>%
