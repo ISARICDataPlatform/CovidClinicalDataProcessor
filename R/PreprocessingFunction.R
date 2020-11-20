@@ -9,7 +9,7 @@
 data.preprocessing <- function(input.tbl){
   input.tbl %>%
     #lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid-19_symptoms", "treat_NA", "icu_treat_NA","comorbid_drinks_beer","comorbid_smoking_former"))%>%
+    select(-c("symptoms_covid.19_symptoms", "treat_NA", "icu_treat_NA","comorbid_drinks_beer","comorbid_smoking_former"))%>%
     ###cleaning dates
     mutate(date_admit=replace(date_admit,date_admit>as.Date("2020-10-15") | date_admit < as.Date("2019-01-01"), NA_Date_))%>%
     mutate(date_onset=replace(date_onset,date_onset<as.Date("2020-01-01") | date_onset> as.Date("15/10/2020"), NA_Date_))%>%
