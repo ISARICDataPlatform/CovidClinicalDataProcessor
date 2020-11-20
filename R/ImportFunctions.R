@@ -66,12 +66,14 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     rename(date_admit=rfstdtc)%>%
     rename(site = invid) %>%
     as.data.frame()%>%
-    mutate(age_d=NA)%>%
-    mutate(age_d=replace(age_d,ageu=="MONTHS",12))%>%
-    mutate(age_d=replace(age_d,ageu=="YEARS",1))%>%
+    mutate(age_d=case_when(ageu=="MONTHS"~12,
+                           ageu=="YEARS" ~ 1,
+                           ageu=="DAYS" ~ 365.25,
+                           TRUE~ NA_real_))%>%
     mutate(age2=age/age_d)%>%
     select(-(age))%>%
     rename(age=age2)%>%
+    mutate(age=replace(age,age<0,NA))%>%
     mutate(agegp10 = cut(age, right = FALSE, breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 120))) %>%
     mutate(agegp5 = cut(age, right = FALSE, breaks = c(0,5, 10,15, 20,25, 30,35, 40,45, 50,55,
                                                        60,65, 70,75, 80,85, 90, 95, 100, 120))) %>%
@@ -100,7 +102,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                            TRUE ~ NA_character_)) %>%
     mutate(date_admit=substr(date_admit,1, 10))%>%
     mutate(date_admit=as_date(date_admit))%>%
-    select(usubjid, studyid, siteid_final, date_admit, date_admit2, age, agegp5, agegp10, sex, ethnic, country  )
+    select(usubjid, studyid, siteid_final, date_admit, age, agegp5, agegp10, sex, ethnic, country  )
   
   if(dtplyr.step){
     return(out)
