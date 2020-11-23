@@ -37,13 +37,13 @@ data.preprocessing <- function(input.tbl){
     mutate(date_last=as_date(date_last))%>%
     mutate(date_last=case_when(!is.na(date_outcome)~date_outcome,
                                 TRUE  ~ date_last))%>%
-    mutate(slider_outcome="unknown")%>%
+    mutate(slider_outcome="LFTU")%>%
     mutate(slider_outcome=case_when(outcome == "Death" ~ "death",
                                     outcome == "Discharge" ~ "discharge",
-                                    slider_outcome=="unknown" & as_date(date_last)> ymd("2020-09-15")~"Ongoing care",
+                                    is.na(outcome) & as_date(date_last)> ymd("2020-09-15")~"Ongoing care",
                                     TRUE~slider_outcome
                                     )) %>%
-    mutate(slider_outcome=replace(slider_outcome,slider_outcome=="LFTU" & date_last>as.Date("2020-08-15"),"censored"))%>%
+    #mutate(slider_outcome=replace(slider_outcome,slider_outcome=="LFTU" & date_last>as.Date("2020-08-15"),"censored"))%>%
     #select(-outcome) %>%
     #applying a cut-off value for censored
      
