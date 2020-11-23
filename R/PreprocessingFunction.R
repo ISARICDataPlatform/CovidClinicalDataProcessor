@@ -7,28 +7,34 @@
 #' @export data.preprocessing
 
 data.preprocessing <- function(input.tbl){
-  test<-input.tbl %>%
-    #lazy_dt(immutable = TRUE) %>%
+  input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
     select(-c("symptoms_covid.19_symptoms", "treat_NA", "icu_treat_NA","comorbid_drinks_beer","comorbid_smoking_former"))%>%
     ###cleaning dates
-    mutate(date_admit=replace(date_admit,date_admit < as.Date("2019-01-01") | date_admit>as.Date("2020-10-15"), NA_Date_))%>%
-    mutate(icu_in=replace(icu_in,icu_in<as.Date("2020-01-01") | icu_in> as.Date("2020-10-15"),NA_Date_))%>%
-    mutate(icu_out=replace(icu_out,icu_out<as.Date("2020-01-01") | icu_out> as.Date("2020-10-15"),NA_Date_))%>%
-    mutate(date_outcome=replace(date_outcome,date_outcome<as.Date("2020-01-01") | date_outcome> as.Date("2020-10-15"),NA_Date_))%>%
-    mutate(date_ho_last=replace(date_ho_last,date_ho_last<as.Date("2020-01-01") | date_ho_last> as.Date("2020-10-15"),NA_Date_))%>%
-    mutate(date_in_last=replace(date_in_last,date_in_last<as.Date("2020-01-01") | date_in_last> as.Date("2020-10-15"),NA_Date_))%>%
+    mutate(date_admit=replace(date_admit,date_admit < as.Date("2019-01-01") | date_admit>as.Date("2020-11-15"), NA_Date_))%>%
+    mutate(icu_in=replace(icu_in,icu_in<as.Date("2020-01-01") | icu_in> as.Date("2020-11-15"),NA_Date_))%>%
+    mutate(icu_out=replace(icu_out,icu_out<as.Date("2020-01-01") | icu_out> as.Date("2020-11-15"),NA_Date_))%>%
+    mutate(date_outcome=replace(date_outcome,date_outcome<as.Date("2020-01-01") | date_outcome> as.Date("2020-11-15"),NA_Date_))%>%
+    mutate(date_ho_last=replace(date_ho_last,date_ho_last<as.Date("2020-01-01") | date_ho_last> as.Date("2020-11-15"),NA_Date_))%>%
+    mutate(date_in_last=replace(date_in_last,date_in_last<as.Date("2020-01-01") | date_in_last> as.Date("2020-11-15"),NA_Date_))%>%
     mutate(date_onset=as_date(date_onset))%>%
     mutate(year=year(date_onset))%>%
     mutate(date_onset=replace(date_onset, year<2020,NA))%>%
-    mutate(date_start=as_date(date_admit))%>%
     mutate(date_hoin_last=case_when(is.na(date_ho_last) ~ date_in_last,
                                     date_ho_last<date_in_last ~ date_in_last,
                                     TRUE ~ date_ho_last ))%>%
-    mutate(date_start=case_when(is.na(date_admit) ~ date_onset,
-                                date_onset>date_admit ~ date_onset,
-                                TRUE ~  date_admit  ))%>%
-    mutate(date_last=case_when(is.na(date_hoin_last)~as_date(date_start),
+    mutate(date_start=as_date(date_onset))%>%
+    mutate(date_admit=as_date(date_admit))%>%
+    mutate(date_onset=as_date(date_onset))%>%
+    mutate(date_start=case_when(is.na(date_onset) ~ date_admit,
+                                date_onset<=date_admit ~ date_admit,
+                                TRUE ~  date_onset  ))%>%
+    mutate(date_hoin_last=as_date(date_hoin_last))%>%
+    mutate(date_last=as_date(date_hoin_last))%>%
+    mutate(date_last=case_when(is.na(date_hoin_last)~as_date(date_admit),
                                TRUE~ date_hoin_last))%>%
+    mutate(date_outcome=as_date(date_outcome))%>%
+    mutate(date_last=as_date(date_last))%>%
     mutate(date_last=case_when(!is.na(date_outcome)~date_outcome,
                                 TRUE  ~ date_last))%>%
     mutate(slider_outcome="unknown")%>%
@@ -37,9 +43,8 @@ data.preprocessing <- function(input.tbl){
                                     slider_outcome=="unknown" & as_date(date_last)> ymd("2020-09-15")~"Ongoing care",
                                     TRUE~slider_outcome
                                     )) %>%
-    filter(date_last>as.Date("2020-09-15"))
     mutate(slider_outcome=replace(slider_outcome,slider_outcome=="LFTU" & date_last>as.Date("2020-08-15"),"censored"))%>%
-    select(-outcome) %>%
+    #select(-outcome) %>%
     #applying a cut-off value for censored
      
     mutate(agegp10 = cut(age, right = FALSE, breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 120))) %>%
