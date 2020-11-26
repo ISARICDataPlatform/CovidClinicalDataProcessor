@@ -9,17 +9,8 @@
 data.preprocessing <- function(input.tbl){
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid.19_symptoms", "treat_NA", "icu_treat_NA","comorbid_drinks_beer","comorbid_smoking_former"))%>%
-    ###cleaning dates
-    mutate(date_admit=replace(date_admit,date_admit < as.Date("2019-01-01") | date_admit>as.Date("2020-11-15"), NA_Date_))%>%
-    mutate(icu_in=replace(icu_in,icu_in<as.Date("2020-01-01") | icu_in> as.Date("2020-11-15"),NA_Date_))%>%
-    mutate(icu_out=replace(icu_out,icu_out<as.Date("2020-01-01") | icu_out> as.Date("2020-11-15"),NA_Date_))%>%
-    mutate(date_outcome=replace(date_outcome,date_outcome<as.Date("2020-01-01") | date_outcome> as.Date("2020-11-15"),NA_Date_))%>%
-    mutate(date_ho_last=replace(date_ho_last,date_ho_last<as.Date("2020-01-01") | date_ho_last> as.Date("2020-11-15"),NA_Date_))%>%
-    mutate(date_in_last=replace(date_in_last,date_in_last<as.Date("2020-01-01") | date_in_last> as.Date("2020-11-15"),NA_Date_))%>%
-    mutate(date_onset=as_date(date_onset))%>%
-    mutate(year=year(date_onset))%>%
-    mutate(date_onset=replace(date_onset, year<2020,NA))%>%
+    select(-c("symptoms_covid.19_symptoms"))%>%
+    ###creating first and last date
     mutate(date_hoin_last=case_when(is.na(date_ho_last) ~ date_in_last,
                                     date_ho_last<date_in_last ~ date_in_last,
                                     TRUE ~ date_ho_last ))%>%
@@ -68,6 +59,7 @@ data.preprocessing <- function(input.tbl){
     rename(slider_icu_ever = ever_icu) %>%
     rename(slider_country = country) %>%
     rename(slider_sex = sex) %>%
+    rename(slider_symptomatic = symptomatic) %>%
     mutate(date_onset=as_date(date_onset))%>%
     mutate(date_admit=as_date(date_admit))%>%
     mutate(icu_in=as_date(icu_in))%>%
