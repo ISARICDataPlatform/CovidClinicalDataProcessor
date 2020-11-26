@@ -34,6 +34,8 @@ data.preprocessing <- function(input.tbl){
                                     is.na(outcome) & as_date(date_last)> ymd("2020-09-15")~"Ongoing care",
                                     TRUE~slider_outcome
                                     )) %>%
+    mutate(date_start=replace(date_start,date_start < "2020-01-01",NA))%>%
+    mutate(date_last=replace(date_last,date_last < "2020-01-01",NA))%>%
     #mutate(slider_outcome=replace(slider_outcome,slider_outcome=="LFTU" & date_last>as.Date("2020-08-15"),"censored"))%>%
     #select(-outcome) %>%
     #applying a cut-off value for censored
