@@ -117,7 +117,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
 #' @import dplyr tibble stringr
 #' @return Formatted comorbidity and symptom data as a tibble or \code{dtplyr_step}
 #' @export import.symptom.and.comorbidity.data
-import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step = FALSE){
+import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.step = FALSE){
   
   out <- shared.data.import(file.name, 
                             required.columns = c("USUBJID",
@@ -129,73 +129,61 @@ import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step = FALSE){
                             dtplyr.step = TRUE, immutable = TRUE) %>% # this will often by used twice, so should be immutable
     select(usubjid, saterm, sacat,  samodify, sapresp, saoccur, sastdtc) %>%
     filter(sacat=="MEDICAL HISTORY" | sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION") %>%
+    mutate(sacat=replace(sacat,saterm=="MALNUTRITION","MEDICAL HISTORY"))%>%#temporary correction
     filter( sapresp=="Y") %>%
     mutate(saoccur = case_when(saoccur == "Y" ~ TRUE,
                                saoccur == "N" ~ FALSE,
                                TRUE ~ NA)) %>%
     filter(!is.na(saoccur)) %>%
-    mutate(sacat=replace(sacat,saterm=="MALNUTRITION","MEDICAL HISTORY"))%>%#temporary correction
-    mutate(sacat=replace(sacat,saterm=="COVID-19 SYMPTOMS","SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION"))%>%#temporary correcti
-    #mutate(saterm=replace(saterm,samodify!="",samodify))%>%
-    mutate(saterm=case_when(sacat=="MEDICAL HISTORY"&saterm=="CARDIAC ARRHYTHMIA" ~  "CHRONIC CARDIAC DISEASE",
-                            sacat=='MEDICAL HISTORY'&saterm=='CARDIAC ARRHYTHMIA'~'CHRONIC CARDIAC DISEASE',
-                            sacat=='MEDICAL HISTORY'&saterm=='CARDIAC ARRHYTHMIA'~'CHRONIC CARDIAC DISEASE',
-                            sacat=='MEDICAL HISTORY'&saterm=='CHRONIC CARDIAC DISEASE, INCLUDING CONGENITAL DISEASE (NOT HYPERTENSION)'~'CHRONIC CARDIAC DISEASE',
-                            sacat=='MEDICAL HISTORY'&saterm=='CHRONIC CARDIAC DISEASE, INCLUDING CONGENITAL HEART DISEASE (NOT HYPERTENSION)'~'CHRONIC CARDIAC DISEASE',
-                            sacat=='MEDICAL HISTORY'&saterm=='CHRONIC HEART DISEASE, INCLUDING CONGENITAL HEART DISEASE (NOT HYPERTENSION)'~'CHRONIC CARDIAC DISEASE',
-                            sacat=='MEDICAL HISTORY'&saterm=='CHRONIC HEMATOLOGICAL DISEASE'~'CHRONIC HEMATOLOGIC DISEASE',
-                            sacat=='MEDICAL HISTORY'&saterm=='CHRONIC LIVER DISEASE'~'LIVER DISEASE',
-                            sacat=='MEDICAL HISTORY'&saterm=='CHRONIC LUNG DISEASE (NOT ASTHMA)'~'CHRONIC PULMONARY DISEASE',
-                            sacat=='MEDICAL HISTORY'&saterm=='CHRONIC NEUROLOGICAL DISEASE'~'CHRONIC NEUROLOGICAL DISORDER',
-                            sacat=='MEDICAL HISTORY'&saterm=='CONGENTIAL CARDIOPATHY'~'CHRONIC CARDIAC DISEASE',
-                            sacat=='MEDICAL HISTORY'&saterm=='CORONARY DISEASE'~'CHRONIC CARDIAC DISEASE',
-                            sacat=='MEDICAL HISTORY'&saterm=='CURRENT SMOKER'~'SMOKING',
-                            sacat=='MEDICAL HISTORY'&saterm=='CURRENT SMOKING'~'SMOKING',
-                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES - TYPE 1'~'DIABETES',
-                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES - TYPE 2'~'DIABETES',
-                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES (ANY) WITH COMPLICATIONS'~'DIABETES',
-                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES (ANY) WITHOUT COMPLICATIONS'~'DIABETES',
-                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES MELLITUS'~'DIABETES',
-                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES MELLITUS TYPE 1'~'DIABETES',
-                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES MELLITUS TYPE 2'~'DIABETES',
-                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES WITH COMPLICATIONS'~'DIABETES',
-                            sacat=='MEDICAL HISTORY'&saterm=='DIABETES WITHOUT COMPLICATIONS'~'DIABETES',
-                            sacat=='MEDICAL HISTORY'&saterm=='HEART FAILURE'~'CHRONIC CARDIAC DISEASE',
-                            sacat=='MEDICAL HISTORY'&saterm=='HISTORY OF PERIPHERAL OR CARDIAC REVASCULARIZATION'~'HISTORY OF PERIPHERAL OR CARDIAC REVASCULARIZATION',
-                            sacat=='MEDICAL HISTORY'&saterm=='HISTORY OF SMOKING'~'SMOKING',
-                            sacat=='MEDICAL HISTORY'&saterm=='HIV'~'AIDS/HIV',
-                            sacat=='MEDICAL HISTORY'&saterm=='MILD LIVER DISEASE'~'LIVER DISEASE',
-                            sacat=='MEDICAL HISTORY'&saterm=='MODERATE OR SEVERE LIVER DISEASE'~'LIVER DISEASE',
-                            sacat=='MEDICAL HISTORY'&saterm=='OROVALVA DISEASE'~'CHRONIC CARDIAC DISEASE',
-                            sacat=='MEDICAL HISTORY'&saterm=='OTHER RELEVANT RISK FACTOR'~'OTHER COMORBIDITIES',
-                            sacat=='MEDICAL HISTORY'&saterm=='OTHER RELEVANT RISK FACTORS'~'OTHER COMORBIDITIES',
-                            sacat=='MEDICAL HISTORY'&saterm=='OTHER RISK FACTOR'~'OTHER COMORBIDITIES',
-                            sacat=='MEDICAL HISTORY'&saterm=='RHEUMATOLOGICAL DISORDERS'~'RHEUMATOLOGIC DISORDER',
-                            sacat=='MEDICAL HISTORY'&saterm=='SMOKER'~'SMOKING',
-                            sacat=='MEDICAL HISTORY'&saterm=='SMOKER - CURRENT'~'SMOKING',
-                            sacat=='MEDICAL HISTORY'&saterm=='SMOKER - FORMER'~'SMOKING - FORMER',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='FEEDING INTOLERANCE (PAEDIATRICS)'~'ANOREXIA',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH - NON-PRODUCTIVE'~'COUGH - NO SPUTUM',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH - PRODUCTIVE'~'COUGH - WITH SPUTUM',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH WITH SPUTUM PRODUCTION'~'COUGH - WITH SPUTUM',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH - WITH HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH BLOODY SPUTUM / HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH BLOODY SPUTUM/HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH WITH BLOODY SPUTUM/HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='COUGH WITH HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='FEVER'~'HISTORY OF FEVER',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='ANOSMIA'~'LOSS OF SMELL',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='ANOSMIA (LOSS OF SMELL OR TASTE)'~'LOSS OF SMELL',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='AGEUSIA'~'LOSS OF TASTE',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='AGEUSIA (LOSS OF TASTE)'~'LOSS OF TASTE',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='JOINT PAIN'~'MUSCLE ACHES/JOINT PAIN',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='JOINT PAIN (ARTHRALGIA)'~'MUSCLE ACHES/JOINT PAIN',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='MUSCLE ACHES (MYALGIA)'~'MUSCLE ACHES/JOINT PAIN',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='MUSCLE ACHES/JOINT PAIN'~'MUSCLE ACHES/JOINT PAIN',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='OTHER SIGN OR SYMPTOM'~'OTHER SIGNS AND SYMPTOMS',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='LOWER CHEST WALL INDRAWING'~'SHORTNESS OF BREATH',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='RASH'~'SKIN RASH',
-                            sacat=='SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION'&saterm=='SKIN ULCERS'~'SKIN ULCERS',
+    mutate(saterm=case_when(saterm=='CARDIAC ARRHYTHMIA'~'CHRONIC CARDIAC DISEASE',
+                            saterm%like%'CHRONIC CARDIAC DISEASE'~'CHRONIC CARDIAC DISEASE',
+                            saterm%like%'CHORNIC CARDIAC DISEASE'~'CHRONIC CARDIAC DISEASE',
+                            saterm%like%'CHRONIC HEART DISEASE'~'CHRONIC CARDIAC DISEASE',
+                            saterm=='CHRONIC HEMATOLOGICAL DISEASE'~'CHRONIC HEMATOLOGIC DISEASE',
+                            saterm=='CHRONIC LIVER DISEASE'~'LIVER DISEASE',
+                            saterm%like%'CHRONIC LUNG DISEASE'~'CHRONIC PULMONARY DISEASE',
+                            saterm%like%'CHRONIC NEUROLOGICAL'~'CHRONIC NEUROLOGICAL DISORDER',
+                            saterm%like%'CONGENTIAL CARD'~'CHRONIC CARDIAC DISEASE',
+                            saterm=='CORONARY DISEASE'~'CHRONIC CARDIAC DISEASE',
+                            saterm%like%'CURRENT SMOK'~'SMOKING',
+                            saterm%like%'DIABETES'~'DIABETES',
+                            saterm=='HEART FAILURE'~'CHRONIC CARDIAC DISEASE',
+                            saterm=='HISTORY OF PERIPHERAL OR CARDIAC REVASCULARIZATION'~'HISTORY OF PERIPHERAL OR CARDIAC REVASCULARIZATION',
+                            saterm=='HISTORY OF SMOKING'~'SMOKING',
+                            saterm%like%'HIV'~'AIDS/HIV',
+                            saterm%like%'LIVER DISEASE'~'LIVER DISEASE',
+                            saterm=='OROVALVA DISEASE'~'CHRONIC CARDIAC DISEASE',
+                            saterm%like%'OTHER RELEVANT RISK'~'OTHER COMORBIDITIES',
+                            saterm=='OTHER RISK FACTOR'~'OTHER COMORBIDITIES',
+                            saterm%like%'RHEUMATOLOGICAL DISORD'~'RHEUMATOLOGIC DISORDER',
+                            saterm=='SMOKER'~'SMOKING',
+                            saterm=='SMOKER - CURRENT'~'SMOKING',
+                            saterm=='SMOKER - FORMER'~'SMOKING - FORMER',
+                            saterm=='FEEDING INTOLERANCE (PAEDIATRICS)'~'ANOREXIA',
+                            saterm=='REFUSING TO EAT OR DRINK/HISTORY OF POOR ORAL INTAKE'~'ANOREXIA',
+                            saterm=='COUGH - NON-PRODUCTIVE'~'COUGH - NO SPUTUM',
+                            saterm=='COUGH - PRODUCTIVE'~'COUGH - WITH SPUTUM',
+                            saterm%like%'COUGH WITH SPUTUM'~'COUGH - WITH SPUTUM',
+                            saterm=='COUGH - WITH HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
+                            saterm=='COUGH - WITH HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
+                            saterm%like%'COUGH BLOODY SPUTUM'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
+                            saterm=='COUGH WITH HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
+                            saterm%like%'FEVER'~'HISTORY OF FEVER',
+                            
+                            saterm=='SEIZURE'~'SEIZURES',
+                            saterm%like%'TRANSPLANT'~'TRANSPLANTATION',
+                            
+                            
+                            saterm%like%'ANOSMIA'~'LOSS OF SMELL',
+                            saterm%like%'AGEUSIA'~'LOSS OF TASTE',
+                            saterm=="LOSS OF TASTE OR LOSS OF SMELL"~'LOSS OF SMELL/TASTE',
+                            saterm%like%'JOINT PAIN'~'MUSCLE ACHES/JOINT PAIN',
+                            saterm%like%'MUSCLE ACHES'~'MUSCLE ACHES/JOINT PAIN',
+                            saterm=='OTHER SIGN OR SYMPTOM'~'OTHER SIGNS AND SYMPTOMS',
+                            saterm=='LOWER CHEST WALL INDRAWING'~'SHORTNESS OF BREATH',
+                            saterm%like%'RASH'~'SKIN RASH',
+                            saterm%like%'ULCERS'~'SKIN ULCERS',
+                            saterm=='EARPAIN'~'EAR PAIN',
                             TRUE ~ saterm ))%>%
     mutate(saterm = iconv(saterm, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(saterm = str_remove_all(saterm, "\\s*\\([^)]*\\)")) %>%
@@ -203,7 +191,8 @@ import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step = FALSE){
     mutate(saterm = str_replace_all(saterm, "/| / ", "_")) %>%
     mutate(saterm = str_replace_all(saterm, " ", "_")) %>%
     arrange(desc(saoccur))%>%
-    distinct(usubjid,sacat,saterm, .keep_all =T)
+    distinct(usubjid,saterm, .keep_all =T)
+  
   
   if(dtplyr.step){
     return(out)
@@ -211,6 +200,7 @@ import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step = FALSE){
     return(out %>% as_tibble())
   }
 }
+
 
 #' Process data on comorbidities
 #' @param input Either the path of the symptoms/comorbidities data file (CDISC format) or output of \code{import.symptom.and.comorbidity.data}
@@ -220,7 +210,7 @@ import.symptom.and.comorbidity.data <- function(file.name, dtplyr.step = FALSE){
 #' @importFrom glue glue
 #' @return Formatted comorbidity data as a tibble or \code{dtplyr_step}
 #' @export process.comorbidity.data
-process.comorbidity.data <- function(input, dtplyr.step = FALSE){
+process.comorbidity.data <- function(input,  minimum=100, dtplyr.step = FALSE){
   if(is.character(input)){
     # assume it's a path
     comorbid <- import.symptom.and.comorbidity.data(input, TRUE)
@@ -233,12 +223,13 @@ process.comorbidity.data <- function(input, dtplyr.step = FALSE){
   
   comorbid <- comorbid %>%
     filter(sacat=="MEDICAL HISTORY") %>%
-    mutate(saterm = glue("comorbid_{saterm}", .envir = .SD)) %>%
-    #mutate(saoccur = case_when(saoccur == "Y" ~ TRUE,
-    #                           saoccur == "N" ~ FALSE,
-    #                           TRUE ~ NA)) %>%
     arrange(desc(saoccur))%>%
-    distinct(usubjid,saterm, .keep_all =T)%>%
+    group_by(saterm) %>% 
+    arrange(desc(saoccur))%>%
+    mutate(n = sum(!is.na(saoccur))) %>%
+    filter(n >= eval(!!minimum))%>%
+    ungroup()%>%
+    mutate(saterm = paste0("comorbid_",saterm)) %>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = saterm, values_from = saoccur) 
   if(dtplyr.step){
@@ -257,7 +248,7 @@ process.comorbidity.data <- function(input, dtplyr.step = FALSE){
 #' @importFrom glue glue
 #' @return Formatted symptom data as a tibble or \code{dtplyr_step}
 #' @export process.symptom.data
-process.symptom.data <- function(input, dtplyr.step = FALSE){
+process.symptom.data <- function(input,  minimum=100, dtplyr.step = FALSE){
   if(is.character(input)){
     # assume it's a path
     symptom <- import.symptom.and.comorbidity.data(input, TRUE)
@@ -270,28 +261,43 @@ process.symptom.data <- function(input, dtplyr.step = FALSE){
   
   symptom_w <- symptom %>%
     filter(sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION") %>%
-    mutate(saterm = glue("symptoms_{saterm}", .envir = .SD)) %>%
     arrange(desc(saoccur))%>%
-    distinct(usubjid,saterm, .keep_all =T)%>%
+    group_by(saterm) %>% 
+    arrange(desc(saoccur))%>%
+    mutate(n = sum(!is.na(saoccur))) %>%
+    filter(n >= eval(!!minimum))%>%
+    ungroup()%>%
+    mutate(saterm = paste0("symptoms_",saterm)) %>%
+    #mutate(saterm = glue("symptoms_{saterm}", .envir = .SD)) %>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = saterm, values_from = saoccur) %>%
     as.data.frame()
   
-  symptom_onset<-symptom%>%
+  date_onset<-symptom %>%
+    ungroup()%>%
     filter(sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION" & saoccur==TRUE) %>%
     mutate(sastdtc=as.character(sastdtc))%>%
     mutate(sastdtc = replace(sastdtc, sastdtc =="" , NA))%>%
     mutate(sastdtc=substr(sastdtc,1, 10))%>%
     mutate(sastdtc=as_date(sastdtc))%>%
+    filter(sastdtc >= "2020-01-01")%>%
+    filter(sastdtc < today())%>%
     arrange(sastdtc)%>%
     distinct(usubjid, .keep_all =T)%>%
-    mutate(symptomatic=TRUE)%>%
-    select(usubjid, "date_onset"=sastdtc,symptomatic)
+    select(usubjid, "date_onset"=sastdtc)
   
   
+  symptomatic<-symptom%>%
+    filter(sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION" & !is.na(saoccur))%>%
+    arrange(desc(saoccur))%>%
+    ungroup()%>%
+    distinct(usubjid, .keep_all =T)%>%
+    select(usubjid, "symptomatic"=saoccur)
   
-  symptom<- symptom_onset%>%
-    left_join(symptom_w, by = c("usubjid"))
+  symptom<- date_onset%>%
+    full_join(symptomatic, by=c("usubjid"))%>%
+    full_join(symptom_w, by = c("usubjid"))
+  
   
   
   if(dtplyr.step){
@@ -336,10 +342,10 @@ process.pregnancy.data <- function(file.name, dtplyr.step = FALSE){
 #' @export process.ICU.data
 process.ICU.data <- function(file.name, dtplyr.step = FALSE){
   icu <- shared.data.import(file.name, dtplyr.step = FALSE) %>%
-    filter(hooccur=="Y" | hooccur=="N")%>%
     mutate(hooccur = case_when(hooccur == "Y" ~ TRUE,
                                hooccur == "N" ~ FALSE,
                                TRUE ~ NA)) %>%
+    filter(!is.na (hooccur))%>%
     select(usubjid, hodecod, hostdtc, hoendtc, hooccur)%>% 
     mutate(hostdtc=substr(hostdtc,1, 10))%>%
     mutate(hostdtc=as_date(hostdtc))%>%
@@ -348,12 +354,16 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
   
   last_ho_datea<-icu%>%
     filter(hooccur==TRUE)%>%
+    filter(hostdtc >= "2020-01-01")%>%
+    filter(hostdtc<today())%>%
     arrange(desc(hostdtc))%>%
     distinct(usubjid, .keep_all =T)%>%
     select(usubjid,hostdtc)      
   
   last_ho_dates<-icu%>%
     filter(hooccur==TRUE)%>%
+    filter(hoendtc>= "2020-01-01")%>%
+    filter(hoendtc<today())%>%
     arrange(desc(hoendtc))%>%
     distinct(usubjid, .keep_all =T)%>%
     select(usubjid,hoendtc)%>%
@@ -361,19 +371,22 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
     mutate(date_ho_last=case_when(is.na(hoendtc) ~ hostdtc,
                                   is.na(hostdtc) ~ hoendtc,
                                   hostdtc>hoendtc ~ hostdtc,
-                                  hostdtc<=hoendtc ~ hoendtc)) 
-  
+                                  hostdtc<=hoendtc ~ hoendtc))%>% 
+    select(usubjid,date_ho_last)
   
   icu <-icu%>%
-    mutate(hodecod = ifelse(hodecod=="HOSPITAL", "hospital", "icu")) %>%
-    filter(hodecod=="icu")%>%
+    filter(hodecod=="INTENSIVE CARE UNIT")%>%
     arrange(desc(hostdtc))%>%
     distinct(usubjid, .keep_all =T)%>%
     rename(ever_icu=hooccur)%>%
     rename(icu_in=hostdtc)%>%
     mutate(icu_in=as_date(icu_in))%>%
+    mutate(icu_in=replace(icu_in,icu_in < "2020-01-01",NA))%>%
+    mutate(icu_in=replace(icu_in,icu_in >today(),NA))%>%
     rename(icu_out=hoendtc)%>%
     mutate(icu_out=as_date(icu_out))%>%
+    mutate(icu_out=replace(icu_out,icu_out < "2020-01-01",NA))%>%
+    mutate(icu_out=replace(icu_out,icu_out >today(),NA))%>%
     select(-c(hodecod))%>%
     full_join(last_ho_dates, by = c("usubjid"))
   
@@ -393,7 +406,7 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
 #' @import dplyr tibble stringr
 #' @return Formatted treatment data (long format) as a tibble or \code{dtplyr_step}
 #' @export process.treatment.data
-process.treatment.data <- function(file.name, dtplyr.step = FALSE){
+process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
   
   out <- shared.data.import(file.name,
                             required.columns = c("USUBJID",
@@ -402,94 +415,76 @@ process.treatment.data <- function(file.name, dtplyr.step = FALSE){
                                                  "INDTC"),
                             dtplyr.step = TRUE)
   
-  #treatment <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
-  
-  treatment_a<-out%>%
-    filter(incat == "MEDICATION"  ) %>%
-    mutate(studyid=substr(usubjid,1, 7))%>%
-    filter(studyid == "CVVCORE" | studyid=="CVVECMO" | studyid=="CVPSICL") %>%
-    filter(inpresp =="Y") %>%
-    as_tibble() %>%
-    dplyr::filter(intrt %like% "ANTIBIOTIC" | intrt %like% "ANTIVIRAL" 
-                  | intrt %like% "ANTIFUNG" | intrt %like% "CORTICOSTEROID"
-    )%>%
-    mutate(intrt=case_when(intrt=="CORTICOSTEROID"~ "CORTICOSTEROIDS",
-                           intrt=="ANTIVIRAL" | intrt=="ANTIVIRAL AGENT"~ "ANTIVIRAL AGENTS",
-                           intrt=="ANTIBIOTIC" | intrt=="ANTIBIOTIC AGENT"~ "ANTIBIOTIC AGENTS",
-                           intrt=="ANTIMALARIAL AGENT" ~ "ANTIMALARIAL AGENTS",
-                           intrt=="ANTIFUNGAL AGENT" ~ "ANTIFUNGAL AGENTS"
-    ))%>%
-    select(usubjid, "treatment" = intrt, inoccur, indtc)%>%
-    as.data.frame()
-  
-  
   treatment<-out%>%
-    filter(incat == "SUPPORTIVE CARE" | incat == "ANTIBIOTIC AGENTS" | incat == "ANTIFUNGAL AGENTS"
-           | incat == "ANTIVIRAL AGENTS" | incat == "CORTICOSTEROIDS" | incat == "ANTIMALARIAL AGENTS") %>%
     filter(inpresp =="Y") %>%
+    mutate(inoccur = case_when(inoccur == "Y" ~ TRUE,
+                               inoccur == "N" ~ FALSE,
+                               TRUE ~ NA))%>%
+    filter(!is.na(inoccur))%>%
+    filter(incat!="MEDICAL HISTORY")%>%
+    filter(incat!="NSAIDS")%>%
+    mutate(intrt=case_when(inmodify!=""~inmodify,
+                           TRUE ~ intrt))%>%
+    mutate(intrt=case_when(incat=="EXTRACORPOREAL"~'EXTRACORPOREAL',
+                           incat=="INVASIVE VENTILATION"~'INVASIVE VENTILATION',
+                           incat=="NASAL / MASK OXYGEN THERAPY"~'NASAL / MASK OXYGEN THERAPY',
+                           incat=="INVASIVE VENTILATION"~'INVASIVE VENTILATION',
+                           incat=="NON-INVASIVE VENTILATION "~'NON-INVASIVE VENTILATION ',
+                           incat=="OTHER INTEVENTIONS"~'OTHER INTERVENTIONS',
+                           incat=="PRONE POSITIONING"~'PRONE POSITIONING',
+                           incat=="PRONE VENTILATION"~'PRONE VENTILATION',
+                           incat=="ANTIBIOTIC AGENTS"~ "ANTIBIOTIC AGENTS",
+                           incat=="ANTIFUNGAL AGENTS"~ "ANTIFUNGAL AGENTS",
+                           incat=="ANTIVIRAL AGENTS"~ "ANTIVIRAL AGENTS",
+                           incat=="CORTICOSTEROIDS"~ "CORTICOSTEROIDS",
+                           incat=="ANTIMALARIAL AGENTS"~ "ANTIMALARIAL AGENTS",
+                           TRUE~intrt)) %>%
     select(usubjid, "treatment" = intrt, inoccur, indtc, incat) %>%
-    mutate(treatment=replace(treatment,incat=="ANTIBIOTIC AGENTS", "ANTIBIOTIC AGENTS"))%>%
-    mutate(treatment=replace(treatment,incat=="ANTIFUNGAL AGENTS", "ANTIFUNGAL AGENTS"))%>%
-    mutate(treatment=replace(treatment,incat=="ANTIVIRAL AGENTS", "ANTIVIRAL AGENTS"))%>%
-    mutate(treatment=replace(treatment,incat=="CORTICOSTEROIDS", "CORTICOSTEROIDS"))%>%
-    mutate(treatment=replace(treatment,incat=="ANTIMALARIAL AGENTS", "ANTIMALARIAL AGENTS"))%>%
-    mutate(treatment=case_when(incat=='SUPPORTIVE CARE'&treatment=='AV ECLS/ECMO'~'EXTRACORPOREAL',
-                               incat=='SUPPORTIVE CARE'&treatment=='BIPAP'~'NON-INVASIVE VENTILATION',
-                               incat=='SUPPORTIVE CARE'&treatment=='CENTRAL ECLS/ECMO'~'EXTRACORPOREAL',
-                               incat=='SUPPORTIVE CARE'&treatment=='CONTINUOUS RENAL REPLACEMENT THERAPIES (CRRT)'~'RENAL REPLACEMENT THERAPIES',
-                               incat=='SUPPORTIVE CARE'&treatment=='CPAP'~'NON-INVASIVE VENTILATION',
-                               incat=='SUPPORTIVE CARE'&treatment=='DIALYSIS/HEMOFILTRATION'~'RENAL REPLACEMENT THERAPIES',
-                               incat=='SUPPORTIVE CARE'&treatment=='DIALYSIS/RENAL TREATMENT'~'RENAL REPLACEMENT THERAPIES',
-                               incat=='SUPPORTIVE CARE'&treatment=='DOBUTAMINE'~'INOTROPES / VASOPRESSORS',
-                               incat=='SUPPORTIVE CARE'&treatment=='DOPAMINE < 5 UG/KG/MIN OR DOBUTAMINE OR MILRINONE OR LEVOSIMENDAN'~'INOTROPES / VASOPRESSORS',
-                               incat=='SUPPORTIVE CARE'&treatment=='DOPAMINE <5 UG/KG/MIN OR DOBUTAMINE OR MILRINONE OR LEVOSIMENDAN'~'INOTROPES / VASOPRESSORS',
-                               incat=='SUPPORTIVE CARE'&treatment=='DOPAMINE > 15 UG/KG/MIN OR EPINEPHRINE/NOREPINEPRINE > 0.1. UG/KG/MIN'~'INOTROPES / VASOPRESSORS',
-                               incat=='SUPPORTIVE CARE'&treatment=='DOPAMINE >15 UG/KG/MIN OR EPINEPHRINE/NOREPINEPHRINE >0.1 UG/KG/MIN'~'INOTROPES / VASOPRESSORS',
-                               incat=='SUPPORTIVE CARE'&treatment=='DOPAMINE 5-15 UG/KG/MIN OR EPINEPHRINE OR NOREPINEPHRINE < 0.1 UG/KG/MIN OR VASOPRESSIN OR PHENYLEPHRINE'~'INOTROPES / VASOPRESSORS',
-                               incat=='SUPPORTIVE CARE'&treatment=='DOPAMINE 5-15 UG/KG/MIN OR EPINEPHRINE/NOREPINEPHRINE <0.1 UG/KG/MIN OR VASOPRESSIN OR PHENYLEPHRINE'~'INOTROPES / VASOPRESSORS',
-                               incat=='SUPPORTIVE CARE'&treatment=='EXTRA CORPOREAL LIFE SUPPORT (ECLS / ECMO)'~'EXTRACORPOREAL',
-                               incat=='SUPPORTIVE CARE'&treatment=='EXTRACORPOREAL (ECMO) SUPPORT'~'EXTRACORPOREAL',
-                               incat=='SUPPORTIVE CARE'&treatment=='EXTRACORPOREAL MEMBRANE OXYGENATION (ECMO)'~'EXTRACORPOREAL',
-                               incat=='SUPPORTIVE CARE'&treatment=='EXTRACORPOREAL MEMBRANE OXYGENATION (ECMO/ECLS)'~'EXTRACORPOREAL',
-                               incat=='SUPPORTIVE CARE'&treatment=='EXTRACORPOREAL SUPPORT'~'EXTRACORPOREAL',
-                               incat=='SUPPORTIVE CARE'&treatment=='EXTRACORPOREAL SUPPORT (ECMO)'~'EXTRACORPOREAL',
-                               incat=='SUPPORTIVE CARE'&treatment=='INVASIVE MECHANICAL LUNG VENTILATION'~'INVASIVE VENTILATION',
-                               incat=='SUPPORTIVE CARE'&treatment=='INVASIVE MECHANICAL VENTILATION'~'INVASIVE VENTILATION',
-                               incat=='SUPPORTIVE CARE'&treatment=='NON-INVASIVE MECHANICAL VENTILATION (BIPAP, CPAP, OCNAF (OPTIFLOW) ...)'~'NON-INVASIVE VENTILATION',
-                               incat=='SUPPORTIVE CARE'&treatment=='NON-INVASIVE VENTILATION'~'NON-INVASIVE VENTILATION',
-                               incat=='SUPPORTIVE CARE'&treatment=='OTHER INTERVENTION OR PROCEDURE'~'OTHER INTERVENTIONS',
-                               incat=='SUPPORTIVE CARE'&treatment=='OTHER INTERVENTIONS OR PROCEDURES'~'OTHER INTERVENTIONS',
-                               incat=='SUPPORTIVE CARE'&treatment=='OTHER NON-INVASIVE VENTILATION TYPE'~'NON-INVASIVE VENTILATION',
-                               incat=='SUPPORTIVE CARE'&treatment=='OXYGEN THERAPY'~'NASAL / MASK OXYGEN THERAPY',
-                               incat=='SUPPORTIVE CARE'&treatment=='OXYGEN THERAPY WITH HIGH FLOW NASAL CANULA'~'NASAL / MASK OXYGEN THERAPY',
-                               incat=='SUPPORTIVE CARE'&treatment=='PRONACIÓN'~'PRONE POSITIONING',
-                               incat=='SUPPORTIVE CARE'&treatment=='PRONE POSITIONING'~'PRONE POSITIONING',
-                               incat=='SUPPORTIVE CARE'&treatment=='RE-INTUBATION'~'INVASIVE VENTILATION',
-                               incat=='SUPPORTIVE CARE'&treatment=='RENAL REPLACEMENT THERAPY (RRT) OR DIALYSIS'~'RENAL REPLACEMENT THERAPIES',
-                               incat=='SUPPORTIVE CARE'&treatment=='RENAL REPLACEMENT THERAPY OR HEMODIALYSIS'~'RENAL REPLACEMENT THERAPIES',
-                               incat=='SUPPORTIVE CARE'&treatment=='TRACHEOSTOMY'~'TRACHEOSTOMY',
-                               incat=='SUPPORTIVE CARE'&treatment=='TRACHEOSTOMY INSERTED'~'TRACHEOSTOMY',
-                               incat=='SUPPORTIVE CARE'&treatment=='UNKNOWN NON-INVASIVE VENTILATION TYPE'~'NON-INVASIVE VENTILATION',
-                               incat=='SUPPORTIVE CARE'&treatment=='UNKNOWN TYPE ECLS/ECMO'~'EXTRACORPOREAL',
-                               incat=='SUPPORTIVE CARE'&treatment=='VASOPRESSIN'~'INOTROPES / VASOPRESSORS',
-                               incat=='SUPPORTIVE CARE'&treatment=='VASOPRESSOR/INOTROPIC SUPPORT'~'INOTROPES / VASOPRESSORS',
-                               incat=='SUPPORTIVE CARE'&treatment=='VV ECLS/ECMO'~'EXTRACORPOREAL',
+    mutate(treatment=case_when(treatment%like%'ECMO'~'EXTRACORPOREAL',
+                               treatment=='EXTRA CORPOREAL LIFE SUPPORT'~'EXTRACORPOREAL',
+                               treatment=='EXTRACORPOREAL SUPPORT'~'EXTRACORPOREAL',
+                               treatment=='BIPAP'~'NON-INVASIVE VENTILATION',
+                               treatment=='CONTINUOUS RENAL REPLACEMENT THERAPIES (CRRT)'~'RENAL REPLACEMENT THERAPIES',
+                               treatment=='CPAP'~'NON-INVASIVE VENTILATION',
+                               treatment%like%'RENAL REPLACEMENT THERAPY' |treatment%like% 'DIALYSIS'~ 'RENAL REPLACEMENT THERAPIES',
+                               treatment=='INVASIVE MECHANICAL LUNG VENTILATION'~'INVASIVE VENTILATION',
+                               treatment=='INVASIVE MECHANICAL VENTILATION'~'INVASIVE VENTILATION',
+                               treatment=='NON-INVASIVE MECHANICAL VENTILATION (BIPAP, CPAP, OCNAF (OPTIFLOW) ...)'~'NON-INVASIVE VENTILATION',
+                               treatment=='NON-INVASIVE VENTILATION'~'NON-INVASIVE VENTILATION',
+                               treatment%like%'OTHER INTERVENTION OR PROCEDURE'~'OTHER INTERVENTIONS',
+                               treatment=='OTHER TARGETED COVID-19 MEDICATIONS'~'OTHER INTERVENTIONS',
+                               treatment=='OTHER TREATMENTS FOR COVID19'~'OTHER INTERVENTIONS',
+                               treatment=='OTHER NON-INVASIVE VENTILATION TYPE'~'NON-INVASIVE VENTILATION',
+                               treatment=='OXYGEN THERAPY'~'NASAL / MASK OXYGEN THERAPY',
+                               treatment=='OXYGEN THERAPY WITH HIGH FLOW NASAL CANULA'~'HIGH-FLOW NASAL CANULA OXYGEN THERAPY',
+                               treatment=='HIGH-FLOW NASAL CANNULA OXYGEN THERAPY'~'HIGH-FLOW NASAL CANULA OXYGEN THERAPY',
+                               treatment=='PRONACIÓN'~'PRONE POSITIONING',
+                               treatment=='PRONE POSITIONING'~'PRONE POSITIONING',
+                               treatment=='RE-INTUBATION'~'INVASIVE VENTILATION',
+                               treatment%like%'TRACHEOSTOMY'~'TRACHEOSTOMY',
+                               treatment=='UNKNOWN NON-INVASIVE VENTILATION TYPE'~'NON-INVASIVE VENTILATION',
+                               treatment=="CORTICOSTEROID"~ "CORTICOSTEROIDS",
+                               treatment%like%"ANTIVIRAL" ~ "ANTIVIRAL AGENTS",
+                               treatment%like%"ANTIBIOTIC"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"ANTIMALARIAL" | treatment%like%"CHLOROQUINE" ~ "ANTIMALARIAL AGENTS",
+                               treatment%like%"ANTIFUNGAL" ~ "ANTIFUNGAL AGENTS",
+                               treatment %like% "OROGASTRIC"~"ORAL/OROGASTRIC FLUIDS",
+                               treatment%like%'DOBUTAMINE' |  treatment%like%'DOPAMINE' |  treatment%like%'MILRINONE' 
+                               |  treatment%like%'LEVOSIMENDAN' |  treatment%like%'EPINEPHRINE' |  treatment%like%'NOREPINEPRINE'
+                               |  treatment%like%'VASOPRESS' ~'INOTROPES / VASOPRESSORS',
+                               treatment%like%'IMMUNOSUPPRES' ~ "IMMUNOSUPPRESSANTS",
+                               treatment=="IL6 INHIBITOR" ~ "INTERLEUKIN INHIBITORS",
+                               treatment %like% "ANGIOTENSIN" | treatment %like% "ACE"~ "ANGIOTENSIN CONVERTING ENZYME INHIBITORS",
                                TRUE ~ treatment))%>%
-    select(usubjid, treatment, inoccur, indtc) %>%
     as.data.frame()%>%
-    bind_rows(treatment_a)%>%
+    #bind_rows(treatment_a)%>%
     mutate(treatment = iconv(treatment, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(treatment = str_remove_all(treatment, "\\s*\\([^)]*\\)")) %>%
     mutate(treatment = str_replace_all(treatment, " - ", "_")) %>%
     mutate(treatment = str_replace_all(treatment, "-", "_")) %>%
     mutate(treatment = str_replace_all(treatment, "/| / ", "_")) %>%
-    mutate(treatment = str_replace_all(treatment, " ", "_")) %>%
-    mutate(inoccur = case_when(inoccur == "Y" ~ TRUE,
-                               inoccur == "N" ~ FALSE,
-                               TRUE ~ NA))%>%
-    filter(!is.na(inoccur))%>%
-    arrange(desc(inoccur))%>%
-    distinct(usubjid,treatment, .keep_all =T) 
+    mutate(treatment = str_replace_all(treatment, " ", "_"))#%>%
+  
   
   if(dtplyr.step){
     return(treatment)
@@ -508,7 +503,7 @@ process.treatment.data <- function(file.name, dtplyr.step = FALSE){
 #' @return Formatted common treatment data (wide format) as a tibble or \code{dtplyr_step}
 #' @export process.common.treatment.data
 
-process.common.treatment.data <- function(input, minimum = 100, dtplyr.step = FALSE){
+process.common.treatment.data <- function(input, minimum=1000, dtplyr.step = FALSE){
   if(is.character(input)){
     # assume it's a path
     treatment_all <- process.treatment.data(input, TRUE)
@@ -519,16 +514,31 @@ process.common.treatment.data <- function(input, minimum = 100, dtplyr.step = FA
     }
   }
   
+  
+  date_in_last <- treatment_all %>% 
+    filter(inoccur==TRUE)%>% 
+    mutate(date_in_last=substr(indtc,1, 10))%>%
+    mutate(date_in_last=as_date(date_in_last))%>%
+    filter(date_in_last >= "2020-01-01")%>%
+    filter(date_in_last<today())%>%
+    arrange(desc(date_in_last))%>%
+    distinct(usubjid, .keep_all =T)%>%
+    select(usubjid, date_in_last )
+  
   treatment <- treatment_all %>%
-    arrange(desc(inoccur))%>%
-    distinct(usubjid, treatment, .keep_all =T)%>% 
     group_by(treatment) %>% 
     arrange(desc(inoccur))%>%
     mutate(n = sum(!is.na(inoccur))) %>%
     filter(n >= eval(!!minimum)) %>%
+    ungroup()%>%
+    arrange(desc(inoccur))%>%
+    distinct(usubjid, treatment, .keep_all =T)%>% 
+    #mutate(treatment = paste0("treat_",treatment)) %>%
     mutate(treatment = glue("treat_{treatment}", treatment = treatment)) %>%
     as.data.table() %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur) 
+    dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur)%>%
+    as.data.frame()%>%
+    full_join(date_in_last)
   
   if(dtplyr.step){
     return(treatment) %>% lazy_dt(immutable = FALSE)
@@ -540,41 +550,9 @@ process.common.treatment.data <- function(input, minimum = 100, dtplyr.step = FA
 
 
 
-#' Process dates latest treatment date
-#' @param input Either the path of the interventions data file (CDISC format) or output of \code{process.treatment.data}
-#' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
-#' @import dplyr tibble dtplyr tidyfast lubridate
-#' @importFrom data.table as.data.table
-#' @importFrom glue glue
-#' @return Formatted start (in) and end (out) dates for IMV and NIV treatment (wide format) as a tibble or \code{dtplyr_step}
-#' @export process.common.treatment.data
-process.treatment.dates.data <- function(input, dtplyr.step = FALSE){
-  if(is.character(input)){
-    # assume it's a path
-    treatment_all <- process.treatment.data(input, TRUE)
-  } else {
-    treatment_all <- input
-    if(is_tibble(treatment_all)){
-      treatment_all <- treatment_all %>% as.data.table  %>% lazy_dt(immutable = FALSE)
-    }
-  }
-  
-  date_in_last <- treatment_all %>% 
-    filter(inoccur==TRUE)%>% 
-    mutate(date_in_last=substr(indtc,1, 10))%>%
-    mutate(date_in_last=as_date(date_in_last))%>%
-    arrange(desc(date_in_last))%>%
-    distinct(usubjid, .keep_all =T)%>%
-    select(usubjid, date_in_last )
-  
-  
-  if(dtplyr.step){
-    return(date_in_last) %>% lazy_dt(immutable = FALSE)
-  } else {
-    return(date_in_last %>% as_tibble())
-  }    
-  
-}
+
+
+
 
 
 
@@ -600,7 +578,8 @@ process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
     filter(!is.na(vsstresn))%>%
     arrange(desc(vsdtc))%>%
     distinct(usubjid,vstestcd, .keep_all =T)%>%
-    mutate(vstestcd = glue("vs_{vstestcd}", vstestcd = vstestcd))%>%
+    mutate(vstestcd = paste0("vs_",vstestcd)) %>%
+    #mutate(vstestcd = glue("vs_{vstestcd}", vstestcd = vstestcd))%>%
     mutate(vstestcd = iconv(vstestcd, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = vstestcd,  values_from = vsstresn)%>%
@@ -635,7 +614,6 @@ process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
              lbtestcd=="LYM"|
              lbtestcd=="NEUT"|
              lbtestcd=="PT"|
-             lbtestcd=="UREA"|
              lbtestcd=="WBC"|
              lbtestcd=="BILI"|
              lbtestcd=="AST"|
@@ -650,7 +628,8 @@ process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
                              lbtestcd=="ALT" & lborres>9999 ~ NA_real_, 
                              lbtestcd=="ALT" & lborres<0 ~ NA_real_,
                              TRUE ~ lborres ))%>%
-    mutate(lbtestcd = glue("lab_{lbtestcd}", lbtestcd = lbtestcd)) %>%
+    mutate(lbtestcd  = paste0("lab_",lbtestcd )) %>%
+    #mutate(lbtestcd = glue("lab_{lbtestcd}", lbtestcd = lbtestcd)) %>%
     mutate(lbtestcd = iconv(lbtestcd, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = lbtestcd,  values_from = lborres)
@@ -680,6 +659,8 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
     mutate(outcome = str_to_title(outcome))%>%
     mutate(date_outcome=substr(date_outcome,1, 10))%>%
     mutate(date_outcome=as_date(date_outcome))%>%
+    mutate(date_outcome=replace(date_outcome,date_outcome< "2020-01-01",NA))%>%
+    mutate(date_outcome=replace(date_outcome,date_outcome>today(),NA))%>%
     mutate(outcome=case_when(outcome=="Currently Hospitalised"~"Ongoing care",
                              outcome=="Death"~"Death",
                              outcome=="Death In Hospital"~"Death",
@@ -709,6 +690,7 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
   
 }
 
+
 #' Fully process data
 #' @param demog.file.name Path of the demographics data file (CDISC format)
 #' @param symptoms.file.name Path of the symptoms data file (CDISC format, optional)
@@ -725,7 +707,7 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
 #' @export process.all.data
 process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy.file.name = NA,
                              ICU.file.name = NA, treatment.file.name = NA, vit_sign.file.name = NA, 
-                             outcome.file.name = NA, laboratory.file.name= NA, minimum.treatments = 100, 
+                             outcome.file.name = NA, laboratory.file.name= NA, minimum.comorb=100, minimum.sympt=100, minimum.treatments = 1000, 
                              dtplyr.step = FALSE){
   
   demographic <- import.demographic.data(demog.file.name, dtplyr.step = FALSE)
@@ -733,7 +715,7 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
   if(!is.na(symptoms.file.name)){
     comorb.sympt.temp <-  import.symptom.and.comorbidity.data(symptoms.file.name, dtplyr.step = TRUE)
     
-    comorbid <- process.comorbidity.data(comorb.sympt.temp, dtplyr.step = FALSE)
+    comorbid <- process.comorbidity.data(comorb.sympt.temp, minimum.comorb, dtplyr.step = FALSE)
     demographic <- demographic %>%
       left_join(comorbid, by = c("usubjid"))
   }
@@ -747,25 +729,17 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
   
   if(!is.na(symptoms.file.name)){
     comorb.sympt.temp <-  import.symptom.and.comorbidity.data(symptoms.file.name, dtplyr.step = TRUE)
-    symptom <- process.symptom.data(comorb.sympt.temp, dtplyr.step = FALSE)
+    symptom <- process.symptom.data(comorb.sympt.temp, minimum.sympt, dtplyr.step = FALSE)
     demographic <- demographic %>%
       left_join(symptom, by = c("usubjid")) 
   }
   
   
   if(!is.na(treatment.file.name)){
-    treatment <- process.common.treatment.data(treatment.file.name, minimum.treatments, FALSE)
+    treatment <- process.common.treatment.data(treatment.file.name, minimum.treatments, dtplyr.step = FALSE)
     demographic <- demographic %>%
       left_join(treatment, by = c("usubjid"))
   }
-  
-  
-  if(!is.na(treatment.file.name)){
-    date_in_last <- process.treatment.dates.data(treatment.file.name, dtplyr.step = FALSE)
-    demographic <- demographic %>%
-      left_join(date_in_last, by = c("usubjid"))
-  }
-  
   
   
   if(!is.na(ICU.file.name)){
@@ -776,30 +750,36 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
   
   if(!is.na(treatment.file.name)){
     icu <- process.ICU.data(ICU.file.name, dtplyr.step = FALSE)
-    treatment_all <- process.treatment.data(treatment.file.name, FALSE)
-    treatment_icu<-icu%>%
+    treatment_all <- process.treatment.data(treatment.file.name,  dtplyr.step = FALSE)
+    
+    icu_ever<-icu%>%
       filter(ever_icu==TRUE)%>%
-      filter(!is.na(icu_in))%>%
-      filter(!is.na(icu_out))%>%
-      left_join(treatment_all, by = c("usubjid"="usubjid"))%>%
+      filter(!is.na(icu_in))
+    #filter(!is.na(icu_out))
+    
+    icu_treat<-treatment_all%>%
       filter(!is.na(indtc))%>%
-      mutate(int_icu=case_when(indtc>=icu_in & indtc<=icu_out ~ TRUE, 
+      filter(indtc>= "2020-01-01")%>%
+      filter(indtc<today())%>%
+      left_join(icu_ever,by = c("usubjid"))%>%
+      mutate(int_icu=case_when(indtc>=icu_in ~ TRUE, 
                                TRUE ~ FALSE))%>%
+      filter(int_icu==TRUE)%>%
       arrange(desc(inoccur))%>%
-      distinct(usubjid, treatment, .keep_all =T)%>% 
+      distinct(usubjid, treatment, .keep_all =T)%>%
+      group_by(treatment) %>% 
       arrange(desc(inoccur))%>%
-      distinct(usubjid,treatment, .keep_all =T)%>%
+      mutate(n = sum(!is.na(inoccur))) %>%
+      filter(n >= eval(1000)) %>%
+      ungroup()%>%
       mutate(treatment = glue("icu_treat_{treatment}", treatment = treatment)) %>%
       as.data.table() %>%
       dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur)
     demographic <- demographic %>%
-      left_join(treatment_icu, by = c("usubjid"))
-  }
-  #if(!is.na(treatment.file.name)){
-  #  ventilation <- process.IMV.NIV.data(treatment.file.name, dtplyr.step = FALSE)
-  #  demographic <- demographic %>%
-  #    left_join(ventilation, by = c("usubjid"))
-  #}
+      left_join(icu_treat, by = c("usubjid"))
+  } 
+  
+  
   if(!is.na(vit_sign.file.name)){
     vit_sign <- process.vital.sign.data(vit_sign.file.name, dtplyr.step = FALSE)
     demographic <- demographic %>%
@@ -827,3 +807,4 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
   
   
 }
+
