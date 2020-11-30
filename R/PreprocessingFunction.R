@@ -9,7 +9,7 @@
 data.preprocessing <- function(input.tbl){
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid.19_symptoms"))%>%
+    select(-c("symptoms_covid-19_symptoms"))%>%
     ###creating first and last date
     mutate(date_hoin_last=case_when(is.na(date_ho_last) ~ date_in_last,
                                     date_ho_last<date_in_last ~ date_in_last,
