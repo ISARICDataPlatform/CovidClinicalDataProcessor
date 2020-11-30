@@ -116,13 +116,8 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
 import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.step = FALSE){
   
   out <- shared.data.import(file.name, 
-                            required.columns = c("USUBJID",
-                                                 "SATERM",
-                                                 "SACAT",
-                                                 "SAPRESP",
-                                                 "SAOCCUR",
-                                                 "SASTDTC"),
-                            dtplyr.step = TRUE, immutable = TRUE) %>% # this will often by used twice, so should be immutable
+                            dtplyr.step = TRUE, 
+                            immutable = TRUE) %>% # this will often by used twice, so should be immutable
     select(usubjid, saterm, sacat,  samodify, sapresp, saoccur, sastdtc) %>%
     filter(sacat=="MEDICAL HISTORY" | sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION") %>%
     mutate(sacat=replace(sacat,saterm=="MALNUTRITION","MEDICAL HISTORY"))%>%#temporary correction
@@ -131,30 +126,33 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                                saoccur == "N" ~ FALSE,
                                TRUE ~ NA)) %>%
     filter(!is.na(saoccur)) %>%
-    mutate(saterm=case_when(saterm=='CARDIAC ARRHYTHMIA'~'CHRONIC CARDIAC DISEASE',
-                            saterm%like%'CHRONIC CARDIAC DISEASE'~'CHRONIC CARDIAC DISEASE',
-                            saterm%like%'CHORNIC CARDIAC DISEASE'~'CHRONIC CARDIAC DISEASE',
-                            saterm%like%'CHRONIC HEART DISEASE'~'CHRONIC CARDIAC DISEASE',
+    mutate(saterm=case_when(saterm=='CARDIAC ARRHYTHMIA'~'chronic_including_congenital_cardiac_disease',
+                            saterm%like%'CHRONIC CARDIAC DISEASE'~'chronic_including_congenital_cardiac_disease',
+                            saterm%like%'CHORNIC CARDIAC DISEASE'~'chronic_including_congenital_cardiac_disease',
+                            saterm%like%'CHRONIC HEART DISEASE'~'chronic_including_congenital_cardiac_disease',
+                            saterm%like%'CONGENITAL CA'~'chronic_including_congenital_cardiac_disease',
+                            saterm%like%'CONGENTIAL CARDIOPATHY'~'chronic_including_congenital_cardiac_disease',
+                            saterm=='CORONARY DISEASE'~'chronic_including_congenital_cardiac_disease',
+                            saterm=='HEART FAILURE'~'chronic_including_congenital_cardiac_disease',
+                            saterm=='OROVALVA DISEASE'~'chronic_including_congenital_cardiac_disease',
                             saterm=='CHRONIC HEMATOLOGICAL DISEASE'~'CHRONIC HEMATOLOGIC DISEASE',
                             saterm=='CHRONIC LIVER DISEASE'~'LIVER DISEASE',
                             saterm%like%'CHRONIC LUNG DISEASE'~'CHRONIC PULMONARY DISEASE',
                             saterm%like%'CHRONIC NEUROLOGICAL'~'CHRONIC NEUROLOGICAL DISORDER',
-                            saterm%like%'CONGENTIAL CARD'~'CHRONIC CARDIAC DISEASE',
-                            saterm=='CORONARY DISEASE'~'CHRONIC CARDIAC DISEASE',
                             saterm%like%'CURRENT SMOK'~'SMOKING',
                             saterm%like%'DIABETES'~'DIABETES',
-                            saterm=='HEART FAILURE'~'CHRONIC CARDIAC DISEASE',
                             saterm=='HISTORY OF PERIPHERAL OR CARDIAC REVASCULARIZATION'~'HISTORY OF PERIPHERAL OR CARDIAC REVASCULARIZATION',
                             saterm=='HISTORY OF SMOKING'~'SMOKING',
                             saterm%like%'HIV'~'AIDS/HIV',
                             saterm%like%'LIVER DISEASE'~'LIVER DISEASE',
-                            saterm=='OROVALVA DISEASE'~'CHRONIC CARDIAC DISEASE',
                             saterm%like%'OTHER RELEVANT RISK'~'OTHER COMORBIDITIES',
                             saterm=='OTHER RISK FACTOR'~'OTHER COMORBIDITIES',
                             saterm%like%'RHEUMATOLOGICAL DISORD'~'RHEUMATOLOGIC DISORDER',
                             saterm=='SMOKER'~'SMOKING',
                             saterm=='SMOKER - CURRENT'~'SMOKING',
                             saterm=='SMOKER - FORMER'~'SMOKING - FORMER',
+                            
+                            
                             saterm=='FEEDING INTOLERANCE (PAEDIATRICS)'~'ANOREXIA',
                             saterm=='REFUSING TO EAT OR DRINK/HISTORY OF POOR ORAL INTAKE'~'ANOREXIA',
                             saterm=='COUGH - NON-PRODUCTIVE'~'COUGH - NO SPUTUM',
@@ -164,12 +162,10 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm=='COUGH - WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
                             saterm%like%'COUGH BLOODY SPUTUM'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
                             saterm=='COUGH WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
+                            saterm=='COUTH WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
                             saterm%like%'FEVER'~'HISTORY OF FEVER',
-                            
                             saterm=='SEIZURE'~'SEIZURES',
                             saterm%like%'TRANSPLANT'~'TRANSPLANTATION',
-                            
-                            
                             saterm%like%'ANOSMIA'~'LOSS OF SMELL',
                             saterm%like%'AGEUSIA'~'LOSS OF TASTE',
                             saterm=="LOSS OF TASTE OR LOSS OF SMELL"~'LOSS OF SMELL/TASTE',
@@ -178,7 +174,7 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm=='OTHER SIGN OR SYMPTOM'~'OTHER SIGNS AND SYMPTOMS',
                             saterm=='LOWER CHEST WALL INDRAWING'~'SHORTNESS OF BREATH',
                             saterm%like%'RASH'~'SKIN RASH',
-                            saterm%like%'ULCERS'~'SKIN ULCERS',
+                            #saterm%like%'ULCERS'~'SKIN ULCERS',
                             saterm=='EARPAIN'~'EAR PAIN',
                             TRUE ~ saterm ))%>%
     mutate(saterm = iconv(saterm, to ="ASCII//TRANSLIT") %>% tolower()) %>%
