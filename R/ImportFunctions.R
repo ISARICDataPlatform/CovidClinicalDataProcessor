@@ -90,7 +90,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                                    patient=="" ~ site,
                                    site=="00741cca_network"~ CCA_Network,
                                    TRUE ~ siteid_finala)) %>%
-    mutate(siteid_final=replace(siteid_final,studyid=="CVPSICL","QECH"))%>%
+    mutate(siteid_final=replace(siteid_final,studyid=="CVXQPDX" | studyid=="CVPSICL","QECH"))%>%
     mutate(siteid_final=replace(siteid_final,studyid=="CVTDWXD","CVTDWXD"))%>%
     mutate(siteid_final=paste0("text_",siteid_final))%>%
     mutate(sex = case_when(sex == "M" ~ "Male",
