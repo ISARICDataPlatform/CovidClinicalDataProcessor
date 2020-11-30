@@ -401,10 +401,6 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
 process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
   
   out <- shared.data.import(file.name,
-                            required.columns = c("USUBJID",
-                                                 "INTRT",
-                                                 "INOCCUR",
-                                                 "INDTC"),
                             dtplyr.step = TRUE)
   
   treatment<-out%>%
@@ -443,7 +439,7 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                                treatment=='INVASIVE MECHANICAL VENTILATION'~'INVASIVE VENTILATION',
                                treatment=='NON-INVASIVE MECHANICAL VENTILATION (BIPAP, CPAP, OCNAF (OPTIFLOW) ...)'~'NON-INVASIVE VENTILATION',
                                treatment=='NON-INVASIVE VENTILATION'~'NON-INVASIVE VENTILATION',
-                               treatment%like%'OTHER INTERVENTION OR PROCEDURE'~'OTHER INTERVENTIONS',
+                               treatment%like%'OTHER INTERVENTION'~'OTHER INTERVENTIONS',
                                treatment=='OTHER TARGETED COVID-19 MEDICATIONS'~'OTHER INTERVENTIONS',
                                treatment=='OTHER TREATMENTS FOR COVID19'~'OTHER INTERVENTIONS',
                                treatment=='OTHER NON-INVASIVE VENTILATION TYPE'~'NON-INVASIVE VENTILATION',
@@ -466,6 +462,8 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                                |  treatment%like%'VASOPRESS' ~'INOTROPES / VASOPRESSORS',
                                treatment%like%'IMMUNOSUPPRES' ~ "IMMUNOSUPPRESSANTS",
                                treatment=="IL6 INHIBITOR" ~ "INTERLEUKIN INHIBITORS",
+                               treatment%like%"EXPERIMENTAL AGENT" ~ "EXPERIMENTAL AGENTS",
+                               treatment%like%"IV FLUID" ~ "INTRAVENOUS FLUIDS",
                                treatment %like% "ANGIOTENSIN" | treatment %like% "ACE"~ "ANGIOTENSIN CONVERTING ENZYME INHIBITORS",
                                TRUE ~ treatment))%>%
     as.data.frame()%>%
