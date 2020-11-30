@@ -135,6 +135,9 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm=='CORONARY DISEASE'~'chronic_including_congenital_cardiac_disease',
                             saterm=='HEART FAILURE'~'chronic_including_congenital_cardiac_disease',
                             saterm=='OROVALVA DISEASE'~'chronic_including_congenital_cardiac_disease',
+                            saterm=='RHEUMATIC HEART DISEASE'~'chronic_including_congenital_cardiac_disease',
+                        
+          
                             saterm=='CHRONIC HEMATOLOGICAL DISEASE'~'CHRONIC HEMATOLOGIC DISEASE',
                             saterm=='CHRONIC LIVER DISEASE'~'LIVER DISEASE',
                             saterm%like%'CHRONIC LUNG DISEASE'~'CHRONIC PULMONARY DISEASE',
