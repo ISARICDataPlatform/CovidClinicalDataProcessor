@@ -154,8 +154,7 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm=='SMOKER'~'SMOKING',
                             saterm=='SMOKER - CURRENT'~'SMOKING',
                             saterm=='SMOKER - FORMER'~'SMOKING - FORMER',
-                            
-                            
+                           
                             saterm=='FEEDING INTOLERANCE (PAEDIATRICS)'~'ANOREXIA',
                             saterm=='REFUSING TO EAT OR DRINK/HISTORY OF POOR ORAL INTAKE'~'ANOREXIA',
                             saterm=='COUGH - NON-PRODUCTIVE'~'COUGH - NO SPUTUM',
@@ -166,6 +165,7 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm%like%'COUGH BLOODY SPUTUM'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
                             saterm=='COUGH WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
                             saterm=='COUTH WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
+                            saterm=='COUGH - NON-PRODUCTIVE'~'COUGH',
                             saterm%like%'FEVER'~'HISTORY OF FEVER',
                             saterm=='SEIZURE'~'SEIZURES',
                             saterm%like%'TRANSPLANT'~'TRANSPLANTATION',
