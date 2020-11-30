@@ -7,10 +7,6 @@
 #' @importFrom data.table fread
 #' @return The contents of \code{file.name} as a tibble or \code{dtplyr_step}
 #' @keywords internal
-#' 
-#' 
-#' 
-#' 
 #' @export shared.data.import
 shared.data.import <- function(file.name, 
                                excluded.columns = c("STUDYID", "DOMAIN"),
@@ -164,10 +160,10 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm=='COUGH - NON-PRODUCTIVE'~'COUGH - NO SPUTUM',
                             saterm=='COUGH - PRODUCTIVE'~'COUGH - WITH SPUTUM',
                             saterm%like%'COUGH WITH SPUTUM'~'COUGH - WITH SPUTUM',
-                            saterm=='COUGH - WITH HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
-                            saterm=='COUGH - WITH HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
-                            saterm%like%'COUGH BLOODY SPUTUM'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
-                            saterm=='COUGH WITH HAEMOPTYSIS'~'COUGH BLOODY SPUTUM / HAEMOPTYSIS',
+                            saterm=='COUGH - WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
+                            saterm=='COUGH - WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
+                            saterm%like%'COUGH BLOODY SPUTUM'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
+                            saterm=='COUGH WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
                             saterm%like%'FEVER'~'HISTORY OF FEVER',
                             
                             saterm=='SEIZURE'~'SEIZURES',
@@ -551,6 +547,71 @@ process.common.treatment.data <- function(input, minimum=1000, dtplyr.step = FAL
 
 
 
+#' Process dates on IMV and NIV
+#' @param input Either the path of the interventions data file (CDISC format) or output of \code{process.treatment.data}
+#' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
+#' @import dplyr tibble dtplyr tidyfast lubridate
+#' @importFrom data.table as.data.table
+#' @importFrom glue glue
+#' @return Formatted start (in) and end (out) dates for IMV and NIV treatment (wide format) as a tibble or \code{dtplyr_step}
+#' @export process.common.treatment.data
+
+process.IMV.NIV.ECMO.data <- function(input, dtplyr.step = FALSE){
+  if(is.character(input)){
+    # assume it's a path
+    treatment_all <- process.treatment.data(input, TRUE)
+    
+  } else {
+    treatment_all <- input
+    if(is_tibble(treatment_all)){
+      treatment_all <- treatment_all %>% as.data.table  %>% lazy_dt(immutable = FALSE)
+    }
+  }
+  
+  ventilation <- treatment_all %>% 
+    filter(treatment == 'non_invasive_ventilation' |
+             treatment == 'invasive_ventilation' |
+             treatment == "extracorporeal")%>%
+    mutate(indtc=substr(indtc,1, 10))%>%
+    mutate(indtc=as_date(indtc))%>%
+    mutate(indtc=replace(indtc,indtc < "2020-01-01",NA))%>%
+    mutate(indtc=replace(indtc,indtc >today(),NA))%>%
+    mutate(treatment=case_when(treatment=='non_invasive_ventilation'~'niv',
+                               treatment=='invasive_ventilation'~'imv',
+                               TRUE~treatment
+    ))%>%
+    as_tibble()
+  
+  
+  
+  vent_st<-ventilation%>% 
+    filter(inoccur==TRUE)%>%
+    arrange(indtc)%>%
+    distinct(usubjid,treatment, .keep_all =T)%>%
+    mutate(treatment = glue("{treatment}_st", treatment = treatment)) %>%
+    dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = indtc)%>%
+    as_tibble()
+  
+  vent_en<-ventilation%>% 
+    filter(inoccur==TRUE)%>%
+    arrange(desc(indtc))%>%
+    distinct(usubjid,treatment, .keep_all =T)%>% 
+    mutate(treatment = glue("{treatment}_en", treatment = treatment)) %>%
+    dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = indtc)%>%
+    as_tibble() 
+  
+  ventilation <- full_join(vent_st,vent_en)
+  
+  
+  if(dtplyr.step){
+    return(ventilation) %>% lazy_dt(immutable = FALSE)
+  } else {
+    return(ventilation %>% as_tibble())
+  }    
+  
+}
+
+
 
 
 
@@ -742,6 +803,8 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
   }
   
   
+  
+  
   if(!is.na(ICU.file.name)){
     icu <- process.ICU.data(ICU.file.name, dtplyr.step = FALSE)
     demographic <- demographic %>%
@@ -778,7 +841,11 @@ process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy
     demographic <- demographic %>%
       left_join(icu_treat, by = c("usubjid"))
   } 
-  
+  if(!is.na(treatment.file.name)){
+    ventilation <- process.IMV.NIV.ECMO.data(treatment.file.name, dtplyr.step = FALSE)
+    demographic <- demographic %>%
+    left_join(ventilation, by = c("usubjid"))
+  }
   
   if(!is.na(vit_sign.file.name)){
     vit_sign <- process.vital.sign.data(vit_sign.file.name, dtplyr.step = FALSE)
