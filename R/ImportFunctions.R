@@ -41,18 +41,9 @@ shared.data.import <- function(file.name,
 import.demographic.data <- function(file.name, dtplyr.step = FALSE){
   
   country.lookup <- ISOcodes::ISO_3166_1 %>% as_tibble %>% select(Alpha_3, Name)
+  regexp <- "[[:digit:]]+"  # process string
   
   out <- shared.data.import(file.name,
-                            required.columns = c("SUBJID",
-                                                 "USUBJID",
-                                                 "AGE",
-                                                 "AGEU",
-                                                 "SEX",
-                                                 "ETHNIC",
-                                                 "SITEID",
-                                                 "COUNTRY",
-                                                 "RFSTDTC",
-                                                 "INVID"),
                             dtplyr.step = TRUE) %>%
     select(usubjid,siteid,invid,  rfstdtc, age, ageu, sex, ethnic, country,subjid)%>%
     mutate(country = replace(country, country == "", NA)) %>%
@@ -60,7 +51,8 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     select(-country) %>%
     rename(country = Name) %>%
     rename(date_admit=rfstdtc)%>%
-    rename(site = invid) %>%
+    #rename(site = invid) %>%
+    mutate(site=str_extract(invid, regexp))%>%
     as.data.frame()%>%
     mutate(age_d=case_when(ageu=="MONTHS"~12,
                            ageu=="YEARS" ~ 1,
@@ -83,16 +75,22 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(ethnic = replace(ethnic, ethnic == "n_a" | ethnic == "na" | ethnic == "", NA))%>%
     mutate(studyid=substr(usubjid,1, 7))%>%
     mutate(CCA_Network=substr(subjid,1, 12))%>%
+    mutate(CVTDWXD=substr(subjid,1, 4)%>%tolower())%>%
+    mutate(CVTDWXD = str_replace_all(CVTDWXD, " ", "0"))%>%
+    mutate(CVTDWXD=replace(CVTDWXD,studyid!='CVTDWXD',""))%>%
     separate(subjid, c("siteid_finala","patient"), sep = "-")%>%
-    #select(usubjid,CCA_Network, studyid, siteid,siteid_finala,patient, site,  date_admit, age,sex, ethnic, country)%>%
-    mutate(siteid_finala=as.character(siteid_finala))%>%
+    select(usubjid,CCA_Network,CVTDWXD, studyid, siteid_finala,patient, invid, site,  date_admit, age,sex, ethnic, country, agegp5, agegp10)%>%
+    mutate(siteid_finala = str_replace_all(siteid_finala, '"', "")) %>%
     mutate(siteid_final= case_when(is.na(patient) ~ site,
-                                   patient=="" ~ site,
-                                   site=="00741cca_network"~ CCA_Network,
+                                   invid=="00741cca_network"~ CCA_Network,
                                    TRUE ~ siteid_finala)) %>%
-    mutate(siteid_final=replace(siteid_final,studyid=="CVXQPDX" | studyid=="CVPSICL","QECH"))%>%
-    mutate(siteid_final=replace(siteid_final,studyid=="CVTDWXD","CVTDWXD"))%>%
+    mutate(siteid=case_when(studyid=="CVXQPDX" | studyid=="CVPSICL"~"QECH",
+                          is.na(siteid_final)~"",
+                          TRUE ~ siteid_final)) %>%
+    mutate(siteid_final=paste0(siteid,CVTDWXD))%>%
+    mutate(CVTDWXD = str_replace_all(CVTDWXD, " ", "0"))%>%
     mutate(siteid_final=paste0("text_",siteid_final))%>%
+    #mutate(siteid_final=substr(siteid_final,1, 10))%>%
     mutate(sex = case_when(sex == "M" ~ "Male",
                            sex == "F" ~ "Female",
                            TRUE ~ NA_character_)) %>%
