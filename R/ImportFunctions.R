@@ -41,13 +41,10 @@ shared.data.import <- function(file.name,
 import.demographic.data <- function(file.name, dtplyr.step = FALSE){
   
   country.lookup <- ISOcodes::ISO_3166_1 %>% as_tibble %>% select(Alpha_3, Name)
-  regexp <- "[[:digit:]]+"  # process string
+  #regexp <- "[[:digit:]]+"  # process string
   
   out <- shared.data.import(file.name,
                             dtplyr.step = TRUE) %>%
-    
-    dms<-dm%>%
-    select(usubjid,siteid,invid,  rfstdtc, age, ageu, sex, ethnic, country,subjid)%>%
     mutate(country = replace(country, country == "", NA)) %>%
     left_join(country.lookup, by = c("country" = "Alpha_3")) %>%
     select(-country) %>%
@@ -74,29 +71,18 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(ethnic = str_replace_all(ethnic, ",", "_")) %>%
     mutate(ethnic = replace(ethnic, ethnic == "n_a" | ethnic == "na" | ethnic == "", NA))%>%
     mutate(studyid=substr(usubjid,1, 7))%>%
-    mutate(site=str_extract(invid, regexp))%>%
-    mutate(CCA_Network=substr(subjid,1, 12))%>%
-    mutate(CVTDWXD=substr(subjid,1, 4)%>%tolower())%>%
-    mutate(CVTDWXD = str_replace_all(CVTDWXD, " ", "0"))%>%
-    mutate(CVTDWXD=replace(CVTDWXD,studyid!='CVTDWXD',""))%>%
-    separate(subjid, c("siteid_finala","patient"), sep = "-")%>%
-    select(usubjid,CCA_Network,CVTDWXD, studyid, siteid_finala,patient, invid, site,  date_admit, age,sex, ethnic, country, agegp5, agegp10)%>%
-    mutate(siteid_finala = str_replace_all(siteid_finala, '"', "")) %>%
-    mutate(siteid_final= case_when(is.na(patient) ~ site,
-                                   invid=="00741cca_network"~ CCA_Network,
-                                   TRUE ~ siteid_finala)) %>%
-    mutate(siteid=case_when(studyid=="CVXQPDX" | studyid=="CVPSICL"~"QECH",
-                          is.na(siteid_final)~"",
-                          TRUE ~ siteid_final)) %>%
-    mutate(siteid_final=paste0(siteid,CVTDWXD))%>%
-    mutate(CVTDWXD = str_replace_all(CVTDWXD, " ", "0"))%>%
-    mutate(siteid_final=paste0("text_",siteid_final))%>%
+    mutate(siteid_final=invid)%>%
+    mutate(siteid_final=case_when(invid=="00741cca_network"~ substr(subjid,1, 12),
+                                invid=="227inserm"~ sub("\\-.*", "",subjid),
+                                invid==""~studyid,
+                                studyid=="CVCCPUK"~"CVCCPUK",
+                                TRUE~invid))%>%
     mutate(sex = case_when(sex == "M" ~ "Male",
                            sex == "F" ~ "Female",
                            TRUE ~ NA_character_)) %>%
     mutate(date_admit=substr(date_admit,1, 10))%>%
     mutate(date_admit=as_date(date_admit))%>%
-    select(usubjid, studyid, siteid_final, date_admit, age, agegp5, agegp10, sex, ethnic, country  )
+    select(usubjid, studyid, siteid_final, date_admit, age, agegp5, agegp10, sex, ethnic, country)
   
   if(dtplyr.step){
     return(out)
@@ -134,7 +120,7 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm=='HEART FAILURE'~'chronic_including_congenital_cardiac_disease',
                             saterm=='OROVALVA DISEASE'~'chronic_including_congenital_cardiac_disease',
                             saterm=='RHEUMATIC HEART DISEASE'~'chronic_including_congenital_cardiac_disease',
-                        
+                            saterm%like%'TUBERCULOSIS'~'TUBERCULOSIS',
           
                             saterm=='CHRONIC HEMATOLOGICAL DISEASE'~'CHRONIC HEMATOLOGIC DISEASE',
                             saterm=='CHRONIC LIVER DISEASE'~'LIVER DISEASE',
