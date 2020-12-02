@@ -163,7 +163,7 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm%like%'COUGH BLOODY SPUTUM'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
                             saterm=='COUGH WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
                             saterm=='COUTH WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
-                            saterm=='COUGH - NON-PRODUCTIVE'~'COUGH',
+                            saterm=='COUGH'~'COUGH - NO SPUTUM',#just a proposal
                             saterm%like%'FEVER'~'HISTORY OF FEVER',
                             saterm=='SEIZURE'~'SEIZURES',
                             saterm%like%'TRANSPLANT'~'TRANSPLANTATION',
