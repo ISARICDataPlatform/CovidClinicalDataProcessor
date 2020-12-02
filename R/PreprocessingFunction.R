@@ -61,7 +61,7 @@ data.preprocessing <- function(input.tbl){
     rename(slider_icu_ever = ever_icu) %>%
     rename(slider_country = country) %>%
     rename(slider_sex = sex) %>%
-    rename(slider_asymptomatic = symptoms_asymptomatic) %>%
+    rename(slider_symptomatic = symptomatic) %>%
     mutate(date_onset=as_date(date_onset))%>%
     mutate(date_admit=as_date(date_admit))%>%
     mutate(icu_in=as_date(icu_in))%>%
