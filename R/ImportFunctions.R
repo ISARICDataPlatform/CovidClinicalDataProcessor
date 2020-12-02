@@ -45,14 +45,14 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
   
   out <- shared.data.import(file.name,
                             dtplyr.step = TRUE) %>%
+    
+    dms<-dm%>%
     select(usubjid,siteid,invid,  rfstdtc, age, ageu, sex, ethnic, country,subjid)%>%
     mutate(country = replace(country, country == "", NA)) %>%
     left_join(country.lookup, by = c("country" = "Alpha_3")) %>%
     select(-country) %>%
     rename(country = Name) %>%
     rename(date_admit=rfstdtc)%>%
-    #rename(site = invid) %>%
-    mutate(site=str_extract(invid, regexp))%>%
     as.data.frame()%>%
     mutate(age_d=case_when(ageu=="MONTHS"~12,
                            ageu=="YEARS" ~ 1,
@@ -74,6 +74,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(ethnic = str_replace_all(ethnic, ",", "_")) %>%
     mutate(ethnic = replace(ethnic, ethnic == "n_a" | ethnic == "na" | ethnic == "", NA))%>%
     mutate(studyid=substr(usubjid,1, 7))%>%
+    mutate(site=str_extract(invid, regexp))%>%
     mutate(CCA_Network=substr(subjid,1, 12))%>%
     mutate(CVTDWXD=substr(subjid,1, 4)%>%tolower())%>%
     mutate(CVTDWXD = str_replace_all(CVTDWXD, " ", "0"))%>%
@@ -90,7 +91,6 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(siteid_final=paste0(siteid,CVTDWXD))%>%
     mutate(CVTDWXD = str_replace_all(CVTDWXD, " ", "0"))%>%
     mutate(siteid_final=paste0("text_",siteid_final))%>%
-    #mutate(siteid_final=substr(siteid_final,1, 10))%>%
     mutate(sex = case_when(sex == "M" ~ "Male",
                            sex == "F" ~ "Female",
                            TRUE ~ NA_character_)) %>%
