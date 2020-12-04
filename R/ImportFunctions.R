@@ -609,24 +609,35 @@ process.IMV.NIV.ECMO.data <- function(input, dtplyr.step = FALSE){
 #' @export process.vital.sign.data
 process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
   vital_sign <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
-    select(usubjid, vstestcd, vscat,vsstresn,vsstresu, vsdtc) %>%
+    select(usubjid, vstestcd, vscat,vsstresn,vsstresu, vsdtc, vso2src) %>%
     filter(vscat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION" | vscat=="SIGNS AND SYMPTOMS AT ADMISSION")%>%
-    filter(vstestcd=="HR" |
-             vstestcd=="OXYSAT" |
-             vstestcd=="RESP" |
-             vstestcd=="SYSBP" |
-             vstestcd=="TEMP")%>%
+    #filter(vstestcd=="HR" |
+    #         vstestcd=="OXYSAT" |
+    #         vstestcd=="RESP" |
+    #         vstestcd=="SYSBP" |
+    #         vstestcd=="TEMP")%>%
     mutate(vsstresn=as.numeric(vsstresn))%>%
+    mutate(vsstresn=case_when(vstestcd=="OXYSAT"& vsstresn< 1~ NA_real_,
+                              vstestcd=="OXYSAT"& vsstresn> 100~ NA_real_,
+                              TRUE~vsstresn))%>%
     filter(!is.na(vsstresn))%>%
     arrange(desc(vsdtc))%>%
     distinct(usubjid,vstestcd, .keep_all =T)%>%
+    mutate(vso2src=case_when(vso2src==""&vstestcd=="OXYSAT"~'UNKNOWN',
+                             TRUE~vso2src))%>%
+    mutate(vso2src= str_replace_all(vso2src, " ", "_"))%>%
+    mutate(vstestcd=case_when(vstestcd=="OXYSAT"~paste0(vstestcd,"_",vso2src),
+                              TRUE~vstestcd))%>%
     mutate(vstestcd = paste0("vs_",vstestcd)) %>%
     #mutate(vstestcd = glue("vs_{vstestcd}", vstestcd = vstestcd))%>%
     mutate(vstestcd = iconv(vstestcd, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = vstestcd,  values_from = vsstresn)%>%
     as.data.frame() %>%
-    mutate(vs_oxysat=replace(vs_oxysat,vs_oxysat< 1 | vs_oxysat> 100, NA))
+    mutate(vs_oxysat=case_when(!is.na(vs_oxysat_oxygen_therapy)~vs_oxysat_oxygen_therapy,
+                               !is.na(vs_oxysat_room_air)~vs_oxysat_room_air,
+                               TRUE~vs_oxysat_unknown))
+  
   
   
   if(dtplyr.step){
