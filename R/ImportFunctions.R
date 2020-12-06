@@ -138,7 +138,6 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm=='SMOKER'~'SMOKING',
                             saterm=='SMOKER - CURRENT'~'SMOKING',
                             saterm=='SMOKER - FORMER'~'SMOKING - FORMER',
-                           
                             saterm=='FEEDING INTOLERANCE (PAEDIATRICS)'~'ANOREXIA',
                             saterm=='REFUSING TO EAT OR DRINK/HISTORY OF POOR ORAL INTAKE'~'ANOREXIA',
                             #saterm=='COUGH - NON-PRODUCTIVE'~'COUGH - NO SPUTUM',
@@ -415,44 +414,107 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                            incat=="CORTICOSTEROIDS"~ "CORTICOSTEROIDS",
                            incat=="ANTIMALARIAL AGENTS"~ "ANTIMALARIAL AGENTS",
                            TRUE~intrt)) %>%
-    select(usubjid, "treatment" = intrt, inoccur, indtc, incat) %>%
+    select(usubjid, "treatment" = intrt, inoccur, indtc, incat, intrt_orig) %>%
     mutate(treatment=case_when(treatment%like%'ECMO'~'EXTRACORPOREAL',
                                treatment=='EXTRA CORPOREAL LIFE SUPPORT'~'EXTRACORPOREAL',
                                treatment=='EXTRACORPOREAL SUPPORT'~'EXTRACORPOREAL',
-                               treatment=='BIPAP'~'NON-INVASIVE VENTILATION',
+                               
                                treatment=='CONTINUOUS RENAL REPLACEMENT THERAPIES (CRRT)'~'RENAL REPLACEMENT THERAPIES',
-                               treatment=='CPAP'~'NON-INVASIVE VENTILATION',
                                treatment%like%'RENAL REPLACEMENT THERAPY' |treatment%like% 'DIALYSIS'~ 'RENAL REPLACEMENT THERAPIES',
+                               
                                treatment=='INVASIVE MECHANICAL LUNG VENTILATION'~'INVASIVE VENTILATION',
                                treatment=='INVASIVE MECHANICAL VENTILATION'~'INVASIVE VENTILATION',
-                               treatment=='NON-INVASIVE MECHANICAL VENTILATION (BIPAP, CPAP, OCNAF (OPTIFLOW) ...)'~'NON-INVASIVE VENTILATION',
-                               treatment=='NON-INVASIVE VENTILATION'~'NON-INVASIVE VENTILATION',
+                               treatment=='RE-INTUBATION'~'INVASIVE VENTILATION',
+                               treatment=='INVASIVE VENTILATION'~'INVASIVE VENTILATION',
+                               
+                               
+                               treatment%like%'CPAP'~'NON-INVASIVE VENTILATION',
+                               treatment%like%'BIPAP'~'NON-INVASIVE VENTILATION',
+                               treatment%like%'NON-INVASIVE MECHANICAL VENTILATION (BIPAP, CPAP, OCNAF (OPTIFLOW) ...)'~'NON-INVASIVE VENTILATION',
+                               #treatment%like%'NON-INVASIVE VENTILATION'~'NON-INVASIVE VENTILATION',
+                               #treatment%like%'OTHER NON-INVASIVE VENTILATION TYPE'~'NON-INVASIVE VENTILATION',
+                               treatment%like%'NON-INVASIVE VENTILATION'~'NON-INVASIVE VENTILATION',
+                               
                                treatment%like%'OTHER INTERVENTION'~'OTHER INTERVENTIONS',
                                treatment=='OTHER TARGETED COVID-19 MEDICATIONS'~'OTHER INTERVENTIONS',
                                treatment=='OTHER TREATMENTS FOR COVID19'~'OTHER INTERVENTIONS',
-                               treatment=='OTHER NON-INVASIVE VENTILATION TYPE'~'NON-INVASIVE VENTILATION',
+                               
+                               
                                treatment=='OXYGEN THERAPY'~'NASAL / MASK OXYGEN THERAPY',
                                treatment=='OXYGEN THERAPY WITH HIGH FLOW NASAL CANULA'~'HIGH-FLOW NASAL CANULA OXYGEN THERAPY',
                                treatment=='HIGH-FLOW NASAL CANNULA OXYGEN THERAPY'~'HIGH-FLOW NASAL CANULA OXYGEN THERAPY',
+                               
                                treatment=='PRONACIÓN'~'PRONE POSITIONING',
                                treatment=='PRONE POSITIONING'~'PRONE POSITIONING',
-                               treatment=='RE-INTUBATION'~'INVASIVE VENTILATION',
+                               
+                               
                                treatment%like%'TRACHEOSTOMY'~'TRACHEOSTOMY',
-                               treatment=='UNKNOWN NON-INVASIVE VENTILATION TYPE'~'NON-INVASIVE VENTILATION',
+                               
+                               treatment%like%'NITRIC OXIDE'~'INHALED NITRIC OXIDE',
+                               
+                               
+                               
                                treatment=="CORTICOSTEROID"~ "CORTICOSTEROIDS",
+                               treatment=="DEXAMETHASONE"~ "CORTICOSTEROIDS",
+                               treatment=="METHYLPREDNISOLONE"~ "CORTICOSTEROIDS",
+                               
+                               treatment%like%"BLOOD TRANSFUSION OR BLOOD PRODUCT"~ "BLOOD TRANSFUSION OR BLOOD PRODUCT",
+                               
                                treatment%like%"ANTIVIRAL" ~ "ANTIVIRAL AGENTS",
+                               treatment%like%"LOPINAVIR AND RITONAVIR" ~ "ANTIVIRAL AGENTS",
+                               treatment%like%"OSELTAMIVIR" ~ "ANTIVIRAL AGENTS",
+                               treatment%like%"REMDESIVIR" ~ "ANTIVIRAL AGENTS",
+                               treatment%like%"REMDESIVIR" ~ "ANTIVIRAL AGENTS",
+                               treatment%like%"NEURAMINIDASE INHIBITORS" ~ "ANTIVIRAL AGENTS",
+                               treatment%like%"RIBAVARIN" ~ "ANTIVIRAL AGENTS",
+                               
+                               
+                               
                                treatment%like%"ANTIBIOTIC"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"AMIKACIN"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"AMOX"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"AUGUMENTIN"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"AZITHRYOMYCIN"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"BENZY"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"AUGUMENTIN"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"AZITHRYOMYCIN"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"CEFTR"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"CEFR"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"CHLORAMPHENICOL"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"CIPROFLOXACIN"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"GENTAMICIN"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"MEROPENEM"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"METRONIDAZOLE"~ "ANTIBIOTIC AGENTS",
+                               
                                treatment%like%"ANTIMALARIAL" | treatment%like%"CHLOROQUINE" ~ "ANTIMALARIAL AGENTS",
+                               
                                treatment%like%"ANTIFUNGAL" ~ "ANTIFUNGAL AGENTS",
-                               treatment %like% "OROGASTRIC"~"ORAL/OROGASTRIC FLUIDS",
+                               
+                               treatment %like% "OROGASTRIC"~"NASO/ NASOGASTRIC ORAL/OROGASTRIC FLUIDS",
+                               treatment %like% "NGT OR OGT REQUIRED FOR NUTRITION"~"NASO/ NASOGASTRIC ORAL/OROGASTRIC FLUIDS",
+                               
+                               
+                               
                                treatment%like%'DOBUTAMINE' |  treatment%like%'DOPAMINE' |  treatment%like%'MILRINONE' 
                                |  treatment%like%'LEVOSIMENDAN' |  treatment%like%'EPINEPHRINE' |  treatment%like%'NOREPINEPRINE'
                                |  treatment%like%'VASOPRESS' ~'INOTROPES / VASOPRESSORS',
+                               
                                treatment%like%'IMMUNOSUPPRES' ~ "IMMUNOSUPPRESSANTS",
-                               treatment=="IL6 INHIBITOR" ~ "INTERLEUKIN INHIBITORS",
+                               
+                               treatment=="IL6 INHIBITOR" ~ "IMMUNOSUPPRESSANTS",
+                               treatment=="TOCILIZUMAB" ~ "IMMUNOSUPPRESSANTS",
+                               
+                               treatment%like%"INTERFERON" ~ "IMMUNOSTIMULANTS",
+                               
+                               treatment%like%"HEPARIN" ~ "THERAPEUTIC ANTICOAGULANT",
+                               treatment%like%"ENOXAPARINA" ~ "THERAPEUTIC ANTICOAGULANT",
+                               
+                               treatment%like%"SPIRONOLACTONE" ~ "DIURETICS",
+                               
+                               
                                treatment%like%"EXPERIMENTAL AGENT" ~ "EXPERIMENTAL AGENTS",
                                treatment%like%"IV FLUID" ~ "INTRAVENOUS FLUIDS",
-                               treatment %like% "ANGIOTENSIN" | treatment %like% "ACE"~ "ANGIOTENSIN CONVERTING ENZYME INHIBITORS",
+                               treatment %like% "ANGIOTENSIN" | treatment %like% "ACE"~ "AGENTS ACTING ON THE RENIN-ANGIOTENSIN SYSTEM",
                                TRUE ~ treatment))%>%
     as.data.frame()%>%
     #bind_rows(treatment_a)%>%
