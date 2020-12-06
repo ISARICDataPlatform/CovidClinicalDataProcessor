@@ -268,8 +268,6 @@ process.symptom.data <- function(input,  minimum=100, dtplyr.step = FALSE){
   
   
   symptomatic<-symptom%>%
-    
-  symptomatic<-comorb.sympt.temp%>%  
     ungroup()%>%
     filter(sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION")%>%
     mutate(symptomatic=case_when(saterm=="asymptomatic" & saoccur==TRUE~FALSE,
