@@ -268,11 +268,17 @@ process.symptom.data <- function(input,  minimum=100, dtplyr.step = FALSE){
   
   
   symptomatic<-symptom%>%
-    filter(sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION" & !is.na(saoccur))%>%
-    arrange(desc(saoccur))%>%
+    
+  symptomatic<-comorb.sympt.temp%>%  
     ungroup()%>%
+    filter(sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION")%>%
+    mutate(symptomatic=case_when(saterm=="asymptomatic" & saoccur==TRUE~FALSE,
+                                 saterm=="asymptomatic" & saoccur==FALSE~TRUE,
+                                 TRUE~saoccur
+    ))%>%
+    arrange(desc(symptomatic))%>%
     distinct(usubjid, .keep_all =T)%>%
-    select(usubjid, "symptomatic"=saoccur)
+    select(usubjid, symptomatic)
   
   symptom<- date_onset%>%
     full_join(symptomatic, by=c("usubjid"))%>%
