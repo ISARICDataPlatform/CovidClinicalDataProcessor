@@ -143,6 +143,7 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             #saterm=='COUGH - NON-PRODUCTIVE'~'COUGH - NO SPUTUM',
                             #saterm=='COUGH - PRODUCTIVE'~'COUGH - WITH SPUTUM',
                             saterm%like%'COUGH'~'COUGH',
+                            saterm%like%'COUTH'~'COUGH',
                             #saterm%like%'COUGH WITH SPUTUM'~'COUGH - WITH SPUTUM',
                             #saterm=='COUGH - WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
                             #saterm=='COUGH - WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
@@ -778,7 +779,7 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
     mutate(date_outcome=replace(date_outcome,date_outcome< "2020-01-01",NA))%>%
     mutate(date_outcome=replace(date_outcome,date_outcome>today(),NA))%>%
     mutate(outcome=case_when(outcome=="Currently Hospitalised"~"Ongoing care",
-                             outcome=="Death"~"Death",
+                             outcome%like%"Death"~"Death",
                              outcome=="Death In Hospital"~"Death",
                              outcome=="Discharge"~"Discharge",
                              outcome=="Discharge With Palliative Care"~"Transferred",
