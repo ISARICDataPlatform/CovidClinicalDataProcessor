@@ -415,7 +415,7 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                            incat=="CORTICOSTEROIDS"~ "CORTICOSTEROIDS",
                            incat=="ANTIMALARIAL AGENTS"~ "ANTIMALARIAL AGENTS",
                            TRUE~intrt)) %>%
-    select(usubjid, "treatment" = intrt, inoccur, indtc, incat, intrt_orig) %>%
+    select(usubjid, "treatment" = intrt, inoccur, indtc, incat) %>%
     mutate(treatment=case_when(treatment%like%'ECMO'~'EXTRACORPOREAL',
                                treatment=='EXTRA CORPOREAL LIFE SUPPORT'~'EXTRACORPOREAL',
                                treatment=='EXTRACORPOREAL SUPPORT'~'EXTRACORPOREAL',
