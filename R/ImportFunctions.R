@@ -772,31 +772,29 @@ process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
 #' @export process.outcome.data
 process.outcome.data <- function(file.name, dtplyr.step = FALSE){
   outcome <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
-    select(usubjid, "outcome" = dsterm, "date_outcome" = dsstdtc) %>%
-    mutate(outcome = str_to_title(outcome))%>%
+    select(usubjid, dsterm, "date_outcome" = dsstdtc, dsmodify) %>%
     mutate(date_outcome=substr(date_outcome,1, 10))%>%
     mutate(date_outcome=as_date(date_outcome))%>%
     mutate(date_outcome=replace(date_outcome,date_outcome< "2020-01-01",NA))%>%
     mutate(date_outcome=replace(date_outcome,date_outcome>today(),NA))%>%
-    mutate(outcome=case_when(outcome=="Currently Hospitalised"~"Ongoing care",
-                             outcome%like%"Death"~"Death",
-                             outcome=="Death In Hospital"~"Death",
-                             outcome=="Discharge"~"Discharge",
-                             outcome=="Discharge With Palliative Care"~"Transferred",
-                             outcome=="Discharged"~"Discharge",
-                             outcome=="Discharged Alive"~"Discharge",
-                             outcome=="Hospital Discharge"~"Discharge",
-                             outcome=="Hospitalization"~"Ongoing care",
-                             outcome=="Hospitalized"~"Ongoing care",
-                             outcome=="Long Term Care Facility"~"Transferred",
-                             outcome=="Palliative Discharge"~"Transferred",
-                             outcome=="Quarantine Center"~"Transferred",
-                             outcome=="Transfer To Other Facility"~"Transferred",
-                             outcome=="Transfer To Other Hospital/Facility"~"Transferred",
-                             outcome=="Transferred To Another Facility"~"Transferred",
-                             outcome=="Transferred To Another Unit"~"Ongoing care",
-                             outcome=="Missing In Database"~"Unknown outcome",
-                             TRUE ~ NA_character_))
+    mutate(outcome=tolower(dsterm))%>%
+    mutate(outcome=case_when(outcome=="palliative"~"transferred",
+                             outcome=="transferred to another unit"~"ongoing care",
+                             outcome==""~NA_character_,
+                             TRUE~outcome))%>%
+    mutate(outcome=case_when(outcome%like%"hospitalis"~"ongoing care",
+                             outcome%like%"hospitaliz"~"ongoing care",
+                             outcome%like%"ongoing"~"ongoing care",
+                             
+                             outcome%like%"death"~"death",
+                             #outcome=="Death In Hospital"~"Death",
+                             outcome%like%"discharge"~"discharge",
+                             outcome%like%"transfer"~"transferred",
+                             outcome=="long term care facility"~"transferred",
+                             outcome=="quarantine center"~"transferred",
+                             outcome=="missing in database"~"unknown outcome",
+                             outcome=="unknown"~"unknown outcome",
+                             TRUE ~ outcome))
   
   
   if(dtplyr.step){
