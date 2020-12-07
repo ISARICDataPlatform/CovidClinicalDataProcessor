@@ -161,6 +161,8 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm%like%'MUSCLE ACHES'~'MUSCLE ACHES/JOINT PAIN',
                             saterm=='OTHER SIGN OR SYMPTOM'~'OTHER SIGNS AND SYMPTOMS',
                             saterm=='LOWER CHEST WALL INDRAWING'~'SHORTNESS OF BREATH',
+                            saterm%like%'DEHYDRATION'~'SEVERE DEHYDRATION',
+                            
                             saterm%like%'RASH'~'SKIN RASH',
                             #saterm%like%'ULCERS'~'SKIN ULCERS',
                             saterm=='EARPAIN'~'EAR PAIN',
@@ -784,6 +786,7 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
     mutate(outcome=tolower(dsterm))%>%
     mutate(outcome=case_when(outcome=="palliative"~"transferred",
                              outcome=="transferred to another unit"~"ongoing care",
+                             outcome=="Ongoing health care needs NOT related to COVID episode"~"discharge",
                              outcome==""~NA_character_,
                              TRUE~outcome))%>%
     mutate(outcome=case_when(outcome%like%"hospitalis"~"ongoing care",
