@@ -9,7 +9,7 @@
 data.preprocessing <- function(input.tbl){
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid-19_symptoms"))%>%
+    select(-c("symptoms_covid-19_symptoms",symptoms_asymptomatic))%>%
     ###creating first and last date
     mutate(date_hoin_last=case_when(is.na(date_ho_last) ~ date_in_last,
                                     date_ho_last<date_in_last ~ date_in_last,
@@ -80,6 +80,10 @@ data.preprocessing <- function(input.tbl){
     mutate(icu_dur=replace(icu_dur,icu_dur<0,NA))%>%
     mutate(ho_dur=date_outcome-date_admit)%>%
     mutate(ho_dur=replace(ho_dur,ho_dur<0,NA))%>%
+    mutate(under_nutrition=case_when(vs_bmi< 18.5&age<65~TRUE,
+                                     vs_bmi< 20.5 &age<65~TRUE,
+                                     is.na(vs_bmi)|is.na(age)~NA,
+                                     TRUE~FALSE))%>%
     as_tibble()
 }
 
