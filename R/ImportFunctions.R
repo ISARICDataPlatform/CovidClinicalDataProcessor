@@ -93,14 +93,14 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
 
 
 
-#' Import demographic data
+#' Import microb data
 #' @param file.name Path of the microbio data file (CDISC format)
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
 #' @import dplyr tibble 
 #' @return Formatted demographic data as a tibble or \code{dtplyr_step}
 #' @export import.microbio.data
 
-import.microbio.data <- function(file.name, dtplyr.step = FALSE){
+import.microb.data <- function(file.name, dtplyr.step = FALSE){
   
   detection<-mb%>%
     #select(usubjid,mbtestcd,mbtest,mbtstdtl,mbcat,mbstresc,mbspec,mbloc,mbmethod)%>%
@@ -889,7 +889,7 @@ process.all.data <- function(demog.file.name, microb.file.name=NA, symptoms.file
   demographic <- import.demographic.data(demog.file.name, dtplyr.step = FALSE)
   
   if(!is.na(microb.file.name)){
-    microb <- process.microbio.data(microb.file.name, dtplyr.step = FALSE)
+    microb <- import.microb.data(microb.file.name, dtplyr.step = FALSE)
     demographic <- demographic %>%
       left_join(microb, by = c("usubjid")) 
   }
