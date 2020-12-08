@@ -404,7 +404,6 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                                TRUE ~ NA))%>%
     filter(!is.na(inoccur))%>%
     filter(incat!="MEDICAL HISTORY")%>%
-    filter(incat!="NSAIDS")%>%
     mutate(intrt=case_when(inmodify!=""~inmodify,
                            TRUE ~ intrt))%>%
     mutate(intrt=case_when(incat=="EXTRACORPOREAL"~'EXTRACORPOREAL',
@@ -420,6 +419,7 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                            incat=="ANTIVIRAL AGENTS"~ "ANTIVIRAL AGENTS",
                            incat=="CORTICOSTEROIDS"~ "CORTICOSTEROIDS",
                            incat=="ANTIMALARIAL AGENTS"~ "ANTIMALARIAL AGENTS",
+                           incat=="NSAIDS"~"NON-STEROIDAL ANTI-INFLAMMATORY (NSAIDS)"
                            TRUE~intrt)) %>%
     select(usubjid, "treatment" = intrt, inoccur, indtc, incat) %>%
     mutate(treatment=case_when(treatment%like%'ECMO'~'EXTRACORPOREAL',
