@@ -91,6 +91,59 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
   }
 }
 
+
+
+#' Import demographic data
+#' @param file.name Path of the microbio data file (CDISC format)
+#' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
+#' @import dplyr tibble 
+#' @return Formatted demographic data as a tibble or \code{dtplyr_step}
+#' @export import.microbio.data
+
+import.microbio.data <- function(file.name, dtplyr.step = FALSE){
+  
+  detection<-mb%>%
+    #select(usubjid,mbtestcd,mbtest,mbtstdtl,mbcat,mbstresc,mbspec,mbloc,mbmethod)%>%
+    filter(mbtstdtl=="DETECTION")%>%
+    filter(mbtestcd=="CRONAVIR"|mbtestcd=="SARSCOV2")%>%
+    mutate(mbstresc = case_when(mbstresc == "NO" ~ "NEGATIVE",
+                                mbstresc == "NEGATIVE" ~ "NEGATIVE",
+                                mbstresc == "POSITIVE" ~ "POSITIVE",
+                                TRUE ~ NA_character_)) %>%
+    mutate(mbtestcd = paste0("cov_det_",mbtestcd)%>% tolower%>%str_replace_all(" ", "_")) %>%
+    arrange(desc(mbstresc))%>%
+    distinct(usubjid, mbtestcd, .keep_all =T)%>% 
+    as.data.table() %>%
+    dt_pivot_wider(id_cols = usubjid, names_from = mbtestcd, values_from = mbstresc) %>%
+    as.data.frame()
+  
+  
+   identification<-mb%>%
+    filter(mbtstdtl=="IDENTIFICATION")%>%
+    distinct(usubjid, mbstresc, .keep_all =T)%>% 
+    filter(mbstresc=="SEVERE ACUTE RESPIRATORY SYNDROME CORONAVIRUS 2"|
+             mbstresc=="CORONAVIRIDAE")%>%
+    mutate(mbstresc=replace(mbstresc,mbstresc=="SEVERE ACUTE RESPIRATORY SYNDROME CORONAVIRUS 2","SARSCOV2"))%>%
+    mutate(mbstresc=replace(mbstresc,mbstresc=="CORONAVIRIDAE","CRONAVIR"))%>%
+    mutate(result="positive")%>%
+    mutate(mbstresc = paste0("cov_id_",mbstresc)%>%
+             tolower%>%
+             str_replace_all(" ", "_")) %>%
+    as.data.table() %>%
+    dt_pivot_wider(id_cols = usubjid, names_from = mbstresc, values_from = result) %>%
+    as.data.frame()
+  
+  out<-full_join(detection,identification)
+
+  
+
+  if(dtplyr.step){
+    return(out)
+  } else {
+    return(out %>% as_tibble())
+  }
+}
+
 #' Import data on symptoms and comorbidities
 #' @param file.name Path of the symptoms data file (CDISC format)
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
@@ -815,6 +868,7 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
 
 #' Fully process data
 #' @param demog.file.name Path of the demographics data file (CDISC format)
+#' @param microb.file.name Path of the demographics data file (CDISC format)
 #' @param symptoms.file.name Path of the symptoms data file (CDISC format, optional)
 #' @param pregnancy.file.name Path of the RP data file (CDISC format, optional)
 #' @param minimum.treatments The minimum number of instances of a treatment required for inclusion as a column
@@ -827,12 +881,18 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
 #' @import dplyr tibble
 #' @return Formatted outcome data as a tibble or \code{dtplyr_step}
 #' @export process.all.data
-process.all.data <- function(demog.file.name, symptoms.file.name = NA, pregnancy.file.name = NA,
+process.all.data <- function(demog.file.name, microb.file.name=NA, symptoms.file.name = NA, pregnancy.file.name = NA,
                              ICU.file.name = NA, treatment.file.name = NA, vit_sign.file.name = NA, 
                              outcome.file.name = NA, laboratory.file.name= NA, minimum.comorb=100, minimum.sympt=100, minimum.treatments = 1000, 
                              dtplyr.step = FALSE){
   
   demographic <- import.demographic.data(demog.file.name, dtplyr.step = FALSE)
+  
+  if(!is.na(microb.file.name)){
+    microb <- process.microbio.data(microb.file.name, dtplyr.step = FALSE)
+    demographic <- demographic %>%
+      left_join(microb, by = c("usubjid")) 
+  }
   
   if(!is.na(symptoms.file.name)){
     comorb.sympt.temp <-  import.symptom.and.comorbidity.data(symptoms.file.name, dtplyr.step = TRUE)
