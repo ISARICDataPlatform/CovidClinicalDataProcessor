@@ -7,8 +7,8 @@
 #' @export data.preprocessing
 
 data.preprocessing <- function(input.tbl){
-  input.tbl %>%
-    lazy_dt(immutable = TRUE) %>%
+ input.tbl %>%
+    #lazy_dt(immutable = TRUE) %>%
     select(-c("symptoms_covid-19_symptoms",symptoms_asymptomatic))%>%
     ###creating first and last date
     mutate(date_hoin_last=case_when(is.na(date_ho_last) ~ date_in_last,
@@ -29,8 +29,8 @@ data.preprocessing <- function(input.tbl){
     mutate(date_last=case_when(!is.na(date_outcome)~date_outcome,
                                 TRUE  ~ date_last))%>%
     mutate(slider_outcome="LFTU")%>%
-    mutate(slider_outcome=case_when(outcome == "Death" ~ "death",
-                                    outcome == "Discharge" ~ "discharge",
+    mutate(slider_outcome=case_when(outcome == "death" ~ "Death",
+                                    outcome == "discharge" ~ "Discharge",
                                     is.na(outcome) & as_date(date_last)> ymd("2020-09-15")~"Ongoing care",
                                     TRUE~slider_outcome
                                     )) %>%
