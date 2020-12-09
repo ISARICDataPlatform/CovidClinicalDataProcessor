@@ -125,7 +125,7 @@ import.microb.data <- function(file.name, dtplyr.step = FALSE){
              mbstresc=="CORONAVIRIDAE")%>%
     mutate(mbstresc=replace(mbstresc,mbstresc=="SEVERE ACUTE RESPIRATORY SYNDROME CORONAVIRUS 2","SARSCOV2"))%>%
     mutate(mbstresc=replace(mbstresc,mbstresc=="CORONAVIRIDAE","CRONAVIR"))%>%
-    mutate(result="positive")%>%
+    mutate(result="POSITIVE")%>%
     mutate(mbstresc = paste0("cov_id_",mbstresc)%>%
              tolower%>%
              str_replace_all(" ", "_")) %>%
@@ -133,8 +133,14 @@ import.microb.data <- function(file.name, dtplyr.step = FALSE){
     dt_pivot_wider(id_cols = usubjid, names_from = mbstresc, values_from = result) %>%
     as.data.frame()
   
-  out<-full_join(detection,identification)
-
+  out<-full_join(detection,identification)%>%
+    mutate(cov_det_id=case_when(cov_det_cronavir=="NEGATIVE"~"NEGATIVE",
+                               cov_det_sarscov2=="NEGATIVE"~"NEGATIVE"))%>%
+    mutate(cov_det_idid=case_when(cov_det_cronavir=="POSITIVE"~"POSITIVE",
+                               cov_det_sarscov2=="POSITIVE"~"POSITIVE",
+                               cov_id_cronavir=="POSITIVE"~"POSITIVE",
+                               cov_id_sarscov2=="POSITIVE"~"POSITIVE",
+                               TRUE~cov_det_id))
   
 
   if(dtplyr.step){
