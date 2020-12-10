@@ -9,7 +9,7 @@
 data.preprocessing <- function(input.tbl){
  input.tbl %>%
     #lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid-19_symptoms",symptoms_asymptomatic))%>%
+    select(-c("symptoms_covid.19_symptoms",symptoms_asymptomatic))%>%
     ###creating first and last date
     mutate(date_hoin_last=case_when(is.na(date_ho_last) ~ date_in_last,
                                     date_ho_last<date_in_last ~ date_in_last,
@@ -36,6 +36,10 @@ data.preprocessing <- function(input.tbl){
                                     )) %>%
     mutate(date_start=replace(date_start,date_start < "2020-01-01",NA))%>%
     mutate(date_last=replace(date_last,date_last < "2020-01-01",NA))%>%
+    mutate(imv_en=as_date(imv_en))%>%
+    mutate(imv_st=as_date(imv_st))%>%
+    mutate(niv_en=as_date(niv_en))%>%
+    mutate(niv_st=as_date(niv_st))%>%
     #mutate(slider_outcome=replace(slider_outcome,slider_outcome=="LFTU" & date_last>as.Date("2020-08-15"),"censored"))%>%
     #select(-outcome) %>%
     #applying a cut-off value for censored
@@ -78,12 +82,14 @@ data.preprocessing <- function(input.tbl){
     mutate(t_ad_icu=replace(t_ad_icu,t_ad_icu<0,NA))%>%
     mutate(icu_dur=icu_out-icu_in)%>%
     mutate(icu_dur=replace(icu_dur,icu_dur<0,NA))%>%
-    mutate(ho_dur=date_outcome-date_admit)%>%
-    mutate(ho_dur=replace(ho_dur,ho_dur<0,NA))%>%
-    mutate(imv_dur=imv_en-imv_st)%>%
-    mutate(imv_dur=replace(imv_dur,imv_dur<0,NA))%>%
-    mutate(niv_dur=niv_en-niv_st)%>%
-    mutate(niv_dur=replace(niv_dur,niv_dur<0,NA))%>%
+    mutate(dur_icu=icu_out-icu_in)%>%
+    mutate(dur_icu=replace(dur_icu,dur_icu<0,NA))%>%
+    mutate(dur_ho=date_outcome-date_admit)%>%
+    mutate(dur_ho=replace(dur_ho,dur_ho<0,NA))%>%
+    mutate(dur_imv=imv_en-imv_st)%>%
+    mutate(dur_imv=replace(dur_imv,dur_imv<0,NA))%>%
+    mutate(dur_niv=niv_en-niv_st)%>%
+    mutate(dur_niv=replace(dur_niv,dur_niv<0,NA))%>%
     mutate(under_nutrition=case_when(vs_bmi< 18.5&age<65~TRUE,
                                      vs_bmi< 20.5 &age<65~TRUE,
                                      is.na(vs_bmi)|is.na(age)~NA,
