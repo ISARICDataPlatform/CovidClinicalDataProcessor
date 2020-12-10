@@ -472,8 +472,8 @@ save(icu.treatment.upset.input, file = "icu.treatment.upset.input.rda")
 
 
 
-
-
+backup<-input.tbl
+input.tbl<-prepr.tbl
 
 
 
@@ -514,7 +514,8 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
     ungroup() %>%
     filter(Condition != "symptoms_other_signs_and_symptoms") %>%
     arrange(desc(Present)) %>%
-    slice(1:max.symptoms) %>%
+    #slice(1:max.symptoms) %>%
+    slice(1:5) %>%
     pull(Condition)
   
   
@@ -526,14 +527,14 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
     })) %>%
     mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
                                     #nice.symptom=="Cough" ~ "Cough (no sputum)",
-                                    nice.symptom=="Cough bloody sputum haemoptysis" ~ "Cough with bloody sputum/haemoptysis",
+                                    #nice.symptom=="Cough bloody sputum haemoptysis" ~ "Cough with bloody sputum/haemoptysis",
                                     nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
                                     TRUE ~ nice.symptom))
   
   
   top.n.conditions.tbl <- input.tbl %>%
     dplyr::select(usubjid, matches(most.common)) %>%
-    pivot_longer(2:(length(most.common)+4), names_to = "Condition", values_to = "Present") %>%
+    pivot_longer(2:(length(most.common)+1), names_to = "Condition", values_to = "Present") %>%
     left_join(nice.symptom.mapper, by=c("Condition" = "symptom")) %>%
     filter(!is.na(nice.symptom))%>%
     select(-Condition) %>%
