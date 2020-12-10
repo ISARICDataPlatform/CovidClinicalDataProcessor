@@ -523,6 +523,7 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                                treatment=="CORTICOSTEROID"~ "CORTICOSTEROIDS",
                                treatment=="DEXAMETHASONE"~ "CORTICOSTEROIDS",
                                treatment=="METHYLPREDNISOLONE"~ "CORTICOSTEROIDS",
+                               treatment=="ORAL STEROIDS"~ "CORTICOSTEROIDS",
                                
                                treatment%like%"BLOOD TRANSFUSION OR BLOOD PRODUCT"~ "BLOOD TRANSFUSION OR BLOOD PRODUCT",
                                
