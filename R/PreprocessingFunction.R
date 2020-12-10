@@ -80,6 +80,10 @@ data.preprocessing <- function(input.tbl){
     mutate(icu_dur=replace(icu_dur,icu_dur<0,NA))%>%
     mutate(ho_dur=date_outcome-date_admit)%>%
     mutate(ho_dur=replace(ho_dur,ho_dur<0,NA))%>%
+    mutate(imv_dur=imv_en-imv_st)%>%
+    mutate(imv_dur=replace(imv_dur,imv_dur<0,NA))%>%
+    mutate(niv_dur=niv_en-niv_st)%>%
+    mutate(niv_dur=replace(niv_dur,niv_dur<0,NA))%>%
     mutate(under_nutrition=case_when(vs_bmi< 18.5&age<65~TRUE,
                                      vs_bmi< 20.5 &age<65~TRUE,
                                      is.na(vs_bmi)|is.na(age)~NA,
