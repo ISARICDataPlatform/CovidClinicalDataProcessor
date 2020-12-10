@@ -255,88 +255,69 @@ save(treatment.table, file = "treatment.table.rda")
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
-#' @export key.times.variable.table
+#' @export key.times.table
 #' 
-key.times.variable.prep <- function(input.tbl){
+key.times.prep <- function(input.tbl){
+  
+  key_time<-c(
+    'dur_ho',
+    't_son_ad',
+    '',
+    't_ad_icu',
+    'dur_icu',
+    ' ',
+    't_ad_imv',
+    'dur_imv',
+    '   ',
+    't_ad_niv',
+    'dur_niv')
+  key_time<-data.frame(key_time)
 
-  ho_dur<- select(input.tbl, ho_dur) %>%
-    filter(!is.na(ho_dur))%>%
-    summarise("Mean (observed)"=mean(ho_dur,na.rm=T),
-              "SD (observed)"=sd(ho_dur,na.rm=T),
-              "Median (observed)"=sd(ho_dur,na.rm=T),
-              "IQR (observed)"=IQR(ho_dur,na.rm=T))%>%
-  mutate("Time (in days)"="Length of hospital stay")
+  data<-select(input.tbl, c(starts_with("t_"))) %>%
+    pivot_longer(c(starts_with("t_")), names_to = "key_time", values_to = "value")
   
-  t_son_ad<- select(input.tbl, t_son_ad) %>%
-    filter(!is.na(t_son_ad))%>%
-    summarise("Mean (observed)"=mean(t_son_ad,na.rm=T),
-              "SD (observed)"=sd(t_son_ad,na.rm=T),
-              "Median (observed)"=sd(t_son_ad,na.rm=T),
-              "IQR (observed)"=IQR(t_son_ad,na.rm=T))%>%
-    mutate("Time (in days)"="Symptom onset to admission") 
-  
-  t_ad_icu<- select(input.tbl, t_ad_icu) %>%
-    filter(!is.na(t_ad_icu))%>%
-    summarise("Mean (observed)"=mean(t_ad_icu,na.rm=T),
-              "SD (observed)"=sd(t_ad_icu,na.rm=T),
-              "Median (observed)"=sd(t_ad_icu,na.rm=T),
-              "IQR (observed)"=IQR(t_ad_icu,na.rm=T))%>%
-    mutate("Time (in days)"="Admission to ICU entry")
-  
-  icu_dur<- select(input.tbl, icu_dur) %>%
-    filter(!is.na(icu_dur))%>%
-    summarise("Mean (observed)"=mean(icu_dur,na.rm=T),
-              "SD (observed)"=sd(icu_dur,na.rm=T),
-              "Median (observed)"=sd(icu_dur,na.rm=T),
-              "IQR (observed)"=IQR(icu_dur,na.rm=T))%>%
-    mutate("Time (in days)"="Duration of ICU")
+  out<-select(input.tbl, c(starts_with("dur_"))) %>%
+    pivot_longer(c(starts_with("dur_")), names_to = "key_time", values_to = "value")%>%
+    rbind(data)%>%
+    filter(!(is.na(value)|value>330|value<0))%>%
+    group_by(key_time)%>%
+    summarise(mean=mean(value,na.rm=T),
+              sd=sd(value,na.rm=T),
+              median=median(value,na.rm=T),
+              iqr=IQR(value,na.rm=T))%>%
+    mutate(mean=round(mean,digit=1))%>%
+    mutate(sd=round(sd,digit=1))%>%
+    full_join(key_time)%>%
+    arrange(factor(key_time, levels=c('dur_ho',
+                                       't_son_ad',
+                                       '',
+                                       't_ad_icu',
+                                       'dur_icu',
+                                       ' ',
+                                       't_ad_imv',
+                                       'dur_imv',
+                                       '   ',
+                                       't_ad_niv',
+                                       'dur_niv')))%>%
+    mutate(key_time=case_when(key_time=='dur_ho'~'Length of hospital stay',
+                              key_time=='t_son_ad'~'Symptom onset to admission',
+                              key_time=='t_ad_icu'~'Admission to ICU entry',
+                              key_time=='dur_icu'~'Duration of ICU',
+                              key_time=='t_ad_imv'~'Admission to IMV',
+                              key_time=='dur_imv'~'Duration of IMV',
+                              key_time=='t_ad_niv'~'Admission to NIV',
+                              key_time=='dur_niv'~'Duration of NIV'))%>%
+    rename("Time (in days)"=key_time)%>%
+    rename("Mean (observed)"=mean)%>%
+    rename("SD (observed)"=sd)%>%
+    rename("Median (observed)"=median)%>%
+    rename("IQR (observed)"=iqr)
 
-   
-  
-  
-  
-  
-  t_ad_imv
-  
-  t_ad_niv
-  
- 
-  
-  
-   Time (in
-        days) Mean (observed) SD (observed) Median (observed) IQR (observed )
-  Length of
-  hospital stay
-  12.8 13.3 9 13
-  Symptom
-  onset to
-  admission
-  7.7 6.1 4 7
-  Admission to
-  ICU entry
-  2.8 6.5 1 3
-  Duration of
-  ICU
-  13.3 13.4 9 14.5
-  Admission to
-  IMV
-  3.6 7.6 2 5
-  Duration of
-  IMV
-  14.7 12.3 11 14
-  Admission to
-  NIV
-  4.2 8.8 2 5
-  Duration of
-  NIV
-  2.4 5.4 0 5
-  
-  
-  
 }
 
-treatments.table<-treatments.prep(input.tbl)
-save(symptoms.table, file = "symptoms.table.rda")
+key.times.table<-key.times.prep(input.tbl)
+save(key.times.table, file = "key.times.rda")
+
 
 
 
