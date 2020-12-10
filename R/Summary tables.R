@@ -13,7 +13,8 @@ memory.limit(size=50000)
 #' @export patient.characteristic.table
 #' 
 patient.characteristic.prep <- function(input.tbl){
-  
+
+  tot=nrow(input.tbl)  
   
   size_cohort <- input.tbl %>%
     mutate(Description="Size of cohort")%>%
@@ -23,37 +24,51 @@ patient.characteristic.prep <- function(input.tbl){
   
   by_sex<-input.tbl %>%
     mutate(Description=slider_sex)%>%
-    mutate(Description=replace(Description,is.na(Description),"Unknown"))%>%
-    tabyl(Description)%>%
-    adorn_pct_formatting(rounding = "half up", digits = 0, affix_sign = FALSE) %>%
-    mutate(value=paste0(n, " (", percent,")"))%>%
+    mutate(Description=replace(Description,is.na(Description)|Description=="","Unknown"))%>%
+    mutate(count=1)%>%
+    group_by(Description)%>%
+    summarise(n = sum(count, na.rm=T)) %>%
+    mutate(value=round(n/tot,digit=2))%>%
+    mutate(value=paste0(n," (",value, ")"))%>%
     select(Description,value)
   
   by_outcome<-input.tbl%>%
     mutate(Description=slider_outcome)%>%
     mutate(Description=replace(Description,is.na(Description),"Unknown"))%>%
-    tabyl(Description)%>%
-    adorn_pct_formatting(rounding = "half up", digits = 0, affix_sign = FALSE) %>%
-    mutate(value=paste0(n, " (", percent,")"))%>%
+    mutate(count=1)%>%
+    group_by(Description)%>%
+    summarise(n = sum(count, na.rm=T)) %>%
+    mutate(value=round(n/tot,digit=2))%>%
+    mutate(value=paste0(n," (",value, ")"))%>%
     select(Description,value)
 
   
   by_age<-input.tbl%>%
     mutate(Description=as.character(slider_agegp10))%>%
+    mutate(Description=case_when(Description=="90+" |
+                                   Description=="80-89" |
+                                   Description=="70-79" ~ "70+",
+                                is.na(Description)~'Unknown',
+                              TRUE~Description))%>%
     mutate(Description=replace(Description,is.na(Description),"Unknown"))%>%
-    tabyl(Description)%>%
-    adorn_pct_formatting(rounding = "half up", digits = 0, affix_sign = FALSE) %>%
-    mutate(value=paste0(n, " (", percent,")"))%>%
-    select(Description,value)%>%
+    mutate(count=1)%>%
+    group_by(Description)%>%
+    summarise(n = sum(count, na.rm=T)) %>%
+    mutate(value=round(n/tot,digit=2))%>%
+    mutate(value=paste0(n," (",value, ")"))%>%
     select(Description,value)
 
   
   by_icu<-input.tbl%>%
     mutate(Description=slider_icu_ever)%>%
-    mutate(Description=replace(Description,is.na(Description),"Unknown"))%>%
-    tabyl(Description)%>%
-    adorn_pct_formatting(rounding = "half up", digits = 0, affix_sign = FALSE) %>%
-    mutate(value=paste0(n, " (", percent,")"))%>%
+    mutate(Description=case_when(is.na(Description)~"Unknown",
+                                 Description==FALSE~"Absent",
+                                  TRUE~"Present"))%>%
+    mutate(count=1)%>%
+    group_by(Description)%>%
+    summarise(n = sum(count, na.rm=T)) %>%
+    mutate(value=round(n/tot,digit=2))%>%
+    mutate(value=paste0(n," (",value, ")"))%>%
     select(Description,value)
 
  
@@ -74,6 +89,7 @@ save(patient.characteristic.table, file = "patient.characteristic.table.rda")
 #' 
 outcome.age.sex.prep <- function(input.tbl){
   
+  tot=nrow(input.tbl%>%filter(!is.na(slider_agegp10)))
   
   age <- input.tbl %>%
     select(slider_agegp10,slider_outcome)%>%
@@ -83,22 +99,30 @@ outcome.age.sex.prep <- function(input.tbl){
                                 slider_agegp10=="70-79" ~ "70+",
                               TRUE~slider_agegp10))%>%
     filter(!is.na(Variable))%>%
-    tabyl(Variable,slider_outcome)%>%
-    adorn_percentages("col")%>%
-    adorn_pct_formatting(rounding = "half up", digits = 0, affix_sign = FALSE) %>%
-    adorn_ns(position ="front")%>%
-    select("Ongoing care", Death, Discharge, LFTU)
-  
+    mutate(count=1)%>%
+    group_by(Variable,slider_outcome)%>%
+    summarise(n = sum(count, na.rm=T)) %>%
+    mutate(prop=round(n/tot,digit=2))%>%
+    mutate(prop=paste0(n," (",prop, ")"))%>%
+    pivot_wider(id_cols = Variable, names_from = slider_outcome,  values_from = prop)%>%
+    #select("Ongoing care", Death, Discharge, LFTU)%>%
+    select(Variable, Death, Discharge, LFTU)
+
     
-  
+  tot=nrow(input.tbl%>%filter(!(is.na(slider_sex)| Variable=="")))
+    
   sex<-input.tbl %>%
     mutate(Variable=slider_sex)%>%
-    filter(!is.na(Variable))%>%
-    tabyl(Variable,slider_outcome)%>%
-    adorn_percentages("col")%>%
-    adorn_pct_formatting(rounding = "half up", digits = 0, affix_sign = FALSE) %>%
-    adorn_ns(position ="front")%>%
-    select("Ongoing care", Death, Discharge, LFTU)
+    filter(!(is.na(Variable)| Variable=="")) %>%
+    mutate(count=1)%>%
+    group_by(Variable,slider_outcome)%>%
+    summarise(n = sum(count, na.rm=T)) %>%
+    mutate(prop=round(n/tot,digit=2))%>%
+    mutate(prop=paste0(n," (",prop, ")"))%>%
+    pivot_wider(id_cols = Variable, names_from = slider_outcome,  values_from = prop)%>%
+    #select("Ongoing care", Death, Discharge, LFTU)%>%
+    select(Variable, Death, Discharge, LFTU)%>%
+  ungroup()
     
   out<-rbind(c('age','','','','',''),
              age,
@@ -123,9 +147,9 @@ symptoms.prep <- function(input.tbl){
   
   tot=nrow(input.tbl)
   
-  
-  out<-select(input.tbl, c(starts_with("symptoms_"))) %>%
-    pivot_longer(starts_with("symptoms_"), names_to = "symptom", values_to = "value")%>%
+  data<-select(input.tbl, c(starts_with("symptoms_"))) %>%
+    pivot_longer(starts_with("symptoms_"), names_to = "symptom", values_to = "value")
+  out<-data%>%
     mutate(value=case_when(is.na(value)~"Unknown",
                            value==FALSE~"Absent",
                            TRUE~"Present"))%>%
@@ -138,7 +162,8 @@ symptoms.prep <- function(input.tbl){
     select(symptom, Present, Absent, Unknown)%>%
     ungroup()
   
-  nice.symptom.mapper <- tibble(symptom = unique(out$symptom)) %>%
+  data<-data%>%filter(value==TRUE)%>%tabyl(symptom)%>%select(-c(percent))
+  nice.symptom.mapper <- tibble(symptom = unique(data$symptom)) %>%
     mutate(nice.symptom = map_chr(symptom, function(st){
       temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
       temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
@@ -147,11 +172,15 @@ symptoms.prep <- function(input.tbl){
     mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
                                     nice.symptom=="Cough bloody sputum haemoptysis" ~ "Cough with bloody sputum/haemoptysis",
                                     nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
-                                    TRUE ~ nice.symptom))
-  out %>%
+                                    TRUE ~ nice.symptom))%>%
+    left_join(data)
+    
+  out<-out%>%
     #lazy_dt(immutable = TRUE) %>%
     left_join(nice.symptom.mapper) %>%
-    rename(Symptoms=symptom)%>%
+    rename(Symptoms=nice.symptom)%>%
+    arrange(desc(n))%>%
+    select(Symptoms,Present, Absent, Unknown)%>%
     as_tibble() 
     
  }
@@ -168,10 +197,10 @@ save(symptoms.table, file = "symptoms.table.rda")
 comorbidity.prep <- function(input.tbl){
   
   tot=nrow(input.tbl)
+  data<-select(input.tbl, c(starts_with("comorbid_"))) %>%
+    pivot_longer(starts_with("comorbid_"), names_to = "comorbidity", values_to = "value")
   
-  
-  out<-select(input.tbl, c(starts_with("comorbid_"))) %>%
-    pivot_longer(starts_with("comorbid_"), names_to = "comorbidity", values_to = "value")%>%
+  out<-data%>%
     mutate(value=case_when(is.na(value)~"Unknown",
                            value==FALSE~"Absent",
                            TRUE~"Present"))%>%
@@ -183,6 +212,7 @@ comorbidity.prep <- function(input.tbl){
     pivot_wider(id_cols = comorbidity, names_from = value,  values_from = prop)%>%
     ungroup()
   
+  data<-data%>%filter(value==TRUE)%>%tabyl(comorbidity)%>%select(-c(percent))
   nice.comorbidity.mapper <- tibble(comorbidity = unique(out$comorbidity)) %>%
     mutate(nice.comorbidity = map_chr(comorbidity, function(st){
       temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
@@ -192,11 +222,14 @@ comorbidity.prep <- function(input.tbl){
     mutate(nice.comorbidity = case_when(nice.comorbidity=="Aids hiv" ~ "HIV/AIDS",
                                         nice.comorbidity=="Chronic including congenital cardiac disease" ~ "Chronic cardiac disease",
                                         TRUE ~ nice.comorbidity))%>%
+    left_join(data)%>%
     as.data.frame()
+    
   
   out2<-out %>%
     #lazy_dt(immutable = TRUE) %>%
     left_join(nice.comorbidity.mapper) %>%
+    arrange(desc(n))%>%
     #rename(Comorbidities=comorbidity)%>%
     select("Comorbidities"=nice.comorbidity,Present, Absent, Unknown)%>%
     as_tibble() 
@@ -217,9 +250,9 @@ treatments.prep <- function(input.tbl){
   
   tot=nrow(input.tbl)
   
-  
-  out<-select(input.tbl, c(starts_with("treat_"))) %>%
-    pivot_longer(starts_with("treat_"), names_to = "treatment", values_to = "value")%>%
+  data<-select(input.tbl, c(starts_with("treat_"))) %>%
+    pivot_longer(starts_with("treat_"), names_to = "treatment", values_to = "value")
+  out<-data%>%
     mutate(value=case_when(is.na(value)~"Unknown",
                            value==FALSE~"Absent",
                            TRUE~"Present"))%>%
@@ -230,17 +263,19 @@ treatments.prep <- function(input.tbl){
     mutate(prop=paste0(n," (",prop, ")"))%>%
     pivot_wider(id_cols = treatment, names_from = value,  values_from = prop)%>%
     ungroup()
-  
+  data<-data%>%filter(value==TRUE)%>%tabyl(treatment)%>%select(-c(percent))
   nice.treatment.mapper <- tibble(treatment = unique(out$treatment)) %>%
     mutate(nice.treatment = map_chr(treatment, function(st){
       temp <- substr(st, 7, nchar(st)) %>% str_replace_all("_", " ")
       temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
       temp2
-    }))
+    }))%>%
+    left_join(data)
   
   out %>%
     #lazy_dt(immutable = TRUE) %>%
     left_join(nice.treatment.mapper) %>%
+    arrange(desc(n))%>%
     select("Treatments"=nice.treatment,Present, Absent, Unknown)%>%
     #rename(Treatments=treatment)%>%
     as_tibble() 
@@ -318,7 +353,20 @@ key.times.prep <- function(input.tbl){
 key.times.table<-key.times.prep(input.tbl)
 save(key.times.table, file = "key.times.rda")
 
-
+flextable_gov <- function(data) {
+  ft <- FlexTable(data,
+                  body.par.props = parProperties(text.align = "center"),
+                  body.cell.props = cellProperties(border.color = "white", background.color = "white"),
+                  header.par.props = parProperties(text.align = "center"),
+                  header.cell.props = cellProperties(border.color = "#CAB5EC", background.color ="#CAB5EC")
+  )
+  ft[, 1, to = "header"] <- parProperties(text.align = "right")
+  ft[, 1] <- parProperties(text.align = "right")
+  ft[1, 1:ncol(data), to = "header"] <- textProperties(font.weight = "bold")
+  #ft[c(1,4), 1, to = "body"] <- textProperties(font.weight = "bold")
+  ft[c(1,5), to = "body"] <- textProperties(font.weight = "bold")	
+  return(ft)
+}
 
 
 
