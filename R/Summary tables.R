@@ -4,7 +4,7 @@ input.tbl<- read.csv("ISVARIC_dash_db_20201118_preprocess.csv")
 dat <- readRDS("ISVARIC_dash_db_20201208_preprocess.rds")
 input.tbl<-dat%>%
   as.data.frame()
-memory.limit(size=70000)
+memory.limit(size=50000)
 
 #' Prepare Table1. Patient characteristics
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -113,7 +113,7 @@ outcome.age.sex.table<-outcome.age.sex.prep(input.tbl)
 save(outcome.age.sex.table, file = "outcome.age.sex.table.rda")
 
 
-#' Prepare Table2. symptoms
+#' Prepare Table3. symptoms
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
@@ -123,95 +123,150 @@ symptoms.prep <- function(input.tbl){
   
   tot=nrow(input.tbl)
   
-  data_vs_age <- select(prepr.tbl, c(starts_with("vs"),slider_agegp10)) %>%
-    pivot_longer(starts_with("vs"), names_to = "vital_sign", values_to = "value")
   
   out<-select(input.tbl, c(starts_with("symptoms_"))) %>%
-    pivot_longer(starts_with("symptoms_"), names_to = "Symptoms", values_to = "value")%>%
+    pivot_longer(starts_with("symptoms_"), names_to = "symptom", values_to = "value")%>%
     mutate(value=case_when(is.na(value)~"Unknown",
                            value==FALSE~"Absent",
                            TRUE~"Present"))%>%
     mutate(count=1)%>%
-    group_by(Symptoms,value)%>%
-    mutate(n = sum(count, na.rm=T)) %>%
+    group_by(symptom,value)%>%
+    summarise(n = sum(count, na.rm=T)) %>%
     mutate(prop=round(n/tot,digit=2))%>%
-    mutate(prop2=paste0(n," (",prop, ")"))%>%
-    #as.data.table() %>%
-    select(Symptoms,value,prop2)%>%
-    pivot_wider(id_cols = Symptoms, names_from = value,  values_from = prop2)
+    mutate(prop=paste0(n," (",prop, ")"))%>%
+    pivot_wider(id_cols = symptom, names_from = value,  values_from = prop)%>%
+    select(symptom, Present, Absent, Unknown)%>%
+    ungroup()
   
-  
-  %>%
-    select(c(dataset,prop,variable))%>%
-    spread(dataset,prop, fill=NA, convert=FALSE, drop=TRUE, sep=NULL)%>%
-    arrange(variable)
+  nice.symptom.mapper <- tibble(symptom = unique(out$symptom)) %>%
+    mutate(nice.symptom = map_chr(symptom, function(st){
+      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      temp2
+    })) %>%
+    mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
+                                    nice.symptom=="Cough bloody sputum haemoptysis" ~ "Cough with bloody sputum/haemoptysis",
+                                    nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
+                                    TRUE ~ nice.symptom))
+  out %>%
+    #lazy_dt(immutable = TRUE) %>%
+    left_join(nice.symptom.mapper) %>%
+    rename(Symptoms=symptom)%>%
+    as_tibble() 
     
-    
-    
-    
-    
-    summarise(sum())%>%
-    ungroup()%>%
-    
-    select(starts_with("symptoms_"))%>%
-    as.data.table()%>%
-    melt(id)%>%
-    as.data.frame()%>%
-    mutate(value = ifelse(is.na(value), 0,1))%>%
-    mutate(denom=1)
-  tot<-q_symptoms%>%
-    group_by(variable)%>%
-    summarise(known= sum(value, na.rm=T),denom=sum(denom, na.rm=T))%>%
-    mutate(dataset="Total")
-  q_symptoms<-q_symptoms%>%
-    group_by(dataset,variable)%>%
-    summarise(known= sum(value, na.rm=T),denom=sum(denom, na.rm=T))%>%
-    bind_rows(tot)%>%
-    mutate(prop=round(known/denom*100, digits=1))%>%
-    mutate(prop=paste0(known," (",prop, "%", ")"))%>%
-    select(c(dataset,prop,variable))%>%
-    spread(dataset,prop, fill=NA, convert=FALSE, drop=TRUE, sep=NULL)%>%
-    arrange(variable)
+ }
+
+symptoms.table<-symptoms.prep(input.tbl)
+save(symptoms.table, file = "symptoms.table.rda")
+
+#' Prepare Table4. comorbidities
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dplyr purrr tidyr janitor
+#' @return A \code{tibble} containing the input data for the Patient characteristics table
+#' @export comorbidity.table
+#' 
+comorbidity.prep <- function(input.tbl){
   
-  out <- input.tbl %>%
-    select(slider_agegp10,slider_outcome)%>%
-    mutate(slider_agegp10=as.character(slider_agegp10))%>%
-    mutate(Variable=case_when(slider_agegp10=="90+" |
-                                slider_agegp10=="80-89" |
-                                slider_agegp10=="70-79" ~ "70+",
-                              TRUE~slider_agegp10))%>%
-    filter(!is.na(Variable))%>%
-    tabyl(Variable,slider_outcome)%>%
-    adorn_percentages("col")%>%
-    adorn_pct_formatting(rounding = "half up", digits = 0, affix_sign = FALSE) %>%
-    adorn_ns(position ="front")%>%
-    select("Ongoing care", Death, Discharge, LFTU)
+  tot=nrow(input.tbl)
   
   
+  out<-select(input.tbl, c(starts_with("comorbid_"))) %>%
+    pivot_longer(starts_with("comorbid_"), names_to = "comorbidity", values_to = "value")%>%
+    mutate(value=case_when(is.na(value)~"Unknown",
+                           value==FALSE~"Absent",
+                           TRUE~"Present"))%>%
+    mutate(count=1)%>%
+    group_by(comorbidity,value)%>%
+    summarise(n = sum(count, na.rm=T)) %>%
+    mutate(prop=round(n/tot,digit=2))%>%
+    mutate(prop=paste0(n," (",prop, ")"))%>%
+    pivot_wider(id_cols = comorbidity, names_from = value,  values_from = prop)%>%
+    ungroup()
   
-  sex<-input.tbl %>%
-    mutate(Variable=slider_sex)%>%
-    filter(!is.na(Variable))%>%
-    tabyl(Variable,slider_outcome)%>%
-    adorn_percentages("col")%>%
-    adorn_pct_formatting(rounding = "half up", digits = 0, affix_sign = FALSE) %>%
-    adorn_ns(position ="front")%>%
-    select("Ongoing care", Death, Discharge, LFTU)
+  nice.comorbidity.mapper <- tibble(comorbidity = unique(out$comorbidity)) %>%
+    mutate(nice.comorbidity = map_chr(comorbidity, function(st){
+      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      #temp2
+    })) %>%
+    mutate(nice.comorbidity = case_when(nice.comorbidity=="Aids hiv" ~ "HIV/AIDS",
+                                        nice.comorbidity=="Chronic including congenital cardiac disease" ~ "Chronic cardiac disease",
+                                        TRUE ~ nice.comorbidity))%>%
+    as.data.frame()
   
-  out<-rbind(c('age','','','','',''),
-             age,
-             c('','','','','',''),
-             c('sex','','','','',''),
-             sex  )
+  out2<-out %>%
+    #lazy_dt(immutable = TRUE) %>%
+    left_join(nice.comorbidity.mapper) %>%
+    #rename(Comorbidities=comorbidity)%>%
+    select("Comorbidities"=nice.comorbidity,Present, Absent, Unknown)%>%
+    as_tibble() 
+  
+}
+
+comorbidity.table<-comorbidity.prep(input.tbl)
+save(comorbidity.table, file = "comorbidity.table.rda")
+
+
+#' Prepare Table5. Prevalence of treatments
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dplyr purrr tidyr janitor
+#' @return A \code{tibble} containing the input data for the Patient characteristics table
+#' @export treatments.table
+#' 
+treatments.prep <- function(input.tbl){
+  
+  tot=nrow(input.tbl)
+  
+  
+  out<-select(input.tbl, c(starts_with("treat_"))) %>%
+    pivot_longer(starts_with("treat_"), names_to = "treatment", values_to = "value")%>%
+    mutate(value=case_when(is.na(value)~"Unknown",
+                           value==FALSE~"Absent",
+                           TRUE~"Present"))%>%
+    mutate(count=1)%>%
+    group_by(treatment,value)%>%
+    summarise(n = sum(count, na.rm=T)) %>%
+    mutate(prop=round(n/tot,digit=2))%>%
+    mutate(prop=paste0(n," (",prop, ")"))%>%
+    pivot_wider(id_cols = treatment, names_from = value,  values_from = prop)%>%
+    ungroup()
+  
+  nice.treatment.mapper <- tibble(treatment = unique(out$treatment)) %>%
+    mutate(nice.treatment = map_chr(treatment, function(st){
+      temp <- substr(st, 7, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      temp2
+    }))
+  
+  out %>%
+    #lazy_dt(immutable = TRUE) %>%
+    left_join(nice.treatment.mapper) %>%
+    select("Treatments"=nice.treatment,Present, Absent, Unknown)%>%
+    #rename(Treatments=treatment)%>%
+    as_tibble() 
+  
+}
+
+treatments.table<-treatments.prep(input.tbl)
+save(treatment.table, file = "treatment.table.rda")
+
+
+#' Prepare Table6. key times variable
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dplyr purrr tidyr janitor
+#' @return A \code{tibble} containing the input data for the Patient characteristics table
+#' @export key.times.variable.table
+#' 
+key.times.variable.prep <- function(input.tbl){
+  
+  tot=nrow(input.tbl)
+  
   
   
 }
 
-outcome.age.sex.table<-outcome.age.sex.prep(input.tbl)
-save(outcome.age.sex.table, file = "outcome.age.sex.table.rda")
-
-
-
+treatments.table<-treatments.prep(input.tbl)
+save(symptoms.table, file = "symptoms.table.rda")
 
 
 
