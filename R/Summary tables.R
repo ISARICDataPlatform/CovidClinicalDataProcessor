@@ -353,6 +353,13 @@ key.times.prep <- function(input.tbl){
 key.times.table<-key.times.prep(input.tbl)
 save(key.times.table, file = "key.times.rda")
 
+
+
+
+
+
+
+
 flextable_gov <- function(data) {
   ft <- FlexTable(data,
                   body.par.props = parProperties(text.align = "center"),
@@ -370,12 +377,5 @@ flextable_gov <- function(data) {
 
 
 
-character<-flextable (patient.characteristic.table)
-character<-align(character,align = "center")
-character<-align(character,align = "center", part="header")
-ft_ov<-align(ft_ov,j=1, align="right")
-ft_ov<-bold(ft_ov,part="header")
-ft_ov<-bold(ft_ov,j=1,i=1:4,part="body")
-ft_ov<-bold(ft_ov,i=c(1,4),part="body")
-ft_ov 
+
   
