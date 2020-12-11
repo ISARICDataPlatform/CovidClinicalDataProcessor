@@ -102,7 +102,9 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
 
 import.microb.data <- function(file.name, dtplyr.step = FALSE){
   
-  detection<-mb%>%
+  mb<-shared.data.import(file.name, dtplyr.step = TRUE)
+  
+  detection<- mb%>%
     #select(usubjid,mbtestcd,mbtest,mbtstdtl,mbcat,mbstresc,mbspec,mbloc,mbmethod)%>%
     filter(mbtstdtl=="DETECTION")%>%
     filter(mbtestcd=="CRONAVIR"|mbtestcd=="SARSCOV2")%>%
@@ -169,21 +171,29 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                                saoccur == "N" ~ FALSE,
                                TRUE ~ NA)) %>%
     filter(!is.na(saoccur)) %>%
-    mutate(saterm=case_when(saterm=='CARDIAC ARRHYTHMIA'~'chronic_including_congenital_cardiac_disease',
-                            saterm%like%'CHRONIC CARDIAC DISEASE'~'chronic_including_congenital_cardiac_disease',
-                            saterm%like%'CHORNIC CARDIAC DISEASE'~'chronic_including_congenital_cardiac_disease',
-                            saterm%like%'CHRONIC HEART DISEASE'~'chronic_including_congenital_cardiac_disease',
-                            saterm%like%'CONGENITAL CA'~'chronic_including_congenital_cardiac_disease',
-                            saterm%like%'CONGENTIAL CARDIOPATHY'~'chronic_including_congenital_cardiac_disease',
-                            saterm=='CORONARY DISEASE'~'chronic_including_congenital_cardiac_disease',
-                            saterm=='HEART FAILURE'~'chronic_including_congenital_cardiac_disease',
-                            saterm=='OROVALVA DISEASE'~'chronic_including_congenital_cardiac_disease',
-                            saterm=='RHEUMATIC HEART DISEASE'~'chronic_including_congenital_cardiac_disease',
+    mutate(saterm=toupper(saterm))%>%#to add
+    mutate(saterm=case_when(saterm=='CARDIAC ARRHYTHMIA'~'CHRONIC CARDIAC DISEASE',
+                            saterm%like%'CARDIAC DISEASE'~'CHRONIC CARDIAC DISEASE',
+                            saterm%like%'CHORNIC CARDIAC DISEASE'~'CHRONIC CARDIAC DISEASE',
+                            saterm%like%'CHRONIC HEART DISEASE'~'CHRONIC CARDIAC DISEASE',
+                            saterm%like%'CONGENITAL CA'~'CHRONIC CARDIAC DISEASE',
+                            saterm%like%'CONGENTIAL CARDIOPATHY'~'CHRONIC CARDIAC DISEASE',
+                            saterm=='CORONARY DISEASE'~'CHRONIC CARDIAC DISEASE',
+                            saterm=='HEART FAILURE'~'CHRONIC CARDIAC DISEASE',
+                            saterm=='OROVALVA DISEASE'~'CHRONIC CARDIAC DISEASE',
+                            saterm=='RHEUMATIC HEART DISEASE'~'CHRONIC CARDIAC DISEASE',
                             saterm%like%'TUBERCULOSIS'~'TUBERCULOSIS',
-          
+                            saterm%like%'MALIGNANCY'~'MALIGNANT NEOPLASM',
+                            saterm%like%'SPECIFIC CANCERS'~'MALIGNANT NEOPLASM',
+                 
                             saterm=='CHRONIC HEMATOLOGICAL DISEASE'~'CHRONIC HEMATOLOGIC DISEASE',
                             saterm=='CHRONIC LIVER DISEASE'~'LIVER DISEASE',
+                            
+                            saterm%like%'CHRONIC RENAL FAILURE'~'CHRONIC KIDNEY DISEASE',
+                            
                             saterm%like%'CHRONIC LUNG DISEASE'~'CHRONIC PULMONARY DISEASE',
+                            
+                            
                             saterm%like%'CHRONIC NEUROLOGICAL'~'CHRONIC NEUROLOGICAL DISORDER',
                             saterm%like%'CURRENT SMOK'~'SMOKING',
                             saterm%like%'DIABETES'~'DIABETES',
@@ -463,8 +473,9 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                                TRUE ~ NA))%>%
     filter(!is.na(inoccur))%>%
     filter(incat!="MEDICAL HISTORY")%>%
-    mutate(intrt=case_when(inmodify!=""~inmodify,
-                           TRUE ~ intrt))%>%
+    mutate(intrt=toupper(intrt))%>%
+    #mutate(intrt=case_when(inmodify!=""~inmodify,
+     #                      TRUE ~ intrt))%>%
     mutate(intrt=case_when(incat=="EXTRACORPOREAL"~'EXTRACORPOREAL',
                            incat=="INVASIVE VENTILATION"~'INVASIVE VENTILATION',
                            incat=="NASAL / MASK OXYGEN THERAPY"~'NASAL / MASK OXYGEN THERAPY',
@@ -522,7 +533,7 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                                
                                treatment=="CORTICOSTEROID"~ "CORTICOSTEROIDS",
                                treatment=="DEXAMETHASONE"~ "CORTICOSTEROIDS",
-                               treatment=="METHYLPREDNISOLONE"~ "CORTICOSTEROIDS",
+                               treatment%like%"PREDNISOLONE"~ "CORTICOSTEROIDS",
                                treatment=="ORAL STEROIDS"~ "CORTICOSTEROIDS",
                                
                                treatment%like%"BLOOD TRANSFUSION OR BLOOD PRODUCT"~ "BLOOD TRANSFUSION OR BLOOD PRODUCT",
@@ -547,6 +558,8 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                                treatment%like%"AZITHRYOMYCIN"~ "ANTIBIOTIC AGENTS",
                                treatment%like%"CEFTR"~ "ANTIBIOTIC AGENTS",
                                treatment%like%"CEFR"~ "ANTIBIOTIC AGENTS",
+                               treatment%like%"DOXYCYCLINE"~ "ANTIBIOTIC AGENTS",
+                               
                                treatment%like%"CHLORAMPHENICOL"~ "ANTIBIOTIC AGENTS",
                                treatment%like%"CIPROFLOXACIN"~ "ANTIBIOTIC AGENTS",
                                treatment%like%"GENTAMICIN"~ "ANTIBIOTIC AGENTS",
@@ -854,6 +867,8 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
                              outcome%like%"ongoing"~"ongoing care",
                              
                              outcome%like%"death"~"death",
+                             outcome%like%"died"~"death",
+                             
                              #outcome=="Death In Hospital"~"Death",
                              outcome%like%"discharge"~"discharge",
                              outcome%like%"transfer"~"transferred",
