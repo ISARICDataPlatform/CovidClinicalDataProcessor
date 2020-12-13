@@ -384,10 +384,7 @@ save(key.times.table, file = "key.times.rda")
 
 
 
-
-
-
-
+###example of flex table function used for another datatable in another project
 
 flextable_gov <- function(data) {
   ft <- FlexTable(data,
