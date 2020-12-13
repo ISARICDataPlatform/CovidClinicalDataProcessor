@@ -867,7 +867,7 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
                              outcome%like%"ongoing"~"ongoing care",
                              
                              outcome%like%"death"~"death",
-                             outcome%like%"died"~"death",
+                             outcome=="died"~"death",
                              
                              #outcome=="Death In Hospital"~"Death",
                              outcome%like%"discharge"~"discharge",
