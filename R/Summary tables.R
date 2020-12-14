@@ -1,7 +1,7 @@
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2020-11-09"
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2020-12-10"
 setwd(folder)
-input.tbl<- read.csv("ISVARIC_dash_db_20201118_preprocess.csv")
-dat <- readRDS("ISVARIC_dash_db_20201208_preprocess.rds")
+input.tbl<- read.csv("ISVARIC_dash_db_20201211_preprocess.csv")
+dat <- readRDS("ISVARIC_dash_db_20201211_preprocess.rds")
 input.tbl<-prepr.tbl%>%
   as.data.frame()
 memory.limit(size=50000)
@@ -49,6 +49,7 @@ patient.characteristic.prep <- function(input.tbl){
                                    Description=="80-89" |
                                    Description=="70-79" ~ "70+",
                                 is.na(Description)~'Unknown',
+                                   Description==""~'Unknown',
                               TRUE~Description))%>%
     mutate(Description=replace(Description,is.na(Description),"Unknown"))%>%
     mutate(count=1)%>%
@@ -61,15 +62,18 @@ patient.characteristic.prep <- function(input.tbl){
   
   by_icu<-input.tbl%>%
     mutate(Description=slider_icu_ever)%>%
-    mutate(Description=case_when(is.na(Description)~"Unknown",
-                                 Description==FALSE~"Absent",
-                                  TRUE~"Present"))%>%
+    mutate(Description=case_when(Description==TRUE~"Yes",
+                                 Description==FALSE~"No",
+                                 TRUE~"Unknown"))%>%
     mutate(count=1)%>%
     group_by(Description)%>%
     summarise(n = sum(count, na.rm=T)) %>%
     mutate(value=round(n/tot,digit=2))%>%
     mutate(value=paste0(n," (",value, ")"))%>%
-    select(Description,value)
+    select(Description,value)%>%
+    arrange(Description, levels=c('Yes',
+                               'No',
+                               'Unknown'))
 
  
 out<-rbind(size_cohort,c('',''),c('By sex',''),by_sex,c('',''),c('By outcome status',''),by_outcome,c('',''),
@@ -131,6 +135,7 @@ outcome.age.sex.prep <- function(input.tbl){
                                 slider_agegp10=="70-79" ~ "70+",
                               TRUE~slider_agegp10))%>%
     filter(!is.na(Variable))%>%
+    filter(Variable!="")%>%
     mutate(count=1)%>%
     group_by(slider_outcome)%>%
     mutate(tot = sum(count)) %>%
@@ -292,7 +297,9 @@ treatments.prep <- function(input.tbl){
     mutate(prop=paste0(n," (",prop, ")"))%>%
     pivot_wider(id_cols = treatment, names_from = value,  values_from = prop)%>%
     ungroup()
+  
   data<-data%>%filter(value==TRUE)%>%tabyl(treatment)%>%select(-c(percent))
+  
   nice.treatment.mapper <- tibble(treatment = unique(out$treatment)) %>%
     mutate(nice.treatment = map_chr(treatment, function(st){
       temp <- substr(st, 7, nchar(st)) %>% str_replace_all("_", " ")
