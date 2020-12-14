@@ -386,25 +386,4 @@ save(key.times.table, file = "key.times.rda")
 
 
 
-
-###example of flex table function used for another datatable in another project
-
-flextable_gov <- function(data) {
-  ft <- FlexTable(data,
-                  body.par.props = parProperties(text.align = "center"),
-                  body.cell.props = cellProperties(border.color = "white", background.color = "white"),
-                  header.par.props = parProperties(text.align = "center"),
-                  header.cell.props = cellProperties(border.color = "#CAB5EC", background.color ="#CAB5EC")
-  )
-  ft[, 1, to = "header"] <- parProperties(text.align = "right")
-  ft[, 1] <- parProperties(text.align = "right")
-  ft[1, 1:ncol(data), to = "header"] <- textProperties(font.weight = "bold")
-  #ft[c(1,4), 1, to = "body"] <- textProperties(font.weight = "bold")
-  ft[c(1,5), to = "body"] <- textProperties(font.weight = "bold")	
-  return(ft)
-}
-
-
-
-
   
