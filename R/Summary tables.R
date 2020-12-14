@@ -2,7 +2,7 @@ folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2020-11-09"
 setwd(folder)
 input.tbl<- read.csv("ISVARIC_dash_db_20201118_preprocess.csv")
 dat <- readRDS("ISVARIC_dash_db_20201208_preprocess.rds")
-input.tbl<-dat%>%
+input.tbl<-prepr.tbl%>%
   as.data.frame()
 memory.limit(size=50000)
 
@@ -113,13 +113,13 @@ outcome.age.sex.prep <- function(input.tbl){
     mutate(tot = sum(count)) %>%
     ungroup()%>%
     group_by(Variable,slider_outcome, tot)%>%
-    group_by(Variable,slider_outcome)%>%
+    group_by(Variable,slider_outcome,tot)%>%
     summarise(n = sum(count, na.rm=T)) %>%
     mutate(prop=round(n/tot,digit=2))%>%
     mutate(prop=paste0(n," (",prop, ")"))%>%
     pivot_wider(id_cols = Variable, names_from = slider_outcome,  values_from = prop)%>%
-    #select("Ongoing care", Death, Discharge, LFTU)%>%
-    select(Variable, Death, Discharge, LFTU)%>%
+    select("Ongoing care", Death, Discharge, LFTU)%>%
+    #select(Variable, Death, Discharge, LFTU)%>%
     ungroup()
   
   
@@ -140,8 +140,8 @@ outcome.age.sex.prep <- function(input.tbl){
     mutate(prop=round(n/tot,digit=2))%>%
     mutate(prop=paste0(n," (",prop, ")"))%>%
     pivot_wider(id_cols = Variable, names_from = slider_outcome,  values_from = prop)%>%
-    #select("Ongoing care", Death, Discharge, LFTU)%>%
-    select(Variable, Death, Discharge, LFTU)
+    select("Ongoing care", Death, Discharge, LFTU)
+    #select(Variable, Death, Discharge, LFTU)
 
     
  out<-rbind(age,sex)%>%
@@ -381,6 +381,9 @@ key.times.prep <- function(input.tbl){
 
 key.times.table<-key.times.prep(input.tbl)
 save(key.times.table, file = "key.times.rda")
+
+
+
 
 
 
