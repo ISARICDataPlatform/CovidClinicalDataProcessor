@@ -138,7 +138,7 @@ import.microb.data <- function(file.name, dtplyr.step = FALSE){
   out<-full_join(detection,identification)%>%
     mutate(cov_det_id=case_when(cov_det_cronavir=="NEGATIVE"~"NEGATIVE",
                                cov_det_sarscov2=="NEGATIVE"~"NEGATIVE"))%>%
-    mutate(cov_det_idid=case_when(cov_det_cronavir=="POSITIVE"~"POSITIVE",
+    mutate(cov_det_id=case_when(cov_det_cronavir=="POSITIVE"~"POSITIVE",
                                cov_det_sarscov2=="POSITIVE"~"POSITIVE",
                                cov_id_cronavir=="POSITIVE"~"POSITIVE",
                                cov_id_sarscov2=="POSITIVE"~"POSITIVE",
@@ -474,8 +474,8 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
     filter(!is.na(inoccur))%>%
     filter(incat!="MEDICAL HISTORY")%>%
     mutate(intrt=toupper(intrt))%>%
-    #mutate(intrt=case_when(inmodify!=""~inmodify,
-     #                      TRUE ~ intrt))%>%
+    mutate(intrt=case_when(inmodify!=""~inmodify,
+                          TRUE ~ intrt))%>%
     mutate(intrt=case_when(incat=="EXTRACORPOREAL"~'EXTRACORPOREAL',
                            incat=="INVASIVE VENTILATION"~'INVASIVE VENTILATION',
                            incat=="NASAL / MASK OXYGEN THERAPY"~'NASAL / MASK OXYGEN THERAPY',
