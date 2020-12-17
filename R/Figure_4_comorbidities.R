@@ -1,3 +1,7 @@
+
+
+
+
 #' Aggregate data for comorbidity prevalence plot
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dtplyr dplyr tibble purrr tidyr
@@ -6,21 +10,6 @@
 #' @return A \code{tibble} containing the input data for the comorbidity prevalence plot
 #' @export comorbidity.prevalence.prep
 
-###New dataset_all in one
-folder <- "C:/Users/ESCHERM/OneDrive/Documents/ISARIC/data/2020-10-25"
-setwd(folder)
-input.tbl<- read.csv("ISVARIC_dash_db_20201118_preprocess.csv")
-dat <- readRDS("ISVARIC_dash_db_20201118_preprocess.rds")
-input.tbl<-dat%>%
-  as.data.frame()
-
-saveRDS(object, file = "", ascii = FALSE, version = NULL,
-        compress = TRUE, refhook = NULL)
-input.tbl<-readRDS("ISVARIC_dash_db_20201118_preprocess.rds", refhook = NULL)
-
-
-save(comorbidity.prevalence.input, file = "comorbidity.prevalence.input.rda")
-comorbidity.prevalence.input<-comorbidity.prevalence.prep(input.tbl)
 
 comorbidity.prevalence.prep <- function(input.tbl){
   
@@ -52,6 +41,8 @@ comorbidity.prevalence.prep <- function(input.tbl){
     as_tibble()
     
 }
+comorbidity.prevalence.input<-comorbidity.prevalence.prep(input.tbl)
+save(comorbidity.prevalence.input, file = "comorbidity.prevalence.input.rda")
 
 
 #' Aggregate data for comorbidities upset plot
@@ -153,14 +144,8 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
   
 }
 
-
-
 comorbidity.upset.input<-comorbidity.upset.prep(input.tbl)
 save(comorbidity.upset.input, file = "comorbidity.upset.input.rda")
-aggregated.tbl<-comorbidity_upset_input
-
-
-
 
 
 
@@ -194,8 +179,6 @@ treatment.use.proportion.prep <- function(input.tbl){
     left_join(nice.treatment.mapper) %>%
     as_tibble()
 }
-
-input.tbl<- readRDS("ISVARIC_dash_db_20201117_preprocess.rds")
 
 
 treatment.use.proportion.input<-treatment.use.proportion.prep(input.tbl)
@@ -307,15 +290,7 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
 
 
 treatment.upset.input<-treatment.upset.prep(input.tbl)
-
 save(treatment.upset.input, file = "treatment.upset.input.rda")
-save(treatment.upset.input, file = "treatment.upset.input.csv")
-write.table(treatment.upset.input, "treatment.upset.input.csv", sep=",", row.names=F, na="")
-
-
-test<-treatment.upset.input%>%
-  as.data.frame()%>%
-  as.vector()
 
 
 
@@ -355,10 +330,7 @@ icu.treatment.use.proportion.prep <- function(input.tbl){
     as_tibble()
 }
 
-
-
 icu.treatment.use.proportion.input<-icu.treatment.use.proportion.prep(input.tbl)
-
 save(icu.treatment.use.proportion.input, file = "icu.treatment.use.proportion.input.rda")
 
 
@@ -472,8 +444,44 @@ save(icu.treatment.upset.input, file = "icu.treatment.upset.input.rda")
 
 
 
-backup<-input.tbl
-input.tbl<-prepr.tbl
+#' Aggregate data for symptom prevalence plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr tidyr tidyfast
+#' @importFrom glue glue
+#' @importFrom data.table as.data.table
+#' @return A \code{tibble} containing the input data for the symptom prevalence plot
+#' @export symptom.prevalence.prep
+symptom.prevalence.prep <- function(input.tbl){
+  
+  symptom.prevalence.input <- input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
+    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
+    as.data.table() %>%
+    pivot_longer(starts_with("symptoms"), names_to = "symptom", values_to = "present") %>%
+    lazy_dt(immutable = TRUE) %>%
+    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, symptom, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
+    as_tibble()
+  
+  nice.symptom.mapper <- tibble(symptom = unique(symptom.prevalence.input$symptom)) %>%
+    mutate(nice.symptom = map_chr(symptom, function(st){
+      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      temp2
+    })) %>%
+    mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
+                                    nice.symptom=="Cough" ~ "Cough (no sputum)",
+                                    nice.symptom=="Cough bloody sputum haemoptysis" ~ "Cough with bloody sputum/haemoptysis",
+                                    nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
+                                    TRUE ~ nice.symptom))
+  
+  symptom.prevalence.input %>%
+    lazy_dt(immutable = TRUE) %>%
+    left_join(nice.symptom.mapper) %>%
+    as_tibble() 
+}
+symptom.prevalence.input<-symptom.prevalence.prep(input.tbl)
+save(symptom.prevalence.input, file = "symptom.prevalence.input.rda")
 
 
 
