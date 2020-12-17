@@ -183,19 +183,26 @@ symptoms.prep <- function(input.tbl){
   
   data<-select(input.tbl, c(starts_with("symptoms_"))) %>%
     pivot_longer(starts_with("symptoms_"), names_to = "symptom", values_to = "value")
+  
   out<-data%>%
     mutate(value=case_when(is.na(value)~"Unknown",
                            value==FALSE~"Absent",
                            TRUE~"Present"))%>%
     mutate(count=1)%>%
     group_by(symptom,value)%>%
-    summarise(n = sum(count, na.rm=T)) %>%
+    summarise(n = sum(count, na.rm=T))%>%
     mutate(prop=round(n/tot,digit=2))%>%
-    mutate(prop=paste0(n," (",prop, ")"))%>%
-    pivot_wider(id_cols = symptom, names_from = value,  values_from = prop)%>%
-    select(symptom, Present, Absent, Unknown)%>%
     ungroup()
   
+  data2<-out%>%
+    filter(value=="Unknown")%>%
+    filter(prop<0.95)%>%select(symptom)
+  
+  out<-left_join(data2, out) %>%
+  mutate(prop=paste0(n," (",prop, ")"))%>%
+    pivot_wider(id_cols = symptom, names_from = value,  values_from = prop)%>%
+    select(symptom, Present, Absent, Unknown)
+
   data<-data%>%filter(value==TRUE)%>%tabyl(symptom)%>%select(-c(percent))
   nice.symptom.mapper <- tibble(symptom = unique(data$symptom)) %>%
     mutate(nice.symptom = map_chr(symptom, function(st){
@@ -211,7 +218,7 @@ symptoms.prep <- function(input.tbl){
     
   out<-out%>%
     #lazy_dt(immutable = TRUE) %>%
-    left_join(nice.symptom.mapper) %>%
+    left_join(nice.symptom.mapper)%>%
     rename(Symptoms=nice.symptom)%>%
     arrange(desc(n))%>%
     select(Symptoms,Present, Absent, Unknown)%>%
@@ -241,10 +248,18 @@ comorbidity.prep <- function(input.tbl){
     mutate(count=1)%>%
     group_by(comorbidity,value)%>%
     summarise(n = sum(count, na.rm=T)) %>%
-    mutate(prop=round(n/tot,digit=2))%>%
+    mutate(prop=round(n/tot,digit=2))#%>%
+  
+  data2<-out%>%
+    filter(value=="Unknown")%>%
+    filter(prop<0.95)%>%select(comorbidity)
+  
+  out<-left_join(data2, out) %>%
     mutate(prop=paste0(n," (",prop, ")"))%>%
     pivot_wider(id_cols = comorbidity, names_from = value,  values_from = prop)%>%
     ungroup()
+  
+  out<-replace(out,is.na(out),as.character("0 (0)"))
   
   data<-data%>%filter(value==TRUE)%>%tabyl(comorbidity)%>%select(-c(percent))
   nice.comorbidity.mapper <- tibble(comorbidity = unique(out$comorbidity)) %>%
@@ -293,10 +308,17 @@ treatments.prep <- function(input.tbl){
     mutate(count=1)%>%
     group_by(treatment,value)%>%
     summarise(n = sum(count, na.rm=T)) %>%
-    mutate(prop=round(n/tot,digit=2))%>%
+    mutate(prop=round(n/tot,digit=2))#%>%
+  data2<-out%>%
+    filter(value=="Unknown")%>%
+    filter(prop<0.95)%>%select(treatment)
+  
+  out<-left_join(data2, out) %>%
     mutate(prop=paste0(n," (",prop, ")"))%>%
     pivot_wider(id_cols = treatment, names_from = value,  values_from = prop)%>%
     ungroup()
+  
+  out<-replace(out,is.na(out),as.character("0 (0)"))
   
   data<-data%>%filter(value==TRUE)%>%tabyl(treatment)%>%select(-c(percent))
   
