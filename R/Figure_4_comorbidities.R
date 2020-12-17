@@ -1,6 +1,22 @@
 
+#' Aggregate data for case enrolment over time by site
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr tidyr
+#' @importFrom glue glue
+#' @importFrom data.table as.data.table
+#' @return A \code{tibble} containing the input data for the comorbidity prevalence plot
+#' @export patient.enrolment.site.time.map.prep
 
 
+patient.site.time.map.prep <- function(input.tbl){
+  
+  patient.site.time.map.input   <- input.tbl %>%
+    tabyl(date_start,siteid_final)
+  
+}
+
+patient.site.time.map.input<-patient.site.time.map.prep(input.tbl)
+save(patient.site.time.map.input, file = "patient.site.time.map.input.rda")
 
 #' Aggregate data for comorbidity prevalence plot
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
