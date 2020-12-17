@@ -74,7 +74,9 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(siteid_final=invid)%>%
     mutate(siteid_final=case_when(invid=="00741cca_network"~ substr(subjid,1, 12),
                                 invid=="227inserm"~ sub("\\-.*", "",subjid),
+                                invid=="00689us_nhlbi_peta"~ sub("\\-.*", "",subjid),
                                 invid==""~studyid,
+                                studyid=="CVPRQTA"~"CVPRQTA",
                                 #studyid=="CVCCPUK"~"CVCCPUK",
                                 TRUE~invid))%>%
     mutate(sex = case_when(sex == "M" ~ "Male",
