@@ -194,7 +194,7 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm%like%'CHRONIC RENAL FAILURE'~'CHRONIC KIDNEY DISEASE',
                             
                             saterm%like%'CHRONIC LUNG DISEASE'~'CHRONIC PULMONARY DISEASE',
-                            
+                            saterm%like%'CHROMIC PULMONARY DISEASE'~'CHRONIC PULMONARY DISEASE',
                             
                             saterm%like%'CHRONIC NEUROLOGICAL'~'CHRONIC NEUROLOGICAL DISORDER',
                             saterm%like%'CURRENT SMOK'~'SMOKING',
@@ -804,21 +804,22 @@ process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
 #' @export process.laboratory.data
 process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
   laboratory <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
-    select(usubjid, lbtestcd, lbcat,lborres,lbdtc) %>%
-    filter(lbcat=="LABORATORY RESULTS ON ADMISSION")%>%
+    select(usubjid, lbseq, lbtestcd, lbcat,lborres,lbdtc) %>%
+    mutate(lborres=replace(lborres,lborres=="",NA))%>%
+    #filter(lbcat=="LABORATORY RESULTS ON ADMISSION")%>%
     filter(lbtestcd=="ALT"|
-             lbtestcd=="APTT"|
-             lbtestcd=="CRP"|
-             lbtestcd=="LYM"|
-             lbtestcd=="NEUT"|
-             lbtestcd=="PT"|
-             lbtestcd=="WBC"|
-             lbtestcd=="BILI"|
-             lbtestcd=="AST"|
-             lbtestcd=="UREAN")%>%
+            lbtestcd=="APTT"|
+            lbtestcd=="CRP"|
+           lbtestcd=="LYM"|
+            lbtestcd=="NEUT"|
+           lbtestcd=="PT"|
+            lbtestcd=="WBC"|
+           lbtestcd=="BILI"|
+            lbtestcd=="AST"|
+           lbtestcd=="UREAN")%>%
     mutate(lborres=as.numeric(lborres))%>%
     filter(!is.na(lborres))%>%
-    arrange(desc(lbdtc))%>%
+    arrange(desc(lbseq))%>%
     distinct(usubjid,lbtestcd, .keep_all =T)%>%
     mutate(lborres=case_when(lbtestcd=="NEUT" & lborres>100 ~ lborres/1000,
                              lbtestcd=="LYM" & lborres>100 ~ lborres/1000,
