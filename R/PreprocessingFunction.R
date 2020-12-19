@@ -69,58 +69,58 @@ data.preprocessing <- function(input.tbl){
     mutate(icu_out=as_date(icu_out))%>%
     mutate(date_outcome=as_date(date_outcome))%>%
     mutate(t_son_ad=date_admit-date_onset)%>%
-   mutate(t_son_ad = map_dbl(t_son_ad, outlier.numerical)) %>%
     mutate(t_ad_icu=icu_in-date_admit)%>%
     mutate(t_ad_icu=replace(t_ad_icu,t_ad_icu<0,NA))%>%
-   mutate(t_ad_icu = map_dbl(t_ad_icu, outlier.numerical)) %>%
     mutate(t_ad_imv=imv_st-date_onset)%>%
     mutate(t_ad_imv=replace(t_ad_imv,t_ad_imv<0,NA))%>%
-   mutate(t_ad_imv = map_dbl(t_ad_imv, outlier.numerical)) %>%
     mutate(t_ad_niv=niv_st-date_onset)%>%
     mutate(t_ad_niv=replace(t_ad_niv,t_ad_niv<0,NA))%>%
-   mutate(t_ad_niv = map_dbl(t_ad_niv, outlier.numerical)) %>%
     mutate(t_ad_icu=icu_in-date_admit)%>%
     mutate(t_ad_icu=replace(t_ad_icu,t_ad_icu<0,NA))%>%
-   mutate(t_ad_icu = map_dbl(t_ad_icu, outlier.numerical)) %>%
-    mutate(icu_dur=icu_out-icu_in)%>%
-    mutate(icu_dur=replace(icu_dur,icu_dur<0,NA))%>%
     mutate(dur_icu=icu_out-icu_in)%>%
     mutate(dur_icu=replace(dur_icu,dur_icu<0,NA))%>%
-   mutate(dur_icu = map_dbl(dur_icu, outlier.numerical)) %>%
     mutate(dur_ho=date_outcome-date_admit)%>%
     mutate(dur_ho=replace(dur_ho,dur_ho<0,NA))%>%
-   mutate(dur_ho = map_dbl(dur_ho, outlier.numerical)) %>%
     mutate(dur_imv=imv_en-imv_st)%>%
     mutate(dur_imv=replace(dur_imv,dur_imv<0,NA))%>%
-   mutate(dur_imv = map_dbl(dur_imv, outlier.numerical)) %>%
     mutate(dur_niv=niv_en-niv_st)%>%
     mutate(dur_niv=replace(dur_niv,dur_niv<0,NA))%>%
-   mutate(dur_niv = map_dbl(dur_niv, outlier.numerical)) %>%
-   mutate(vs_bmi= map_dbl(vs_bmi, outlier.numerical)) %>%
-   mutate(vs_diabp = map_dbl(vs_diabp, outlier.numerical)) %>%
-   mutate(vs_height = map_dbl(vs_height, outlier.numerical)) %>%
-   mutate(vs_hr = map_dbl(vs_hr, outlier.numerical)) %>%
-   mutate(vs_map = map_dbl(vs_map, outlier.numerical)) %>%
-   mutate(vs_muarmcir = map_dbl(vs_muarmcir, outlier.numerical)) %>%
-   mutate(vs_oxysat_oxygen_therapy = map_dbl(vs_oxysat_oxygen_therapy, outlier.numerical)) %>%
-   mutate(vs_oxysat_room_air= map_dbl(vs_oxysat_room_air, outlier.numerical)) %>%
-   mutate(vs_oxysat_unknown = map_dbl(vs_oxysat_unknown, outlier.numerical)) %>%
-   mutate(vs_pulse= map_dbl(vs_pulse, outlier.numerical)) %>%
-   mutate(vs_resp = map_dbl(vs_resp, outlier.numerical)) %>%
-   mutate(vs_sysbp = map_dbl(vs_sysbp, outlier.numerical)) %>%
-   mutate(vs_temp = map_dbl(vs_temp, outlier.numerical)) %>%
-   mutate(vs_weight = map_dbl(vs_weight, outlier.numerical)) %>%
-   mutate(vs_oxysat = map_dbl(vs_oxysat, outlier.numerical)) %>%
-   mutate(lab_alt = map_dbl(lab_alt, outlier.numerical)) %>%
-   mutate(lab_aptt = map_dbl(lab_aptt, outlier.numerical)) %>%
-   mutate(lab_ast = map_dbl(lab_ast, outlier.numerical)) %>%
-   mutate(lab_bili = map_dbl(lab_bili, outlier.numerical)) %>%
-   mutate(lab_crp = map_dbl(lab_crp, outlier.numerical)) %>%
-   mutate(lab_lym = map_dbl(lab_lym, outlier.numerical)) %>%
-   mutate(lab_neut = map_dbl(lab_neut, outlier.numerical)) %>%
-   mutate(lab_pt = map_dbl(lab_pt, outlier.numerical)) %>%
-   mutate(lab_urean = map_dbl(lab_urean, outlier.numerical)) %>%
-   mutate(lab_wbc = map_dbl(lab_wbc, outlier.numerical)) %>%
+    
+    mutate(t_ad_niv = map_dbl(t_ad_niv, outlier.numerical)) %>%
+    mutate(t_son_ad = map_dbl(t_son_ad, outlier.numerical)) %>%
+    mutate(t_ad_icu = map_dbl(t_ad_icu, outlier.numerical)) %>%
+    mutate(t_ad_imv = map_dbl(t_ad_imv, outlier.numerical)) %>%
+    mutate(t_ad_icu = map_dbl(t_ad_icu, outlier.numerical)) %>%
+    mutate(dur_icu = map_dbl(dur_icu, outlier.numerical)) %>%
+    mutate(dur_ho = map_dbl(dur_ho, outlier.numerical)) %>%
+    mutate(dur_imv = map_dbl(dur_imv, outlier.numerical)) %>%
+    mutate(dur_niv = map_dbl(dur_niv, outlier.numerical)) %>%
+    mutate(vs_bmi= map_dbl(vs_bmi, outlier.numerical)) %>%
+    mutate(vs_diabp = map_dbl(vs_diabp, outlier.numerical)) %>%
+    mutate(vs_height = map_dbl(vs_height, outlier.numerical)) %>%
+    mutate(vs_hr = map_dbl(vs_hr, outlier.numerical)) %>%
+    mutate(vs_map = map_dbl(vs_map, outlier.numerical)) %>%
+    mutate(vs_muarmcir = map_dbl(vs_muarmcir, outlier.numerical)) %>%
+    mutate(vs_oxysat_oxygen_therapy = map_dbl(vs_oxysat_oxygen_therapy, outlier.numerical)) %>%
+    mutate(vs_oxysat_room_air= map_dbl(vs_oxysat_room_air, outlier.numerical)) %>%
+    mutate(vs_oxysat_unknown = map_dbl(vs_oxysat_unknown, outlier.numerical)) %>%
+    mutate(vs_pulse= map_dbl(vs_pulse, outlier.numerical)) %>%
+    mutate(vs_resp = map_dbl(vs_resp, outlier.numerical)) %>%
+    mutate(vs_sysbp = map_dbl(vs_sysbp, outlier.numerical)) %>%
+    mutate(vs_temp = map_dbl(vs_temp, outlier.numerical)) %>%
+    mutate(vs_weight = map_dbl(vs_weight, outlier.numerical)) %>%
+    mutate(vs_oxysat = map_dbl(vs_oxysat, outlier.numerical)) %>%
+    mutate(lab_alt = map_dbl(lab_alt, outlier.numerical)) %>%
+    mutate(lab_aptt = map_dbl(lab_aptt, outlier.numerical)) %>%
+    mutate(lab_ast = map_dbl(lab_ast, outlier.numerical)) %>%
+    mutate(lab_bili = map_dbl(lab_bili, outlier.numerical)) %>%
+    mutate(lab_crp = map_dbl(lab_crp, outlier.numerical)) %>%
+    mutate(lab_lym = map_dbl(lab_lym, outlier.numerical)) %>%
+    mutate(lab_neut = map_dbl(lab_neut, outlier.numerical)) %>%
+    mutate(lab_pt = map_dbl(lab_pt, outlier.numerical)) %>%
+    mutate(lab_urean = map_dbl(lab_urean, outlier.numerical)) %>%
+    mutate(lab_wbc = map_dbl(lab_wbc, outlier.numerical)) %>%
+   
    mutate(vs_bmi_calc=vs_weight/(vs_height/100)^2)%>%
    mutate(vs_bmi_calc=as.numeric(vs_bmi_calc))%>%
    mutate(vs_bmi=as.numeric(vs_bmi))%>%
@@ -131,6 +131,11 @@ data.preprocessing <- function(input.tbl){
                              bmi_comb>20.4 & age>65 ~"normal nutrition",
                              TRUE~NA_character_))%>%
     as_tibble()
+  
+  
+  
+  
+  
 }
 
 
@@ -158,7 +163,6 @@ extract.age.boundaries <- function(agestring, lower = TRUE){
   }
 }
 
-
 #' @keywords internal
 #' @export cleaning.unplosible.dates
 epiweek.year <- function(date){
@@ -171,10 +175,6 @@ epiweek.year <- function(date){
     year(date)
   }
 }
-
-
-
-
 
 
 #' @keywords internal
@@ -217,3 +217,45 @@ outlier.numerical <- function(y){
   }
 }
 
+
+
+input.tbl<-readRDS("ISVARIC_dash_db_20201211_preprocess.rds", refhook = NULL)
+
+test<-select(input.tbl,-c(starts_with("symptoms_")))
+
+tot=nrow(prepr.tbl)
+tot_icu=nrow(filter(prepr.tbl,slider_icu_ever==TRUE))
+
+
+data<-select(prepr.tbl, c(starts_with("symptoms_"),starts_with("comorbid_"),starts_with("treat_"))) %>%
+  pivot_longer(c(starts_with("symptoms_"),starts_with("comorbid_"),starts_with("treat_")), 
+               names_to = "variable", 
+               values_to = "value")%>%
+  mutate(count=1)%>%
+  group_by(variable,value)%>%
+  summarise(n = sum(count, na.rm=T))%>%
+  mutate(prop=round(n/tot,digit=2))%>%
+  filter(is.na(value))%>%
+  filter(prop>=0.95)%>%
+  select(variable)
+
+
+
+
+
+data2<-select(prepr.tbl, c(starts_with("icu_treat"),slider_icu_ever)) %>%
+  filter(slider_icu_ever==TRUE)%>%
+  pivot_longer(c(starts_with("icu_treat")), 
+               names_to = "variable", 
+               values_to = "value")%>%
+  mutate(count=1)%>%
+  group_by(variable,value)%>%
+  summarise(n = sum(count, na.rm=T))%>%
+  mutate(prop=round(n/tot_icu,digit=2))%>%
+  filter(is.na(value))%>%
+  filter(prop>=0.95)%>%
+  select(variable)
+
+rmv<-unique(c(data$variable, data2$variable))
+
+prepr.tbl<-select(prepr.tbl,-c(all_of(rmv)))
