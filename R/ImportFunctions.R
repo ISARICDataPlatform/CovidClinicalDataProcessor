@@ -804,9 +804,13 @@ process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
 #' @export process.laboratory.data
 process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
   laboratory <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
-    select(usubjid, lbseq, lbtestcd, lbcat,lborres,lbdtc) %>%
+    select(usubjid, lbdy, lbtestcd, lbcat,lborres,lbdtc) %>%
     mutate(lborres=replace(lborres,lborres=="",NA))%>%
-    #filter(lbcat=="LABORATORY RESULTS ON ADMISSION")%>%
+    mutate(studyid=substr(usubjid,1, 7))%>%
+    mutate(lbcat=case_when(lbdy==1 & studyid=="CVCCPUK"~"LABORATORY RESULTS ON ADMISSION",
+                           lbdy==1 & studyid=="CVMEWUS"~"LABORATORY RESULTS ON ADMISSION",
+                           TRUE~lbcat))%>%
+    filter(lbcat=="LABORATORY RESULTS ON ADMISSION")%>%
     filter(lbtestcd=="ALT"|
             lbtestcd=="APTT"|
             lbtestcd=="CRP"|
@@ -819,7 +823,7 @@ process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
            lbtestcd=="UREAN")%>%
     mutate(lborres=as.numeric(lborres))%>%
     filter(!is.na(lborres))%>%
-    arrange(desc(lbseq))%>%
+    arrange(desc(lbdtc))%>%
     distinct(usubjid,lbtestcd, .keep_all =T)%>%
     mutate(lborres=case_when(lbtestcd=="NEUT" & lborres>100 ~ lborres/1000,
                              lbtestcd=="LYM" & lborres>100 ~ lborres/1000,
