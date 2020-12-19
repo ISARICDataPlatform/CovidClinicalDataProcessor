@@ -177,6 +177,8 @@ save(outcome.age.sex.table, file = "outcome.age.sex.table.rda")
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
 #' @export outcome.age.sex.table
 #' 
+#' 
+#' 
 symptoms.prep <- function(input.tbl){
   
   tot=nrow(input.tbl)
