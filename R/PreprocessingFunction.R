@@ -7,9 +7,13 @@
 #' @export data.preprocessing
 
 data.preprocessing <- function(input.tbl){
+  
+
+ rmv<-exclud.sympt.comorb.tret(input.tbl)
+  
  input.tbl %>%
-    lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid.19_symptoms",symptoms_asymptomatic,	cov_det_id))%>%
+    #lazy_dt(immutable = TRUE) %>%
+    select(-c("symptoms_covid.19_symptoms",symptoms_asymptomatic,	comorbid_smoking_former, all_of(rmv)))%>%
     ###creating first and last date
     mutate(date_hoin_last=case_when(is.na(date_ho_last) ~ date_in_last,
                                     date_ho_last<date_in_last ~ date_in_last,
@@ -28,7 +32,7 @@ data.preprocessing <- function(input.tbl){
     mutate(date_last=as_date(date_last))%>%
     mutate(date_last=case_when(!is.na(date_outcome)~date_outcome,
                                 TRUE  ~ date_last))%>%
-    mutate(slider_outcome="LFTU")%>%
+    mutate(slider_outcome="LTFU")%>%
     mutate(slider_outcome=case_when(outcome == "death" ~ "Death",
                                     outcome == "discharge" ~ "Discharge",
                                     is.na(outcome) & as_date(date_last)> ymd("2020-10-15")~"Ongoing care",
@@ -41,6 +45,7 @@ data.preprocessing <- function(input.tbl){
     mutate(imv_st=as_date(imv_st))%>%
     mutate(niv_en=as_date(niv_en))%>%
     mutate(niv_st=as_date(niv_st))%>%
+    mutate(age=replace(age,age>120,NA))%>%
     mutate(agegp10 = cut(age, right = FALSE, breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 120))) %>%
 
     ###delete implausible respiratory rates
@@ -219,15 +224,15 @@ outlier.numerical <- function(y){
 
 
 
-input.tbl<-readRDS("ISVARIC_dash_db_20201211_preprocess.rds", refhook = NULL)
+#' @keywords internal
+#' @export exclud.sympt.comorb.tret
+exclud.sympt.comorb.tret <- function(input.tbl){
 
-test<-select(input.tbl,-c(starts_with("symptoms_")))
-
-tot=nrow(prepr.tbl)
-tot_icu=nrow(filter(prepr.tbl,slider_icu_ever==TRUE))
+tot=nrow(input.tbl)
+tot_icu=nrow(filter(input.tbl,ever_icu==TRUE))
 
 
-data<-select(prepr.tbl, c(starts_with("symptoms_"),starts_with("comorbid_"),starts_with("treat_"))) %>%
+data<-select(input.tbl, c(starts_with("symptoms_"),starts_with("comorbid_"),starts_with("treat_"))) %>%
   pivot_longer(c(starts_with("symptoms_"),starts_with("comorbid_"),starts_with("treat_")), 
                names_to = "variable", 
                values_to = "value")%>%
@@ -239,12 +244,8 @@ data<-select(prepr.tbl, c(starts_with("symptoms_"),starts_with("comorbid_"),star
   filter(prop>=0.95)%>%
   select(variable)
 
-
-
-
-
-data2<-select(prepr.tbl, c(starts_with("icu_treat"),slider_icu_ever)) %>%
-  filter(slider_icu_ever==TRUE)%>%
+data2<-select(input.tbl, c(starts_with("icu_treat"),ever_icu)) %>%
+  filter(ever_icu==TRUE)%>%
   pivot_longer(c(starts_with("icu_treat")), 
                names_to = "variable", 
                values_to = "value")%>%
@@ -258,4 +259,6 @@ data2<-select(prepr.tbl, c(starts_with("icu_treat"),slider_icu_ever)) %>%
 
 rmv<-unique(c(data$variable, data2$variable))
 
-prepr.tbl<-select(prepr.tbl,-c(all_of(rmv)))
+}
+
+#prepr.tbl<-select(prepr.tbl,-c(all_of(rmv)))
