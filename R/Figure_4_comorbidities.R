@@ -606,3 +606,71 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
 
 symptom.upset.input<-symptom.upset.prep(input.tbl)
 save(symptom.upset.input, file = "symptom.upset.input.rda")
+
+#' Data for the report summary
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dplyr purrr tidyr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the symptoms upset plot
+#' @export summary.input.prep
+
+summary.input.prep<- function(input.tbl){
+  input.tbl%>%
+    select(c(siteid_final,
+             starts_with("slider_"),
+             age,
+             date_admit,
+             dur_ho,
+             dur_icu,
+             t_ad_icu,
+             t_son_ad,
+             outcome,
+             slider_outcome,
+             slider_icu_ever,
+             treat_high_flow_nasal_canula_oxygen_therapy,
+             treat_nasal_mask_oxygen_therapy,
+             treat_non_invasive_ventilation,
+             treat_invasive_ventilation,
+             treat_antibiotic_agents,
+             treat_antiviral_agents,
+             treat_corticosteroids,
+             vs_oxysat,
+             icu_treat_antibiotic_agents,
+             icu_treat_antiviral_agents,
+             icu_treat_non_invasive_ventilation,
+             icu_treat_invasive_ventilation,
+             icu_treat_nasal_mask_oxygen_therapy,
+             icu_treat_high_flow_nasal_canula_oxygen_therapy,
+             t_ad_niv,
+             t_ad_imv,
+             dur_niv,
+             dur_imv,
+             ))%>%
+      mutate(oxygen_therapy=NA)%>%
+      mutate(oxygen_therapy=case_when(
+                    treat_high_flow_nasal_canula_oxygen_therapy==FALSE|
+                    treat_nasal_mask_oxygen_therapy==FALSE|
+                    treat_non_invasive_ventilation==FALSE|
+                    treat_invasive_ventilation==FALSE~FALSE,
+                    treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
+                    treat_nasal_mask_oxygen_therapy==TRUE|
+                    treat_non_invasive_ventilation==TRUE|
+                    treat_invasive_ventilation==TRUE~TRUE,
+                    TRUE~oxygen_therapy))%>%
+      mutate(icu_oxygen_therapy=NA)%>%
+      mutate(icu_oxygen_therapy=case_when(
+              icu_treat_high_flow_nasal_canula_oxygen_therapy==FALSE|
+              icu_treat_nasal_mask_oxygen_therapy==FALSE|
+              icu_treat_non_invasive_ventilation==FALSE|
+              icu_treat_invasive_ventilation==FALSE~FALSE,
+              icu_treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
+              icu_treat_nasal_mask_oxygen_therapy==TRUE|
+              icu_treat_non_invasive_ventilation==TRUE|
+              icu_treat_invasive_ventilation==TRUE~TRUE,
+              TRUE~icu_oxygen_therapy))
+}
+summary_input<-summary.input.prep(input.tbl)
+save(summary_input, file = "summary_input.rda")
+        
+
+
