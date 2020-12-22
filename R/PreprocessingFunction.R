@@ -12,8 +12,35 @@ data.preprocessing <- function(input.tbl){
  rmv<-exclud.sympt.comorb.tret(input.tbl)
   
  input.tbl %>%
-    #lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid.19_symptoms",symptoms_asymptomatic,	comorbid_smoking_former, all_of(rmv)))%>%
+   
+  #test<- input.tbl%>%
+    lazy_dt(immutable = TRUE) %>%
+    select(-c("symptoms_covid-19_symptoms",symptoms_asymptomatic))%>%
+    mutate(symptrcd_upper_respiratory_tract_symptoms=NA)%>%
+    mutate(symptrcd_upper_respiratory_tract_symptoms=case_when(
+              symptoms_upper_respiratory_tract_symptoms==FALSE|
+              symptoms_sore_throat==FALSE|
+              symptoms_runny_nose==FALSE|
+              symptoms_ear_pain==FALSE~FALSE,
+              TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
+    mutate(symptrcd_upper_respiratory_tract_symptoms=case_when(
+              symptoms_upper_respiratory_tract_symptoms==TRUE|
+              symptoms_sore_throat==TRUE|
+              symptoms_runny_nose==TRUE|
+              symptoms_ear_pain==TRUE~TRUE,
+              TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
+   mutate(symptrcd_loss_of_taste_smell=NA)%>%
+   mutate(symptrcd_loss_of_taste_smell=case_when(
+               symptoms_loss_of_smell==FALSE|
+               symptoms_loss_of_smell_taste==FALSE|
+               symptoms_loss_of_taste==FALSE~FALSE,
+               TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
+  mutate(symptrcd_loss_of_taste_smell=case_when(
+              symptoms_loss_of_smell==TRUE|
+              symptoms_loss_of_smell_taste==TRUE|
+              symptoms_loss_of_taste==TRUE~TRUE,
+              TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
+  select(-c(all_of(rmv)))%>%
     ###creating first and last date
     mutate(date_hoin_last=case_when(is.na(date_ho_last) ~ date_in_last,
                                     date_ho_last<date_in_last ~ date_in_last,
@@ -64,33 +91,37 @@ data.preprocessing <- function(input.tbl){
     mutate(upper.age.bound  = map_dbl(agegp10, extract.age.boundaries, FALSE)) %>%
     mutate(slider_agegp10 = fct_relabel(agegp10, prettify.age.labels)) %>%
     select(-agegp10) %>%
+  #rename slider variables
     rename(slider_icu_ever = ever_icu) %>%
     rename(slider_country = country) %>%
     rename(slider_sex = sex) %>%
     rename(slider_symptomatic = symptomatic) %>%
+  #work on the dates
     mutate(date_onset=as_date(date_onset))%>%
     mutate(date_admit=as_date(date_admit))%>%
     mutate(icu_in=as_date(icu_in))%>%
     mutate(icu_out=as_date(icu_out))%>%
     mutate(date_outcome=as_date(date_outcome))%>%
+  #create times variable
     mutate(t_son_ad=date_admit-date_onset)%>%
     mutate(t_ad_icu=icu_in-date_admit)%>%
-    mutate(t_ad_icu=replace(t_ad_icu,t_ad_icu<0,NA))%>%
     mutate(t_ad_imv=imv_st-date_onset)%>%
-    mutate(t_ad_imv=replace(t_ad_imv,t_ad_imv<0,NA))%>%
     mutate(t_ad_niv=niv_st-date_onset)%>%
-    mutate(t_ad_niv=replace(t_ad_niv,t_ad_niv<0,NA))%>%
     mutate(t_ad_icu=icu_in-date_admit)%>%
-    mutate(t_ad_icu=replace(t_ad_icu,t_ad_icu<0,NA))%>%
     mutate(dur_icu=icu_out-icu_in)%>%
-    mutate(dur_icu=replace(dur_icu,dur_icu<0,NA))%>%
     mutate(dur_ho=date_outcome-date_admit)%>%
-    mutate(dur_ho=replace(dur_ho,dur_ho<0,NA))%>%
     mutate(dur_imv=imv_en-imv_st)%>%
-    mutate(dur_imv=replace(dur_imv,dur_imv<0,NA))%>%
     mutate(dur_niv=niv_en-niv_st)%>%
-    mutate(dur_niv=replace(dur_niv,dur_niv<0,NA))%>%
-    
+  #set as NA implosible negative value
+      mutate(t_ad_icu=replace(t_ad_icu,t_ad_icu<0,NA))%>%
+      mutate(t_ad_imv=replace(t_ad_imv,t_ad_imv<0,NA))%>%
+      mutate(t_ad_niv=replace(t_ad_niv,t_ad_niv<0,NA))%>%
+      mutate(t_ad_icu=replace(t_ad_icu,t_ad_icu<0,NA))%>%
+      mutate(dur_icu=replace(dur_icu,dur_icu<0,NA))%>%
+      mutate(dur_ho=replace(dur_ho,dur_ho<0,NA))%>%
+      mutate(dur_imv=replace(dur_imv,dur_imv<0,NA))%>%
+      mutate(dur_niv=replace(dur_niv,dur_niv<0,NA))%>%
+  #set as NA outliers for time, vital sign and laboratory variables
     mutate(t_ad_niv = map_dbl(t_ad_niv, outlier.numerical)) %>%
     mutate(t_son_ad = map_dbl(t_son_ad, outlier.numerical)) %>%
     mutate(t_ad_icu = map_dbl(t_ad_icu, outlier.numerical)) %>%
