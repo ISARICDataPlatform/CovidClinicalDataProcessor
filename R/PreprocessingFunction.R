@@ -15,7 +15,7 @@ data.preprocessing <- function(input.tbl){
    
   #test<- input.tbl%>%
     lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid-19_symptoms",symptoms_asymptomatic))%>%
+    select(-c("symptoms_covid.19_symptoms",symptoms_asymptomatic, comorbid_smoking_former))%>%
     mutate(symptrcd_upper_respiratory_tract_symptoms=NA)%>%
     mutate(symptrcd_upper_respiratory_tract_symptoms=case_when(
               symptoms_upper_respiratory_tract_symptoms==FALSE|
@@ -66,6 +66,9 @@ data.preprocessing <- function(input.tbl){
                                     outcome=="" & as_date(date_last)> ymd("2020-10-15")~"Ongoing care",
                                     TRUE~slider_outcome
                                     )) %>%
+    mutate(date_admit=as_date(date_admit))%>%
+    mutate(date_admit=replace(date_admit,date_admit < "2019-01-01",NA))%>%
+    mutate(date_admit=replace(date_admit,date_admit >today(),NA))%>%
     mutate(date_start=replace(date_start,date_start < "2020-01-01",NA))%>%
     mutate(date_last=replace(date_last,date_last < "2020-01-01",NA))%>%
     mutate(imv_en=as_date(imv_en))%>%
@@ -79,7 +82,6 @@ data.preprocessing <- function(input.tbl){
     mutate(vs_resp=case_when(vs_resp<= 3 ~ NA_real_,
                              vs_resp<=5 & age < 10 ~ NA_real_ ,
                              TRUE ~ vs_resp)) %>%
-    mutate(date_admit=as_date(date_admit))%>%
     mutate(calendar.year.admit = year(date_admit)) %>%
     mutate(calendar.month.admit = month(date_admit)) %>%
     mutate(slider_monthyear = map2_chr(calendar.year.admit, calendar.month.admit, month.year.mapper)) %>%
