@@ -84,6 +84,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                            TRUE ~ NA_character_)) %>%
     mutate(date_admit=substr(date_admit,1, 10))%>%
     mutate(date_admit=as_date(date_admit))%>%
+    mutate(date_admit=replace(date_admit,date_admit >today(),NA))%>%
     select(usubjid, studyid, siteid_final, date_admit, age, agegp5, agegp10, sex, ethnic, country)
   
   if(dtplyr.step){

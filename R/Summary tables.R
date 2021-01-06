@@ -122,7 +122,7 @@ outcome.age.sex.prep <- function(input.tbl){
     mutate(prop=round(n/tot,digit=2))%>%
     mutate(prop=paste0(n," (",prop, ")"))%>%
     pivot_wider(id_cols = Variable, names_from = slider_outcome,  values_from = prop)%>%
-    select("Ongoing care", Death, Discharge, LFTU)%>%
+    select("Ongoing care", Death, Discharge, LTFU)%>%
     #select(Variable, Death, Discharge, LFTU)%>%
     ungroup()
   
@@ -145,7 +145,7 @@ outcome.age.sex.prep <- function(input.tbl){
     mutate(prop=round(n/tot,digit=2))%>%
     mutate(prop=paste0(n," (",prop, ")"))%>%
     pivot_wider(id_cols = Variable, names_from = slider_outcome,  values_from = prop)%>%
-    select("Ongoing care", Death, Discharge, LFTU)
+    select("Ongoing care", Death, Discharge, LTFU)
     #select(Variable, Death, Discharge, LFTU)
 
     
