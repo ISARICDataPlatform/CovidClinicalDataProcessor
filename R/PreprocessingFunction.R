@@ -293,5 +293,3 @@ data2<-select(input.tbl, c(starts_with("icu_treat"),ever_icu)) %>%
 rmv<-unique(c(data$variable, data2$variable))
 
 }
-
-#prepr.tbl<-select(prepr.tbl,-c(all_of(rmv)))
