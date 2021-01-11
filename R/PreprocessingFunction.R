@@ -246,7 +246,7 @@ month.year.mapper <- function(y,m){
 outlier.numerical <- function(y){
   if(is.na(y)){
     NA_real_
-  } else if(y<(quantile(y, 0.25)+(1.5*IQR(y)))){
+  } else if(y<(quantile(y, 0.25)-(1.5*IQR(y)))){
     NA_real_
   } else if(y>(quantile(y, 0.75)+(1.5*IQR(y)))){
     NA_real_

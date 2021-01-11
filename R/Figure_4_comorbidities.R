@@ -644,32 +644,34 @@ summary.input.prep<- function(input.tbl){
              t_ad_imv,
              dur_niv,
              dur_imv,
-             ))%>%
-      mutate(oxygen_therapy=NA)%>%
-      mutate(oxygen_therapy=case_when(
-                    treat_high_flow_nasal_canula_oxygen_therapy==FALSE|
-                    treat_nasal_mask_oxygen_therapy==FALSE|
-                    treat_non_invasive_ventilation==FALSE|
-                    treat_invasive_ventilation==FALSE~FALSE,
-                    treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
-                    treat_nasal_mask_oxygen_therapy==TRUE|
-                    treat_non_invasive_ventilation==TRUE|
-                    treat_invasive_ventilation==TRUE~TRUE,
-                    TRUE~oxygen_therapy))%>%
-      mutate(icu_oxygen_therapy=NA)%>%
-      mutate(icu_oxygen_therapy=case_when(
-              icu_treat_high_flow_nasal_canula_oxygen_therapy==FALSE|
-              icu_treat_nasal_mask_oxygen_therapy==FALSE|
-              icu_treat_non_invasive_ventilation==FALSE|
-              icu_treat_invasive_ventilation==FALSE~FALSE,
-              icu_treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
-              icu_treat_nasal_mask_oxygen_therapy==TRUE|
-              icu_treat_non_invasive_ventilation==TRUE|
-              icu_treat_invasive_ventilation==TRUE~TRUE,
-              TRUE~icu_oxygen_therapy))
+    ))%>%
+    mutate(oxygen_therapy=FALSE)%>%
+    mutate(oxygen_therapy=case_when(
+      treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
+        treat_nasal_mask_oxygen_therapy==TRUE|
+        treat_non_invasive_ventilation==TRUE|
+        treat_invasive_ventilation==TRUE
+      ~TRUE,
+      is.na(treat_high_flow_nasal_canula_oxygen_therapy) &
+        is.na(treat_nasal_mask_oxygen_therapy) &
+        is.na (treat_non_invasive_ventilation) &
+        is.na(treat_invasive_ventilation) ~
+        NA,
+      TRUE~oxygen_therapy))%>%
+    mutate(icu_oxygen_therapy=FALSE)%>%
+    mutate(icu_oxygen_therapy=case_when(
+      icu_treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
+        icu_treat_nasal_mask_oxygen_therapy==TRUE|
+        icu_treat_non_invasive_ventilation==TRUE|
+        icu_treat_invasive_ventilation==TRUE~TRUE,
+      is.na(icu_treat_high_flow_nasal_canula_oxygen_therapy)&
+        is.na(icu_treat_nasal_mask_oxygen_therapy)&
+        is.na(icu_treat_non_invasive_ventilation)&
+        is.na(icu_treat_invasive_ventilation)&
+        ~NA,
+      TRUE~icu_oxygen_therapy))
 }
 summary_input<-summary.input.prep(input.tbl)
-save(summary_input, file = "summary_input.rda")
-        
+save(summary_input, file = "summary_input.rda")        
 
 
