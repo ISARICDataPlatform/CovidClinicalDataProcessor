@@ -1,4 +1,150 @@
 
+
+
+#' Aggregate data for symptom prevalence plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr tidyr tidyfast
+#' @importFrom glue glue
+#' @importFrom data.table as.data.table
+#' @return A \code{tibble} containing the input data for the symptom prevalence plot
+#' @export symptom.prevalence.prep
+symptom.prevalence.prep <- function(input.tbl){
+  
+  symptom.prevalence.input <- input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
+    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
+    as.data.table() %>%
+    pivot_longer(starts_with("symptoms"), names_to = "symptom", values_to = "present") %>%
+    lazy_dt(immutable = TRUE) %>%
+    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, symptom, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
+    as_tibble()
+  
+  nice.symptom.mapper <- tibble(symptom = unique(symptom.prevalence.input$symptom)) %>%
+    mutate(nice.symptom = map_chr(symptom, function(st){
+      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      temp2
+    })) %>%
+    mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
+                                    nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
+                                    nice.symptom=="Vomiting nausea"~ "Vomiting/nausea",
+                                    TRUE ~ nice.symptom))
+  
+  symptom.prevalence.input %>%
+    lazy_dt(immutable = TRUE) %>%
+    left_join(nice.symptom.mapper) %>%
+    as_tibble() 
+}
+
+#' Aggregate data for symptoms upset plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @param max.symptoms The plot will display only the n most common symptoms, this parameter is n
+#' @import dplyr purrr tidyr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the symptoms upset plot
+#' @export symptom.upset.prep
+symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
+  
+  
+  data2 <- input.tbl %>%
+    select(usubjid, starts_with("symp"))
+  
+  n.symp <- ncol(data2) - 1 #changed here
+  
+  data2 <- data2 %>%
+    pivot_longer(2:(n.symp+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
+    dplyr::mutate(Present = map_lgl(Present, function(x){
+      if(is.na(x)){
+        FALSE
+      } else if(x == 1){
+        TRUE
+      } else if(x == 2){
+        FALSE
+      } else {
+        FALSE
+      }
+    })) 
+  
+  # get the most common
+  
+  most.common <- data2 %>%
+    group_by(Condition) %>%
+    dplyr::summarise(Total = n(), Present = sum(Present, na.rm = T)) %>%
+    ungroup() %>%
+    filter(Condition != "symptoms_other_signs_and_symptoms") %>%
+    arrange(desc(Present)) %>%
+    #slice(1:max.symptoms) %>%
+    slice(1:5) %>%
+    pull(Condition)
+  
+  
+  nice.symptom.mapper <- tibble(symptom = unique(most.common)) %>%
+    mutate(nice.symptom = map_chr(symptom, function(st){
+      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      temp2
+    })) %>%
+    mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
+                                    nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
+                                    nice.symptom=="Vomiting nausea"~ "Vomiting/nausea",
+                                    TRUE ~ nice.symptom))
+  
+  
+  top.n.conditions.tbl <- input.tbl %>%
+    dplyr::select(usubjid, matches(most.common)) %>%
+    pivot_longer(2:(length(most.common)+1), names_to = "Condition", values_to = "Present") %>%
+    left_join(nice.symptom.mapper, by=c("Condition" = "symptom")) %>%
+    filter(!is.na(nice.symptom))%>%
+    select(-Condition) %>%
+    filter(!is.na(Present)) %>%
+    group_by(usubjid) %>%
+    dplyr::summarise(Conditions = list(nice.symptom), Presence = list(Present)) %>%
+    dplyr::mutate(conditions.present = map2(Conditions, Presence, function(c,p){
+      c[which(p)]
+    })) %>%
+    dplyr::select(-Conditions, -Presence)
+  
+  slider.join <- input.tbl %>% select(usubjid, starts_with("slider"), lower.age.bound, upper.age.bound)
+  
+  top.n.conditions.tbl <- top.n.conditions.tbl %>% left_join(slider.join)
+  
+  symptom.upset.input <- top.n.conditions.tbl %>% 
+    mutate(condstring = map_chr(conditions.present, function(cp){
+      paste(sort(cp), collapse = "-")
+    })) %>%
+    select(-conditions.present) %>%
+    group_by(condstring, 
+             slider_sex, 
+             slider_country,
+             slider_icu_ever,
+             slider_outcome,
+             slider_monthyear,
+             slider_agegp10,
+             lower.age.bound,
+             upper.age.bound) %>% 
+    summarise(count = n()) %>%
+    ungroup() %>%
+    mutate(which.present = map(condstring, function(x){
+      out <- str_split(x, "-")
+      if(out == ""){
+        character()
+      } else {
+        unlist(out)
+      }
+    })) %>%
+    select(-condstring)
+  
+  
+  
+}
+
+
+
+
+
+
+
 #' Aggregate data for case enrolment over time by site
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dtplyr dplyr janitor
@@ -418,145 +564,6 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
   treatment.upset.input
   
 }
-
-#' Aggregate data for symptom prevalence plot
-#' @param input.tbl Input tibble (output of \code{data.preprocessing})
-#' @import dtplyr dplyr tibble purrr tidyr tidyfast
-#' @importFrom glue glue
-#' @importFrom data.table as.data.table
-#' @return A \code{tibble} containing the input data for the symptom prevalence plot
-#' @export symptom.prevalence.prep
-symptom.prevalence.prep <- function(input.tbl){
-  
-  symptom.prevalence.input <- input.tbl %>%
-    lazy_dt(immutable = TRUE) %>%
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
-    as.data.table() %>%
-    pivot_longer(starts_with("symptoms"), names_to = "symptom", values_to = "present") %>%
-    lazy_dt(immutable = TRUE) %>%
-    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, symptom, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
-    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
-    as_tibble()
-  
-  nice.symptom.mapper <- tibble(symptom = unique(symptom.prevalence.input$symptom)) %>%
-    mutate(nice.symptom = map_chr(symptom, function(st){
-      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
-      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
-      temp2
-    })) %>%
-    mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
-                                    nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
-                                    nice.symptom=="Vomiting nausea"~ "Vomiting/nausea",
-                                    TRUE ~ nice.symptom))
-  
-  symptom.prevalence.input %>%
-    lazy_dt(immutable = TRUE) %>%
-    left_join(nice.symptom.mapper) %>%
-    as_tibble() 
-}
-
-#' Aggregate data for symptoms upset plot
-#' @param input.tbl Input tibble (output of \code{data.preprocessing})
-#' @param max.symptoms The plot will display only the n most common symptoms, this parameter is n
-#' @import dplyr purrr tidyr
-#' @importFrom glue glue
-#' @return A \code{tibble} containing the input data for the symptoms upset plot
-#' @export symptom.upset.prep
-symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
-  
-  
-  data2 <- input.tbl %>%
-    select(usubjid, starts_with("symp"))
-  
-  n.symp <- ncol(data2) - 1 #changed here
-  
-  data2 <- data2 %>%
-    pivot_longer(2:(n.symp+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
-    dplyr::mutate(Present = map_lgl(Present, function(x){
-      if(is.na(x)){
-        FALSE
-      } else if(x == 1){
-        TRUE
-      } else if(x == 2){
-        FALSE
-      } else {
-        FALSE
-      }
-    })) 
-  
-  # get the most common
-  
-  most.common <- data2 %>%
-    group_by(Condition) %>%
-    dplyr::summarise(Total = n(), Present = sum(Present, na.rm = T)) %>%
-    ungroup() %>%
-    filter(Condition != "symptoms_other_signs_and_symptoms") %>%
-    arrange(desc(Present)) %>%
-    #slice(1:max.symptoms) %>%
-    slice(1:5) %>%
-    pull(Condition)
-  
-  
-  nice.symptom.mapper <- tibble(symptom = unique(most.common)) %>%
-    mutate(nice.symptom = map_chr(symptom, function(st){
-      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
-      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
-      temp2
-    })) %>%
-    mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
-                                    nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
-                                    nice.symptom=="Vomiting nausea"~ "Vomiting/nausea",
-                                    TRUE ~ nice.symptom))
-  
-  
-  top.n.conditions.tbl <- input.tbl %>%
-    dplyr::select(usubjid, matches(most.common)) %>%
-    pivot_longer(2:(length(most.common)+1), names_to = "Condition", values_to = "Present") %>%
-    left_join(nice.symptom.mapper, by=c("Condition" = "symptom")) %>%
-    filter(!is.na(nice.symptom))%>%
-    select(-Condition) %>%
-    filter(!is.na(Present)) %>%
-    group_by(usubjid) %>%
-    dplyr::summarise(Conditions = list(nice.symptom), Presence = list(Present)) %>%
-    dplyr::mutate(conditions.present = map2(Conditions, Presence, function(c,p){
-      c[which(p)]
-    })) %>%
-    dplyr::select(-Conditions, -Presence)
-  
-  slider.join <- input.tbl %>% select(usubjid, starts_with("slider"), lower.age.bound, upper.age.bound)
-  
-  top.n.conditions.tbl <- top.n.conditions.tbl %>% left_join(slider.join)
-  
-  symptom.upset.input <- top.n.conditions.tbl %>% 
-    mutate(condstring = map_chr(conditions.present, function(cp){
-      paste(sort(cp), collapse = "-")
-    })) %>%
-    select(-conditions.present) %>%
-    group_by(condstring, 
-             slider_sex, 
-             slider_country,
-             slider_icu_ever,
-             slider_outcome,
-             slider_monthyear,
-             slider_agegp10,
-             lower.age.bound,
-             upper.age.bound) %>% 
-    summarise(count = n()) %>%
-    ungroup() %>%
-    mutate(which.present = map(condstring, function(x){
-      out <- str_split(x, "-")
-      if(out == ""){
-        character()
-      } else {
-        unlist(out)
-      }
-    })) %>%
-    select(-condstring)
-  
-  
-  
-}
-
 
 
 #' Data for the report summary
