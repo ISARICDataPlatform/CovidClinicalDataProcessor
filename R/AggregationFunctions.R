@@ -29,8 +29,67 @@ data.preprocessing <- function(input.tbl){
     as_tibble()
 }
 
-
-
+#' Aggregate data for the summary and flowchart
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the summary and flowchart
+#' @export summary.prep
+summary.input.prep<- function(input.tbl){
+  input.tbl%>%
+    select(c(siteid_final,
+             starts_with("slider_"),
+             age,
+             date_admit,
+             cov_det_id,
+             dur_ho,
+             dur_icu,
+             t_ad_icu,
+             t_son_ad,
+             outcome,
+             slider_outcome,
+             slider_icu_ever,
+             treat_high_flow_nasal_canula_oxygen_therapy,
+             treat_nasal_mask_oxygen_therapy,
+             treat_non_invasive_ventilation,
+             treat_invasive_ventilation,
+             treat_antibiotic_agents,
+             treat_antiviral_agents,
+             treat_corticosteroids,
+             vs_oxysat,
+             icu_treat_antibiotic_agents,
+             icu_treat_antiviral_agents,
+             icu_treat_non_invasive_ventilation,
+             icu_treat_invasive_ventilation,
+             icu_treat_nasal_mask_oxygen_therapy,
+             icu_treat_high_flow_nasal_canula_oxygen_therapy,
+             t_ad_niv,
+             t_ad_imv,
+             dur_niv,
+             dur_imv))%>%
+    mutate(oxygen_therapy=NA)%>%
+    mutate(oxygen_therapy=case_when(
+      treat_high_flow_nasal_canula_oxygen_therapy==FALSE|
+        treat_nasal_mask_oxygen_therapy==FALSE|
+        treat_non_invasive_ventilation==FALSE|
+        treat_invasive_ventilation==FALSE~FALSE,
+      treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
+        treat_nasal_mask_oxygen_therapy==TRUE|
+        treat_non_invasive_ventilation==TRUE|
+        treat_invasive_ventilation==TRUE~TRUE,
+      TRUE~oxygen_therapy))%>%
+    mutate(icu_oxygen_therapy=NA)%>%
+    mutate(icu_oxygen_therapy=case_when(
+      icu_treat_high_flow_nasal_canula_oxygen_therapy==FALSE|
+        icu_treat_nasal_mask_oxygen_therapy==FALSE|
+        icu_treat_non_invasive_ventilation==FALSE|
+        icu_treat_invasive_ventilation==FALSE~FALSE,
+      icu_treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
+        icu_treat_nasal_mask_oxygen_therapy==TRUE|
+        icu_treat_non_invasive_ventilation==TRUE|
+        icu_treat_invasive_ventilation==TRUE~TRUE,
+      TRUE~icu_oxygen_therapy))
+}
 
 #' Aggregate data for age pyramid plot
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -565,13 +624,13 @@ icu.treatment.upset.prep <- function(input.tbl, max.treatments = 5){
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dtplyr dplyr tibble purrr
 #' @importFrom glue glue
-#' @return A \code{tibble} containing the input data for the age pyramid plot
+#' @return A \code{tibble} containing the input data for the hospital stay plot by sex
 #' @export length.of.stay.sex.prep
 length.of.stay.sex.prep <- function(input.tbl){
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    mutate(length.of.stay=ho_dur) %>% 
+    mutate(length.of.stay=dur_ho) %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, length.of.stay) %>%
     mutate(sex=slider_sex) %>% 
     mutate(sex=factor(sex,levels = c("Male", "Female")))  %>%  
@@ -586,13 +645,13 @@ length.of.stay.sex.prep <- function(input.tbl){
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dtplyr dplyr tibble purrr
 #' @importFrom glue glue
-#' @return A \code{tibble} containing the input data for the age pyramid plot
+#' @return A \code{tibble} containing the input data for the hospital stay plot by age
 #' @export length.of.stay.age.prep
 length.of.stay.age.prep <- function(input.tbl){
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    mutate(length.of.stay=ho_dur) %>% 
+    mutate(length.of.stay=dur_ho) %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, length.of.stay) %>%
     mutate(agegp10=as.character(slider_agegp10)) %>% 
     mutate(agegp10=ifelse(agegp10 %in% c("70-79","80-89","90+"), "70+", agegp10)) %>% 
@@ -606,7 +665,7 @@ length.of.stay.age.prep <- function(input.tbl){
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dtplyr dplyr tibble purrr
 #' @importFrom glue glue
-#' @return A \code{tibble} containing the input data for the age pyramid plot
+#' @return A \code{tibble} containing the input data for the hospital admission to ICU plot
 #' @export admission.to.icu
 admission.to.icu.prep <- function(input.tbl){
   
@@ -618,50 +677,46 @@ admission.to.icu.prep <- function(input.tbl){
     filter(admission.to.icu >= 0) %>% 
     as_tibble() 
 }
+admission.to.icu.input<-admission.to.icu.prep(input.tbl)
+save(admission.to.icu.input, file = "admission_to_icu_input.rda")
 
 #' Aggregate data for timeline plot
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dtplyr dplyr tibble purrr
 #' @importFrom glue glue
-#' @return A \code{tibble} containing the input data for the age pyramid plot
+#' @return A \code{tibble} containing the input data for the timeline plot
 #' @export status.by.time.after.admission
 status.by.time.after.admission.prep <- function(input.tbl){
   
   timings.wrangle <- input.tbl %>% 
     filter(!is.na(date_admit)) %>% 
-    select(usubjid, date_admit, icu_in, icu_out, icu_dur, ho_dur, t_ad_icu, date_outcome, date_last, slider_outcome) %>% 
+    select(usubjid, date_admit, icu_in, icu_out, dur_icu, dur_ho, t_ad_icu, outcome, date_outcome, date_last, slider_outcome) %>% 
     mutate(subjid=usubjid,
-           final.status=slider_outcome,
+           final.status= ifelse(slider_outcome %in% c("LTFU","Ongoing care"), "unknown", slider_outcome),
            hospital.start = 0,
-           hospital.end=ho_dur,
+           hospital.end=dur_ho,
            ICU.start = t_ad_icu,
-           ICU.end= t_ad_icu+icu_dur,
-           censored.date=date_last-date_admit,
-           censored=ifelse(slider_outcome == "censored",T,F)) %>% 
+           ICU.end= t_ad_icu+dur_icu,
+           censored.date=date_last-date_admit) %>% 
+    filter(censored.date>=0) %>% 
+    filter(icu_in>=date_admit|is.na(icu_in)) %>% 
     filter(hospital.end >= 0 | is.na(hospital.end))  %>%
     mutate(ever.ICU = !is.na(ICU.start)) %>%
     # If hospital end is known but ICU end is not, impossible to resolve
     filter(!(!is.na(hospital.end) & is.na(ICU.end) & ever.ICU)) %>%
     mutate(last.date = pmax(hospital.end, ICU.end, censored.date, na.rm = T))%>%
-    filter(last.date>=0) %>% 
-    filter(!(censored & is.na(censored.date)))  # Drop patients who are censored but do not have censored dates 
+    filter(last.date>=0) 
   
   overall.start <- 0
   overall.end <- quantile(timings.wrangle$hospital.end, 0.99, na.rm = T)
  
    # this generates a table of the status of every patient on every day
-  complete.timeline <- map(1:nrow(timings.wrangle), function(pat.no){
+  complete.timeline <- map(1:nrow(timings.wrangle), function(pat.no){  
     times <- map(overall.start:overall.end, function(day){
-      if(!timings.wrangle$ever.ICU[pat.no]){
-        if(!timings.wrangle$censored[pat.no] & is.na(timings.wrangle$hospital.end[pat.no])){
+      if(!timings.wrangle$ever.ICU[pat.no]){  #no icu
+        if(is.na(timings.wrangle$hospital.end[pat.no])){
           # this happens with an exit code but no exit date. We don't know what happened after admission
           "unknown"
-        } else if(timings.wrangle$censored[pat.no]){
-          if(day <= timings.wrangle$censored.date[pat.no]){
-            "Ward"
-          } else {
-            "Censored"
-          }
         } else {
           if(day <= timings.wrangle$hospital.end[pat.no]){
             "Ward"
@@ -669,9 +724,9 @@ status.by.time.after.admission.prep <- function(input.tbl){
             as.character(timings.wrangle$final.status[pat.no])
           }
         }
-      } else {
-        if(!timings.wrangle$censored[pat.no] & is.na(timings.wrangle$hospital.end[pat.no])){
-          # this happens with an exit code but no exit date. We don't know what happened after ICU admission or ICU exit if recorded
+      } else {  #had icu
+        if(is.na(timings.wrangle$hospital.end[pat.no])){
+          # this happens with an exit code but no exit date. We don't know what happened after admission
           if(day <= timings.wrangle$ICU.start[pat.no]){
             "Ward"
           } else if(!is.na(timings.wrangle$ICU.end[pat.no]) & day <= timings.wrangle$ICU.end[pat.no]){
@@ -679,20 +734,8 @@ status.by.time.after.admission.prep <- function(input.tbl){
           } else {
             "unknown"
           }
-        } else if(timings.wrangle$censored[pat.no]){
-          if(day <= timings.wrangle$censored.date[pat.no]){
-            if(day <= timings.wrangle$ICU.start[pat.no]) {
-              "Ward"
-            } else if(is.na(timings.wrangle$ICU.end[pat.no]) | day <= timings.wrangle$ICU.end[pat.no]) {
-              "ICU"
-            } else {
-              "Ward"
-            }
-          } else {
-            "Censored"
-          }
-        } else {
-          if(day <= timings.wrangle$hospital.end[pat.no]){
+        }else {
+           if(day <= timings.wrangle$hospital.end[pat.no]){
             if(day <= timings.wrangle$ICU.start[pat.no]) {
               "Ward"
             } else if(is.na(timings.wrangle$ICU.end[pat.no]) | day <= timings.wrangle$ICU.end[pat.no]) {
@@ -703,8 +746,8 @@ status.by.time.after.admission.prep <- function(input.tbl){
           } else {
             as.character(timings.wrangle$final.status[pat.no])
           }
+          }
         }
-      }
     })
     names(times) <- glue::glue("day_{overall.start:overall.end}")
     times$subjid <- timings.wrangle$subjid[pat.no]
@@ -718,10 +761,8 @@ status.by.time.after.admission.prep <- function(input.tbl){
     pivot_longer(all_of(1:n.days), names_to = "day", values_to = "status") %>%
     dplyr::select(subjid, day, status) %>%
     dplyr::mutate(day = map_dbl(day, function(x) as.numeric(str_split_fixed(x, "_", 2)[2]))) %>%     
-    mutate(status=replace(status, status=="Unknown outcome", "unknown"),
-           status=replace(status, status=="Censored", "Ongoing care")) %>%  #LTFU as unknown? censored as ongoing care?
-    dplyr::mutate(status = factor(status, levels = c("discharge", "transferred","unknown", "Ongoing care", "Ward", "ICU", "death"))) %>%
-    ungroup()
+    dplyr::mutate(status = factor(status, levels = c("Discharge", "unknown", "Ward", "ICU", "Death"))) %>%
+    ungroup() 
   
   slider <-  input.tbl %>%
     select(usubjid, slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
@@ -730,7 +771,61 @@ status.by.time.after.admission.prep <- function(input.tbl){
   
   final_dt <- complete.timeline.2 %>% 
     left_join(slider, by="subjid") %>% 
+    select(-subjid) %>% 
+    group_by(day,
+             status,
+             slider_sex,
+             slider_agegp10,
+             slider_country,
+             slider_monthyear) %>%
+    summarise(count = n()) %>%
     as_tibble()
   
   final_dt
+}
+
+#' Aggregate data for length of stay within ICU
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the length of stay within plot
+#' @export length.of.stay.icu.prep
+length.of.stay.icu.prep <- function(input.tbl){
+  
+  tb1 <- input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
+    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever,dur_ho) %>% 
+    filter(dur_ho>0) %>% 
+    rename(dur=dur_ho) %>% 
+    mutate(type=1) %>% 
+    as_tibble() 
+  tb2 <- input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
+    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever,dur_icu) %>% 
+    filter(dur_icu>0) %>% 
+    rename(dur=dur_icu) %>% 
+    mutate(type=2) %>% 
+    as_tibble()
+  
+  d <- rbind(tb1, tb2, deparse.level = 1) %>%
+    filter(!is.na(dur))
+  d$type <- factor(d$type, levels = c(1, 2), labels = c("Total hospital stay", "ICU"))
+  
+  d
+}
+
+
+#' Aggregate data for patient by country
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for patient by country plot
+#' @export patient.by.country.prep
+patient.by.country.prep <- function(input.tbl){
+  
+  input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
+    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    filter(!is.na(slider_country)) %>% 
+    as_tibble() 
 }
