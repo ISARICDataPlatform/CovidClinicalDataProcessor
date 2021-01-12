@@ -59,31 +59,22 @@ data.preprocessing <- function(input.tbl){
               symptoms_loss_of_smell_taste==TRUE|
               symptoms_loss_of_taste==TRUE~TRUE,
               TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
-   ###removing variables with records UNK >95% (function: exclud.sympt.comorb.tret)
+   #Removing variables with records UNK >95% (function: exclud.sympt.comorb.tret)
   select(-c(all_of(rmv)))%>%
-    ###creating first and last date
-   ###Setting_up dates as date
+   #Setting_up dates as date
    mutate_at(vars(all_of(var_date)), function(x){as_date(x)})%>%
-   
+   #creating first and last date
     mutate(date_hoin_last=case_when(is.na(date_ho_last) ~ date_in_last,
                                     date_ho_last<date_in_last ~ date_in_last,
                                     TRUE ~ date_ho_last ))%>%
-    #mutate(date_start=as_date(date_onset))%>%
-    #mutate(date_admit=as_date(date_admit))%>%
-    #mutate(date_onset=as_date(date_onset))%>%
     mutate(date_start=case_when(is.na(date_onset) ~ date_admit,
                                 date_onset<=date_admit ~ date_admit,
                                 TRUE ~  date_onset  ))%>%
-    #mutate(date_hoin_last=as_date(date_hoin_last))%>%
-    #mutate(date_last=as_date(date_hoin_last))%>%
     mutate(date_last=case_when(is.na(date_hoin_last)~as_date(date_admit),
                                TRUE~ date_hoin_last))%>%
-    #mutate(date_outcome=as_date(date_outcome))%>%
-    #mutate(date_last=as_date(date_last))%>%
     mutate(date_last=case_when(!is.na(date_outcome)~date_outcome,
                                 TRUE  ~ date_last))%>%
     mutate(date_admit=replace(date_admit,date_admit < "2019-01-01"|date_admit >today(),NA))%>%
-    #mutate(date_admit=replace(date_admit,date_admit >today(),NA))%>%
     mutate(date_start=replace(date_start,date_start < "2020-01-01",NA))%>%
     mutate(date_last=replace(date_last,date_last < "2020-01-01",NA))%>%
     #categorizing outcome
@@ -94,12 +85,6 @@ data.preprocessing <- function(input.tbl){
                                     outcome=="" & as_date(date_last)> ymd("2020-10-15")~"Ongoing care",
                                     TRUE~slider_outcome
                                     )) %>%
-    #mutate(date_admit=as_date(date_admit))%>%
-
-    #mutate(imv_en=as_date(imv_en))%>%
-    #mutate(imv_st=as_date(imv_st))%>%
-    #mutate(niv_en=as_date(niv_en))%>%
-    #mutate(niv_st=as_date(niv_st))%>%
     #categorizing age
     mutate(age=replace(age,age>120,NA))%>%
     mutate(agegp10 = cut(age, right = FALSE, breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 120))) %>%
@@ -121,14 +106,7 @@ data.preprocessing <- function(input.tbl){
     rename(slider_country = country) %>%
     rename(slider_sex = sex) %>%
     rename(slider_symptomatic = symptomatic) %>%
-  #work on the dates
-    #mutate(date_onset=as_date(date_onset))%>%
-    #mutate(date_admit=as_date(date_admit))%>%
-    #mutate(icu_in=as_date(icu_in))%>%
-    #mutate(icu_out=as_date(icu_out))%>%
-    #mutate(date_outcome=as_date(date_outcome))%>%
-  #create times variable but t_son_ad
-    
+  #create time variables but t_son_ad
     mutate(t_ad_icu=icu_in-date_admit)%>%
     mutate(t_ad_imv=imv_st-date_onset)%>%
     mutate(t_ad_niv=niv_st-date_onset)%>%
@@ -139,18 +117,10 @@ data.preprocessing <- function(input.tbl){
     mutate(dur_niv=niv_en-niv_st)%>%
   #set as NA implausible negative value 
     mutate_at(vars(all_of(c(starts_with("t_"),starts_with("dur_")))), function(x){replace(x,x<0,NA)})%>%
-      #mutate(t_ad_icu=replace(t_ad_icu,t_ad_icu<0,NA))%>%
-      #mutate(t_ad_imv=replace(t_ad_imv,t_ad_imv<0,NA))%>%
-      #mutate(t_ad_niv=replace(t_ad_niv,t_ad_niv<0,NA))%>%
-      #mutate(t_ad_icu=replace(t_ad_icu,t_ad_icu<0,NA))%>%
-      #mutate(dur_icu=replace(dur_icu,dur_icu<0,NA))%>%
-      #mutate(dur_ho=replace(dur_ho,dur_ho<0,NA))%>%
-      #mutate(dur_imv=replace(dur_imv,dur_imv<0,NA))%>%
-      #mutate(dur_niv=replace(dur_niv,dur_niv<0,NA))%>%
-    
+   #create time variable: t_son_ad
     mutate(t_son_ad=date_admit-date_onset)%>%
     
-    ###delete implausible respiratory rates
+  #deleting implausible respiratory rates based on age
     mutate(vs_resp=case_when(vs_resp<= 3 ~ NA_real_,
                              vs_resp<=5 & age < 10 ~ NA_real_ ,
                              TRUE ~ vs_resp)) %>%  
@@ -161,42 +131,7 @@ data.preprocessing <- function(input.tbl){
                                                 x>(quantile(x, 0.75, na.rm = TRUE))+(1.5*IQR(x, na.rm = TRUE)),
                                                 NA_real_)
                                                   })%>% 
-    #mutate(t_ad_niv = map_dbl(t_ad_niv, outlier.numerical)) %>%
-    #mutate(t_son_ad = map_dbl(t_son_ad, outlier.numerical)) %>%
-    #mutate(t_ad_icu = map_dbl(t_ad_icu, outlier.numerical)) %>%
-    #mutate(t_ad_imv = map_dbl(t_ad_imv, outlier.numerical)) %>%
-    #mutate(t_ad_icu = map_dbl(t_ad_icu, outlier.numerical)) %>%
-    #mutate(dur_icu = map_dbl(dur_icu, outlier.numerical)) %>%
-    #mutate(dur_ho = map_dbl(dur_ho, outlier.numerical)) %>%
-    #mutate(dur_imv = map_dbl(dur_imv, outlier.numerical)) %>%
-    #mutate(dur_niv = map_dbl(dur_niv, outlier.numerical)) %>%
-    #mutate(vs_bmi= map_dbl(vs_bmi, outlier.numerical)) %>%
-    #mutate(vs_diabp = map_dbl(vs_diabp, outlier.numerical)) %>%
-    #mutate(vs_height = map_dbl(vs_height, outlier.numerical)) %>%
-    #mutate(vs_hr = map_dbl(vs_hr, outlier.numerical)) %>%
-    #mutate(vs_map = map_dbl(vs_map, outlier.numerical)) %>%
-    #mutate(vs_muarmcir = map_dbl(vs_muarmcir, outlier.numerical)) %>%
-    #mutate(vs_oxysat_oxygen_therapy = map_dbl(vs_oxysat_oxygen_therapy, outlier.numerical)) %>%
-    #mutate(vs_oxysat_room_air= map_dbl(vs_oxysat_room_air, outlier.numerical)) %>%
-    #mutate(vs_oxysat_unknown = map_dbl(vs_oxysat_unknown, outlier.numerical)) %>%
-    #mutate(vs_pulse= map_dbl(vs_pulse, outlier.numerical)) %>%
-    #mutate(vs_resp = map_dbl(vs_resp, outlier.numerical)) %>%
-    #mutate(vs_sysbp = map_dbl(vs_sysbp, outlier.numerical)) %>%
-    #mutate(vs_temp = map_dbl(vs_temp, outlier.numerical)) %>%
-    #mutate(vs_weight = map_dbl(vs_weight, outlier.numerical)) %>%
-    #mutate(vs_oxysat = map_dbl(vs_oxysat, outlier.numerical)) %>%
-    #mutate(lab_alt = map_dbl(lab_alt, outlier.numerical)) %>%
-    #mutate(lab_aptt = map_dbl(lab_aptt, outlier.numerical)) %>%
-    #mutate(lab_ast = map_dbl(lab_ast, outlier.numerical)) %>%
-    #mutate(lab_bili = map_dbl(lab_bili, outlier.numerical)) %>%
-    #mutate(lab_crp = map_dbl(lab_crp, outlier.numerical)) %>%
-    #mutate(lab_lym = map_dbl(lab_lym, outlier.numerical)) %>%
-    #mutate(lab_neut = map_dbl(lab_neut, outlier.numerical)) %>%
-    #mutate(lab_pt = map_dbl(lab_pt, outlier.numerical)) %>%
-    #mutate(lab_urean = map_dbl(lab_urean, outlier.numerical)) %>%
-    #mutate(lab_wbc = map_dbl(lab_wbc, outlier.numerical)) %>%
-   
-    #calculate bmi
+   #calculating bmi
    mutate(vs_bmi_calc=vs_weight/(vs_height/100)^2)%>%
    mutate(vs_bmi_calc=as.numeric(vs_bmi_calc))%>%
    mutate(vs_bmi=as.numeric(vs_bmi))%>%
@@ -273,21 +208,6 @@ month.year.mapper <- function(y,m){
   }
 }
 
-
-
-#' @keywords internal
-#' @export outlier.numerical
-outlier.numerical <- function(y){
-  if(is.na(y)){
-    NA_real_
-  } else if(y<(quantile(y, 0.25)-(1.5*IQR(y)))){
-    NA_real_
-  } else if(y>(quantile(y, 0.75)+(1.5*IQR(y)))){
-    NA_real_
-  } else {
-    y
-  }
-}
 
 
 #' @keywords internal
