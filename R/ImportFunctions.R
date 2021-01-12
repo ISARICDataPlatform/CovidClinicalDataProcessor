@@ -134,12 +134,17 @@ import.microb.data <- function(file.name, dtplyr.step = FALSE){
     as.data.frame()
   
   out<-full_join(detection,identification)%>%
-    mutate(cov_det_id=case_when(cov_det_cronavir=="NEGATIVE"~"NEGATIVE",
-                               cov_det_sarscov2=="NEGATIVE"~"NEGATIVE"))%>%
-    mutate(cov_det_id=case_when(cov_det_cronavir=="POSITIVE"~"POSITIVE",
-                               cov_det_sarscov2=="POSITIVE"~"POSITIVE",
-                               cov_id_cronavir=="POSITIVE"~"POSITIVE",
-                               cov_id_sarscov2=="POSITIVE"~"POSITIVE",
+    mutate(cov_det_id="NEGATIVE")%>%
+    mutate(cov_det_id=case_when(cov_det_cronavir=="POSITIVE"|
+                               cov_det_sarscov2=="POSITIVE"|
+                               cov_id_cronavir=="POSITIVE"|
+                               cov_id_sarscov2=="POSITIVE"~
+                                 "POSITIVE",
+                               is.na(cov_det_cronavir)|
+                               is.na(cov_det_sarscov2)|
+                               is.na(cov_id_cronavir)|
+                               is.na(cov_id_sarscov2)~
+                                 NA_character_,
                                TRUE~cov_det_id))
   
 
@@ -207,17 +212,9 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm=='SMOKER - FORMER'~'SMOKING - FORMER',
                             saterm=='FEEDING INTOLERANCE (PAEDIATRICS)'~'ANOREXIA',
                             saterm=='REFUSING TO EAT OR DRINK/HISTORY OF POOR ORAL INTAKE'~'ANOREXIA',
-                            #saterm=='COUGH - NON-PRODUCTIVE'~'COUGH - NO SPUTUM',
-                            #saterm=='COUGH - PRODUCTIVE'~'COUGH - WITH SPUTUM',
+                            
                             saterm%like%'COUGH'~'COUGH',
                             saterm%like%'COUTH'~'COUGH',
-                            #saterm%like%'COUGH WITH SPUTUM'~'COUGH - WITH SPUTUM',
-                            #saterm=='COUGH - WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
-                            #saterm=='COUGH - WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
-                            #saterm%like%'COUGH BLOODY SPUTUM'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
-                            #saterm=='COUGH WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
-                            #saterm=='COUTH WITH HAEMOPTYSIS'~'COUGH WITH BLOODY SPUTUM / HAEMOPTYSIS',
-                            #saterm=='COUGH'~'COUGH - NO SPUTUM',#just a proposal
                             saterm%like%'FEVER'~'HISTORY OF FEVER',
                             saterm=='SEIZURE'~'SEIZURES',
                             saterm%like%'TRANSPLANT'~'TRANSPLANTATION',
@@ -231,7 +228,7 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm%like%'DEHYDRATION'~'SEVERE DEHYDRATION',
                             
                             saterm%like%'RASH'~'SKIN RASH',
-                            #saterm%like%'ULCERS'~'SKIN ULCERS',
+                            
                             saterm=='EARPAIN'~'EAR PAIN',
                             TRUE ~ saterm ))%>%
     mutate(saterm = iconv(saterm, to ="ASCII//TRANSLIT") %>% tolower()) %>%
@@ -434,12 +431,10 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
     rename(ever_icu=hooccur)%>%
     rename(icu_in=hostdtc)%>%
     mutate(icu_in=as_date(icu_in))%>%
-    mutate(icu_in=replace(icu_in,icu_in < "2020-01-01",NA))%>%
-    mutate(icu_in=replace(icu_in,icu_in >today(),NA))%>%
+    mutate(icu_in=replace(icu_in,icu_in < "2020-01-01" | icu_in >today(),NA))%>%
     rename(icu_out=hoendtc)%>%
     mutate(icu_out=as_date(icu_out))%>%
-    mutate(icu_out=replace(icu_out,icu_out < "2020-01-01",NA))%>%
-    mutate(icu_out=replace(icu_out,icu_out >today(),NA))%>%
+    mutate(icu_out=replace(icu_out,icu_out < "2020-01-01" | icu_out>today(),NA))%>%
     select(-c(hodecod))%>%
     full_join(last_ho_dates, by = c("usubjid"))
   
@@ -506,8 +501,6 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                                treatment%like%'CPAP'~'NON-INVASIVE VENTILATION',
                                treatment%like%'BIPAP'~'NON-INVASIVE VENTILATION',
                                treatment%like%'NON-INVASIVE MECHANICAL VENTILATION (BIPAP, CPAP, OCNAF (OPTIFLOW) ...)'~'NON-INVASIVE VENTILATION',
-                               #treatment%like%'NON-INVASIVE VENTILATION'~'NON-INVASIVE VENTILATION',
-                               #treatment%like%'OTHER NON-INVASIVE VENTILATION TYPE'~'NON-INVASIVE VENTILATION',
                                treatment%like%'NON-INVASIVE VENTILATION'~'NON-INVASIVE VENTILATION',
                                
                                treatment%like%'OTHER INTERVENTION'~'OTHER INTERVENTIONS',
@@ -595,7 +588,7 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                                treatment %like% "ANGIOTENSIN" | treatment %like% "ACE"~ "AGENTS ACTING ON THE RENIN-ANGIOTENSIN SYSTEM",
                                TRUE ~ treatment))%>%
     as.data.frame()%>%
-    #bind_rows(treatment_a)%>%
+
     mutate(treatment = iconv(treatment, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(treatment = str_remove_all(treatment, "\\s*\\([^)]*\\)")) %>%
     mutate(treatment = str_replace_all(treatment, " - ", "_")) %>%
@@ -637,8 +630,7 @@ process.common.treatment.data <- function(input, minimum=1000, dtplyr.step = FAL
     filter(inoccur==TRUE)%>% 
     mutate(date_in_last=substr(indtc,1, 10))%>%
     mutate(date_in_last=as_date(date_in_last))%>%
-    filter(date_in_last >= "2020-01-01")%>%
-    filter(date_in_last<today())%>%
+    filter(date_in_last >= "2020-01-01"| date_in_last<today())%>%
     arrange(desc(date_in_last))%>%
     distinct(usubjid, .keep_all =T)%>%
     select(usubjid, date_in_last )
@@ -696,8 +688,7 @@ process.IMV.NIV.ECMO.data <- function(input, dtplyr.step = FALSE){
              treatment == "extracorporeal")%>%
     mutate(indtc=substr(indtc,1, 10))%>%
     mutate(indtc=as_date(indtc))%>%
-    mutate(indtc=replace(indtc,indtc < "2020-01-01",NA))%>%
-    mutate(indtc=replace(indtc,indtc >today(),NA))%>%
+    mutate(indtc=replace(indtc,indtc < "2020-01-01" | indtc >today(),NA))%>%
     mutate(treatment=case_when(treatment=='non_invasive_ventilation'~'niv',
                                treatment=='invasive_ventilation'~'imv',
                                TRUE~treatment
@@ -752,11 +743,7 @@ process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
   vital_sign <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
     select(usubjid, vstestcd, vscat,vsstresn,vsstresu, vsdtc, vso2src) %>%
     filter(vscat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION" | vscat=="SIGNS AND SYMPTOMS AT ADMISSION")%>%
-    #filter(vstestcd=="HR" |
-    #         vstestcd=="OXYSAT" |
-    #         vstestcd=="RESP" |
-    #         vstestcd=="SYSBP" |
-    #         vstestcd=="TEMP")%>%
+    
     mutate(vsstresn=as.numeric(vsstresn))%>%
     mutate(vsstresn=case_when(vstestcd=="OXYSAT"& vsstresn< 1~ NA_real_,
                               vstestcd=="OXYSAT"& vsstresn> 100~ NA_real_,
