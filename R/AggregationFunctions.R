@@ -326,7 +326,10 @@ treatment.use.proportion.prep <- function(input.tbl){
       temp <- substr(st, 7, nchar(st)) %>% str_replace_all("_", " ")
       temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
       temp2
-    }))
+    }))%>%
+  mutate(nice.treatment = case_when(treatment=='Inotropes vasopressors' ~ 'Inotropes/vasopressors',
+                                      TRUE ~ nice.treatment))
+  
   
   treatment.use.proportion.input %>%
     lazy_dt(immutable = TRUE) %>%
@@ -455,12 +458,15 @@ icu.treatment.use.proportion.prep <- function(input.tbl){
     as_tibble()
   
   
-  nice.treatment.mapper <- tibble(treatment = unique(icu.treatment.use.proportion.input$treatment)) %>%
+  nice.treatment.mapper <- tibble(treatment = unique(treatment.use.proportion.input$treatment)) %>%
     mutate(nice.treatment = map_chr(treatment, function(st){
-      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
+      temp <- substr(st, 7, nchar(st)) %>% str_replace_all("_", " ")
       temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
       temp2
-    }))
+    }))%>%
+    mutate(nice.treatment = case_when(treatment=='Inotropes vasopressors' ~ 'Inotropes/vasopressors',
+                                      TRUE ~ nice.treatment))
+  
   
   icu.treatment.use.proportion.input %>%
     lazy_dt(immutable = TRUE) %>%
@@ -605,6 +611,7 @@ summary.input.prep<- function(input.tbl){
              t_ad_imv,
              dur_niv,
              dur_imv,
+             embargo_length
     ))%>%
     mutate(oxygen_therapy=FALSE)%>%
     mutate(oxygen_therapy=case_when(
@@ -958,6 +965,8 @@ treatments.prep <- function(input.tbl){
       temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
       temp2
     }))%>%
+    mutate(nice.treatment = case_when(treatment=='Inotropes vasopressors' ~ 'Inotropes/vasopressors',
+                                      TRUE ~ nice.treatment))%>%
     left_join(data)
   
   out %>%
