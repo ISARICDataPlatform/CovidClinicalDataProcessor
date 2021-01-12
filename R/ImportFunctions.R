@@ -8,6 +8,9 @@
 #' @return The contents of \code{file.name} as a tibble or \code{dtplyr_step}
 #' @keywords internal
 #' @export shared.data.import
+
+date_pull<-as_date("2020-11-30") 
+
 shared.data.import <- function(file.name, 
                                excluded.columns = c("STUDYID", "DOMAIN"),
                                required.columns = character(), 
@@ -80,7 +83,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
                            TRUE ~ NA_character_)) %>%
     mutate(date_admit=substr(date_admit,1, 10))%>%
     mutate(date_admit=as_date(date_admit))%>%
-    mutate(date_admit=replace(date_admit,date_admit >today(),NA))%>%
+    mutate(date_admit=replace(date_admit,date_admit >date_pull,NA))%>%
     select(usubjid, studyid, siteid_final, date_admit, age, sex, ethnic, country)
   if(dtplyr.step){
     return(out)
@@ -98,6 +101,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
 #' @return Formatted demographic data as a tibble or \code{dtplyr_step}
 #' @export import.microbio.data
 
+date_pull<-as_date("2020-11-30")
 import.microb.data <- function(file.name, dtplyr.step = FALSE){
   
   mb<-shared.data.import(file.name, dtplyr.step = TRUE)
@@ -140,9 +144,9 @@ import.microb.data <- function(file.name, dtplyr.step = FALSE){
                                cov_id_cronavir=="POSITIVE"|
                                cov_id_sarscov2=="POSITIVE"~
                                  "POSITIVE",
-                               is.na(cov_det_cronavir)|
-                               is.na(cov_det_sarscov2)|
-                               is.na(cov_id_cronavir)|
+                               is.na(cov_det_cronavir)&
+                               is.na(cov_det_sarscov2)&
+                               is.na(cov_id_cronavir)&
                                is.na(cov_id_sarscov2)~
                                  NA_character_,
                                TRUE~cov_det_id))
@@ -327,7 +331,7 @@ process.symptom.data <- function(input,  minimum=100, dtplyr.step = FALSE){
     mutate(sastdtc=substr(sastdtc,1, 10))%>%
     mutate(sastdtc=as_date(sastdtc))%>%
     filter(sastdtc >= "2020-01-01")%>%
-    filter(sastdtc < today())%>%
+    filter(sastdtc < date_pull%>%
     arrange(sastdtc)%>%
     distinct(usubjid, .keep_all =T)%>%
     select(usubjid, "date_onset"=sastdtc)
@@ -404,16 +408,14 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
   
   last_ho_datea<-icu%>%
     filter(hooccur==TRUE)%>%
-    filter(hostdtc >= "2020-01-01")%>%
-    filter(hostdtc<today())%>%
+    filter(hostdtc >= "2020-01-01"|hostdtc<date_pull )%>%
     arrange(desc(hostdtc))%>%
     distinct(usubjid, .keep_all =T)%>%
     select(usubjid,hostdtc)      
   
   last_ho_dates<-icu%>%
     filter(hooccur==TRUE)%>%
-    filter(hoendtc>= "2020-01-01")%>%
-    filter(hoendtc<today())%>%
+    filter(hoendtc>= "2020-01-01"|hoendtc<date_pull)%>%
     arrange(desc(hoendtc))%>%
     distinct(usubjid, .keep_all =T)%>%
     select(usubjid,hoendtc)%>%
@@ -431,10 +433,10 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
     rename(ever_icu=hooccur)%>%
     rename(icu_in=hostdtc)%>%
     mutate(icu_in=as_date(icu_in))%>%
-    mutate(icu_in=replace(icu_in,icu_in < "2020-01-01" | icu_in >today(),NA))%>%
+    mutate(icu_in=replace(icu_in,icu_in < "2020-01-01" | icu_in >date_pull,NA))%>%
     rename(icu_out=hoendtc)%>%
     mutate(icu_out=as_date(icu_out))%>%
-    mutate(icu_out=replace(icu_out,icu_out < "2020-01-01" | icu_out>today(),NA))%>%
+    mutate(icu_out=replace(icu_out,icu_out < "2020-01-01" | icu_out>date_pull,NA))%>%
     select(-c(hodecod))%>%
     full_join(last_ho_dates, by = c("usubjid"))
   
@@ -630,7 +632,7 @@ process.common.treatment.data <- function(input, minimum=1000, dtplyr.step = FAL
     filter(inoccur==TRUE)%>% 
     mutate(date_in_last=substr(indtc,1, 10))%>%
     mutate(date_in_last=as_date(date_in_last))%>%
-    filter(date_in_last >= "2020-01-01"| date_in_last<today())%>%
+    filter(date_in_last >= "2020-01-01"| date_in_last<date_pull)%>%
     arrange(desc(date_in_last))%>%
     distinct(usubjid, .keep_all =T)%>%
     select(usubjid, date_in_last )
@@ -688,7 +690,7 @@ process.IMV.NIV.ECMO.data <- function(input, dtplyr.step = FALSE){
              treatment == "extracorporeal")%>%
     mutate(indtc=substr(indtc,1, 10))%>%
     mutate(indtc=as_date(indtc))%>%
-    mutate(indtc=replace(indtc,indtc < "2020-01-01" | indtc >today(),NA))%>%
+    mutate(indtc=replace(indtc,indtc < "2020-01-01" | indtc >date_pull,NA))%>%
     mutate(treatment=case_when(treatment=='non_invasive_ventilation'~'niv',
                                treatment=='invasive_ventilation'~'imv',
                                TRUE~treatment
@@ -845,7 +847,7 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
     mutate(date_outcome=substr(date_outcome,1, 10))%>%
     mutate(date_outcome=as_date(date_outcome))%>%
     mutate(date_outcome=replace(date_outcome,date_outcome< "2020-01-01",NA))%>%
-    mutate(date_outcome=replace(date_outcome,date_outcome>today(),NA))%>%
+    mutate(date_outcome=replace(date_outcome,date_outcome>date_pull,NA))%>%
     mutate(outcome=tolower(dsterm))%>%
     mutate(outcome=case_when(outcome=="palliative"~"transferred",
                              outcome=="transferred to another unit"~"ongoing care",
@@ -956,8 +958,7 @@ process.all.data <- function(demog.file.name, microb.file.name=NA, symptoms.file
     
     icu_treat<-treatment_all%>%
       filter(!is.na(indtc))%>%
-      filter(indtc>= "2020-01-01")%>%
-      filter(indtc<today())%>%
+      filter(indtc>= "2020-01-01"|indtc<date_pull)%>%
       left_join(icu_ever,by = c("usubjid"))%>%
       mutate(int_icu=case_when(indtc>=icu_in ~ TRUE, 
                                TRUE ~ FALSE))%>%
