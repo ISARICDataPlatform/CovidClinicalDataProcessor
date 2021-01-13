@@ -6,6 +6,8 @@
 #' @return A \code{tibble} intended for input into other aggregation functions (e.g. \code{age.pyramid.prep})
 #' @export data.preprocessing
 
+
+date_pull<-as_date("2020-11-30")
 data.preprocessing <- function(input.tbl){
 
 
@@ -31,7 +33,7 @@ data.preprocessing <- function(input.tbl){
    
   #test<- input.tbl%>%
     lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid.19_symptoms",symptoms_asymptomatic, comorbid_smoking_former))%>%
+    select(-c("symptoms_covid-19_symptoms",symptoms_asymptomatic, comorbid_smoking_former))%>%
    
    #create upper respiratory tract symptoms combining several symptoms
     mutate(symptrcd_upper_respiratory_tract_symptoms=NA)%>%
@@ -74,15 +76,15 @@ data.preprocessing <- function(input.tbl){
                                TRUE~ date_hoin_last))%>%
     mutate(date_last=case_when(!is.na(date_outcome)~date_outcome,
                                 TRUE  ~ date_last))%>%
-    mutate(date_admit=replace(date_admit,date_admit < "2019-01-01"|date_admit >today(),NA))%>%
+    mutate(date_admit=replace(date_admit,date_admit < "2019-01-01"|date_admit >date_pull,NA))%>%
     mutate(date_start=replace(date_start,date_start < "2020-01-01",NA))%>%
     mutate(date_last=replace(date_last,date_last < "2020-01-01",NA))%>%
     #categorizing outcome
     mutate(slider_outcome="LTFU")%>%
     mutate(slider_outcome=case_when(outcome == "death" ~ "Death",
                                     outcome == "discharge" ~ "Discharge",
-                                    is.na(outcome) & as_date(date_last)> ymd("2020-10-15")~"Ongoing care",
-                                    outcome=="" & as_date(date_last)> ymd("2020-10-15")~"Ongoing care",
+                                    is.na(outcome) & as_date(date_last)> date_pull-45 ~"Ongoing care",
+                                    outcome=="" & as_date(date_last)> date_pull-45~"Ongoing care",
                                     TRUE~slider_outcome
                                     )) %>%
     #categorizing age
@@ -107,19 +109,19 @@ data.preprocessing <- function(input.tbl){
     rename(slider_sex = sex) %>%
     rename(slider_symptomatic = symptomatic) %>%
   #create time variables but t_son_ad
-    mutate(t_ad_icu=icu_in-date_admit)%>%
-    mutate(t_ad_imv=imv_st-date_onset)%>%
-    mutate(t_ad_niv=niv_st-date_onset)%>%
-    mutate(t_ad_icu=icu_in-date_admit)%>%
+    mutate(t_ad_icu=icu_in-date_start)%>%
+    mutate(t_ad_imv=imv_st-date_start)%>%
+    mutate(t_ad_niv=niv_st-date_start)%>%
+    mutate(t_ad_icu=icu_in-date_start)%>%
     mutate(dur_icu=icu_out-icu_in)%>%
-    mutate(dur_ho=date_outcome-date_admit)%>%
+    mutate(dur_ho=date_outcome-date_start)%>%
     mutate(dur_imv=imv_en-imv_st)%>%
     mutate(dur_niv=niv_en-niv_st)%>%
   #set as NA implausible negative value 
     mutate_at(vars(all_of(c(starts_with("t_"),starts_with("dur_")))), function(x){replace(x,x<0,NA)})%>%
    #create time variable: t_son_ad
-    mutate(t_son_ad=date_admit-date_onset)%>%
-    
+    mutate(t_son_ad=case_when(date_admit>=date_onset~date_admit-date_onset,
+                              TRUE~ NA_real_))%>%
   #deleting implausible respiratory rates based on age
     mutate(vs_resp=case_when(vs_resp<= 3 ~ NA_real_,
                              vs_resp<=5 & age < 10 ~ NA_real_ ,
@@ -141,6 +143,10 @@ data.preprocessing <- function(input.tbl){
                              bmi_comb>18.4 & age<65 ~"normal nutrition",
                              bmi_comb>20.4 & age>65 ~"normal nutrition",
                              TRUE~NA_character_))%>%
+   mutate(embargo_length=case_when(date_admit>date_pull-14~TRUE,
+                                   date_admit<=date_pull-14~FALSE
+                                   ))%>%
+   
     as_tibble()
 }
 
