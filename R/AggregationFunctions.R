@@ -1,5 +1,86 @@
+#' Data for the report summary
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dplyr purrr tidyr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the symptoms upset plot
+#' @export summary.input.overall.prep
+
+summary.input.overall.prep<- function(input.tbl){
+  input.tbl%>%
+    select(c(siteid_final,
+             starts_with("slider_"),
+             cov_det_id,
+             embargo_length
+    ))
+    
+}
 
 
+#' Data for the report summary
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dplyr purrr tidyr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the symptoms upset plot
+#' @export summary.input.prep
+
+summary.input.prep<- function(input.tbl){
+  input.tbl%>%   
+  select(c(siteid_final,
+             starts_with("slider_"),
+             age,
+             date_admit,
+             cov_det_id,
+             dur_ho,
+             dur_icu,
+             t_ad_icu,
+             t_son_ad,
+             outcome,
+             slider_outcome,
+             slider_icu_ever,
+             treat_high_flow_nasal_canula_oxygen_therapy,
+             treat_nasal_mask_oxygen_therapy,
+             treat_non_invasive_ventilation,
+             treat_invasive_ventilation,
+             treat_antibiotic_agents,
+             treat_antiviral_agents,
+             treat_corticosteroids,
+             vs_oxysat,
+             icu_treat_antibiotic_agents,
+             icu_treat_antiviral_agents,
+             icu_treat_non_invasive_ventilation,
+             icu_treat_invasive_ventilation,
+             icu_treat_nasal_mask_oxygen_therapy,
+             icu_treat_high_flow_nasal_canula_oxygen_therapy,
+             t_ad_niv,
+             t_ad_imv,
+             dur_niv,
+             dur_imv,
+             embargo_length))%>%
+    mutate(oxygen_therapy=FALSE)%>%
+    mutate(oxygen_therapy=case_when(
+      treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
+        treat_nasal_mask_oxygen_therapy==TRUE|
+        treat_non_invasive_ventilation==TRUE|
+        treat_invasive_ventilation==TRUE
+      ~TRUE,
+      is.na(treat_high_flow_nasal_canula_oxygen_therapy) &
+        is.na(treat_nasal_mask_oxygen_therapy) &
+        is.na (treat_non_invasive_ventilation) &
+        is.na(treat_invasive_ventilation) ~
+        NA,
+      TRUE~oxygen_therapy))%>%
+    mutate(icu_oxygen_therapy=FALSE)%>%
+    mutate(icu_oxygen_therapy=case_when(
+      icu_treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
+        icu_treat_nasal_mask_oxygen_therapy==TRUE|
+        icu_treat_non_invasive_ventilation==TRUE|
+        icu_treat_invasive_ventilation==TRUE~TRUE,
+      is.na(icu_treat_high_flow_nasal_canula_oxygen_therapy)&
+        is.na(icu_treat_nasal_mask_oxygen_therapy)&
+        is.na(icu_treat_non_invasive_ventilation)&
+        is.na(icu_treat_invasive_ventilation)~NA,
+      TRUE~icu_oxygen_therapy))
+}
 
 #' Aggregate data for symptom prevalence plot
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -46,6 +127,7 @@ symptom.prevalence.prep <- function(input.tbl){
 #' @export symptom.upset.prep
 symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
   
+  input.tbl<-input.tbl %>%
   
   data2 <- input.tbl %>%
     select(usubjid, starts_with("symp"))
@@ -327,7 +409,7 @@ treatment.use.proportion.prep <- function(input.tbl){
       temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
       temp2
     }))%>%
-  mutate(nice.treatment = case_when(treatment=='Inotropes vasopressors' ~ 'Inotropes/vasopressors',
+    mutate(nice.treatment = case_when(treatment=='treat_inotropes_vasopressors' ~ 'Inotropes/vasopressors',
                                       TRUE ~ nice.treatment))
   
   
@@ -446,8 +528,7 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
 
 
 icu.treatment.use.proportion.prep <- function(input.tbl){
-  
-  
+ 
   icu.treatment.use.proportion.input <- input.tbl %>%
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("icu_treat")), lower.age.bound, upper.age.bound) %>%
     as.data.table() %>%
@@ -457,19 +538,18 @@ icu.treatment.use.proportion.prep <- function(input.tbl){
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
     as_tibble()
   
-  
-  nice.treatment.mapper <- tibble(treatment = unique(treatment.use.proportion.input$treatment)) %>%
+  nice.treatment.mapper <- tibble(treatment = unique(icu.treatment.use.proportion.input$treatment)) %>%
     mutate(nice.treatment = map_chr(treatment, function(st){
-      temp <- substr(st, 7, nchar(st)) %>% str_replace_all("_", " ")
+      temp <- substr(st, 11, nchar(st)) %>% str_replace_all("_", " ")
       temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
       temp2
     }))%>%
-    mutate(nice.treatment = case_when(treatment=='Inotropes vasopressors' ~ 'Inotropes/vasopressors',
+    mutate(nice.treatment = case_when(treatment=='icu_treat_inotropes_vasopressors' ~ 'Inotropes/vasopressors',
                                       TRUE ~ nice.treatment))
   
   
-  icu.treatment.use.proportion.input %>%
-    lazy_dt(immutable = TRUE) %>%
+  icu.treatment.use.proportion.input%>%
+    #lazy_dt(immutable = TRUE) %>%
     left_join(nice.treatment.mapper) %>%
     as_tibble()
 }
@@ -515,12 +595,14 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
     pull(Treatment)
   
   
-  nice.treatment.mapper <- tibble(treatment = unique(most.common)) %>%
+  nice.treatment.mapper <- tibble(treatment = unique(icu.treatment.use.proportion.input$treatment)) %>%
     mutate(nice.treatment = map_chr(treatment, function(st){
-      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
+      temp <- substr(st, 11, nchar(st)) %>% str_replace_all("_", " ")
       temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
       temp2
-    }))
+    }))%>%
+    mutate(nice.treatment = case_when(treatment=='icu_treat_inotropes_vasopressors' ~ 'Inotropes/vasopressors',
+                                      TRUE ~ nice.treatment))
   
   
   top.n.treatments.tbl <- input.tbl %>%
@@ -572,73 +654,7 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
 }
 
 
-#' Data for the report summary
-#' @param input.tbl Input tibble (output of \code{data.preprocessing})
-#' @import dplyr purrr tidyr
-#' @importFrom glue glue
-#' @return A \code{tibble} containing the input data for the symptoms upset plot
-#' @export summary.input.prep
 
-summary.input.prep<- function(input.tbl){
-  input.tbl%>%
-    select(c(siteid_final,
-             starts_with("slider_"),
-             age,
-             date_admit,
-             cov_det_id,
-             dur_ho,
-             dur_icu,
-             t_ad_icu,
-             t_son_ad,
-             outcome,
-             slider_outcome,
-             slider_icu_ever,
-             treat_high_flow_nasal_canula_oxygen_therapy,
-             treat_nasal_mask_oxygen_therapy,
-             treat_non_invasive_ventilation,
-             treat_invasive_ventilation,
-             treat_antibiotic_agents,
-             treat_antiviral_agents,
-             treat_corticosteroids,
-             vs_oxysat,
-             icu_treat_antibiotic_agents,
-             icu_treat_antiviral_agents,
-             icu_treat_non_invasive_ventilation,
-             icu_treat_invasive_ventilation,
-             icu_treat_nasal_mask_oxygen_therapy,
-             icu_treat_high_flow_nasal_canula_oxygen_therapy,
-             t_ad_niv,
-             t_ad_imv,
-             dur_niv,
-             dur_imv,
-             embargo_length
-    ))%>%
-    mutate(oxygen_therapy=FALSE)%>%
-    mutate(oxygen_therapy=case_when(
-      treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
-        treat_nasal_mask_oxygen_therapy==TRUE|
-        treat_non_invasive_ventilation==TRUE|
-        treat_invasive_ventilation==TRUE
-      ~TRUE,
-      is.na(treat_high_flow_nasal_canula_oxygen_therapy) &
-        is.na(treat_nasal_mask_oxygen_therapy) &
-        is.na (treat_non_invasive_ventilation) &
-        is.na(treat_invasive_ventilation) ~
-        NA,
-      TRUE~oxygen_therapy))%>%
-    mutate(icu_oxygen_therapy=FALSE)%>%
-    mutate(icu_oxygen_therapy=case_when(
-      icu_treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
-        icu_treat_nasal_mask_oxygen_therapy==TRUE|
-        icu_treat_non_invasive_ventilation==TRUE|
-        icu_treat_invasive_ventilation==TRUE~TRUE,
-      is.na(icu_treat_high_flow_nasal_canula_oxygen_therapy)&
-        is.na(icu_treat_nasal_mask_oxygen_therapy)&
-        is.na(icu_treat_non_invasive_ventilation)&
-        is.na(icu_treat_invasive_ventilation)&
-        ~NA,
-      TRUE~icu_oxygen_therapy))
-}
        
 
 #' Prepare Table1. Patient characteristics
@@ -759,7 +775,8 @@ outcome.age.sex.prep <- function(input.tbl){
     mutate(prop=round(n/tot,digit=2))%>%
     mutate(prop=paste0(n," (",prop, ")"))%>%
     pivot_wider(id_cols = Variable, names_from = slider_outcome,  values_from = prop)%>%
-    select("Ongoing care", Death, Discharge, LTFU)%>%
+    #select("Ongoing care", Death, Discharge, LTFU)%>%
+    select(Death, Discharge, LTFU)%>%
     #select(Variable, Death, Discharge, LFTU)%>%
     ungroup()
   
@@ -782,7 +799,8 @@ outcome.age.sex.prep <- function(input.tbl){
     mutate(prop=round(n/tot,digit=2))%>%
     mutate(prop=paste0(n," (",prop, ")"))%>%
     pivot_wider(id_cols = Variable, names_from = slider_outcome,  values_from = prop)%>%
-    select("Ongoing care", Death, Discharge, LTFU)
+    #select("Ongoing care", Death, Discharge, LTFU)
+    select(Death, Discharge, LTFU)
   #select(Variable, Death, Discharge, LFTU)
   
   
@@ -959,13 +977,13 @@ treatments.prep <- function(input.tbl){
   
   data<-data%>%filter(value==TRUE)%>%tabyl(treatment)%>%select(-c(percent))
   
-  nice.treatment.mapper <- tibble(treatment = unique(out$treatment)) %>%
+  nice.treatment.mapper <- tibble(treatment = unique(treatment.use.proportion.input$treatment)) %>%
     mutate(nice.treatment = map_chr(treatment, function(st){
       temp <- substr(st, 7, nchar(st)) %>% str_replace_all("_", " ")
       temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
       temp2
     }))%>%
-    mutate(nice.treatment = case_when(treatment=='Inotropes vasopressors' ~ 'Inotropes/vasopressors',
+    mutate(nice.treatment = case_when(treatment=='treat_inotropes_vasopressors' ~ 'Inotropes/vasopressors',
                                       TRUE ~ nice.treatment))%>%
     left_join(data)
   
