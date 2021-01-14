@@ -787,7 +787,7 @@ heatmap_plot <- function(data_plot_heatmap){
 ###################################################################################
 
 #Import the rds file
-import_martina  <- readRDS("ISVARIC_dash_db_20210114_preprocess.rds")
+import_martina  <- readRDS("Data/ISVARIC_dash_db_20210114_preprocess.rds")
 
 import_martina <- import_martina %>%
   filter(embargo_length!=TRUE & cov_det_id=="POSITIVE")
