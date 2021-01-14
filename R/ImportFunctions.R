@@ -331,7 +331,7 @@ process.symptom.data <- function(input,  minimum=100, dtplyr.step = FALSE){
     mutate(sastdtc=substr(sastdtc,1, 10))%>%
     mutate(sastdtc=as_date(sastdtc))%>%
     filter(sastdtc >= "2020-01-01")%>%
-    filter(sastdtc < date_pull%>%
+    filter(sastdtc < date_pull)%>%
     arrange(sastdtc)%>%
     distinct(usubjid, .keep_all =T)%>%
     select(usubjid, "date_onset"=sastdtc)
