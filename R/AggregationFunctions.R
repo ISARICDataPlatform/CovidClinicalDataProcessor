@@ -6,8 +6,9 @@
 #' @return A \code{tibble} intended for input into other aggregation functions (e.g. \code{age.pyramid.prep})
 #' @export data.preprocessing
 data.preprocessing <- function(input.tbl){
+  
   input.tbl %>%
-    lazy_dt(immutable = TRUE) %>%
+    # lazy_dt(immutable = TRUE) %>%
     mutate(outcome.3 = map2_chr(outcome, date_outcome, outcome.remap)) %>%
     select(-outcome) %>%
     rename(slider_outcome = outcome.3) %>%
@@ -115,16 +116,32 @@ age.pyramid.prep <- function(input.tbl){
 #' @export outcome.admission.date.prep
 outcome.admission.date.prep <- function(input.tbl){
   
-  epiweek.order <- glue("{c(rep(2019,4), rep(2020,max(input.tbl$epiweek.admit[which(input.tbl$year.admit == 2020)], na.rm = T)))}-{c(49:52, 1:max(input.tbl$epiweek.admit[which(input.tbl$year.admit == 2020)], na.rm = T))}")
+  complete.date.listing <- tibble(date = seq(min(input.tbl$date_admit, na.rm = TRUE), today(), by = 'days'))%>%
+    mutate(calendar.year.admit = year(date)) %>%
+    mutate(calendar.month.admit = month(date)) %>%
+    mutate(year.admit = map_dbl(date, epiweek.year)) %>%
+    mutate(epiweek.admit = epiweek(date)) %>%
+    mutate(year.epiweek.admit = glue("{year.admit}-{epiweek.admit}")) %>%
+    mutate(year.epiweek.admit = factor(year.epiweek.admit, ordered= TRUE))
   
-  input.tbl %>%
-    lazy_dt(immutable = TRUE) %>%
-    mutate(year.epiweek.admit = factor(year.epiweek.admit, levels = epiweek.order)) %>%
+  
+  tstt <- input.tbl %>%
+    # lazy_dt(immutable = TRUE) %>%
+    select(-slider_monthyear, -lower.age.bound, -upper.age.bound) %>% # horrible, horrible hack but this is such a painful figure in general
+    mutate(year.epiweek.admit = factor(year.epiweek.admit, levels =  levels(complete.date.listing$year.epiweek.admit), ordered = TRUE)) %>%
     filter(!is.na(year.epiweek.admit) & !is.na(slider_outcome)) %>%
-    select(slider_sex, slider_agegp10, lower.age.bound, upper.age.bound, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, year.epiweek.admit, slider_outcome, slider_icu_ever) %>%
-    group_by(slider_sex, slider_outcome, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, year.epiweek.admit, slider_agegp10, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, slider_outcome, slider_icu_ever) %>%
+    group_by(slider_sex, slider_outcome, slider_country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, slider_agegp10, slider_icu_ever) %>%
     summarise(count = n()) %>%
-    as_tibble() 
+    as_tibble() %>%
+    complete(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, slider_outcome, slider_icu_ever, fill = list(count = 0)) %>%
+    lazy_dt(immutable = TRUE) %>%
+    semi_join(complete.date.listing, by = c("calendar.year.admit", "calendar.month.admit", "year.epiweek.admit"))  %>%
+    mutate(lower.age.bound  = map_dbl(slider_agegp10, extract.age.boundaries.2, TRUE)) %>%
+    mutate(upper.age.bound  = map_dbl(slider_agegp10, extract.age.boundaries.2, FALSE))  %>%
+    mutate(slider_monthyear = map2_chr(calendar.year.admit, calendar.month.admit, month.year.mapper)) %>%
+    as_tibble()
+
 }
 
 
@@ -272,12 +289,33 @@ extract.age.boundaries <- function(agestring, lower = TRUE){
 }
 
 #' @keywords internal
+#' @export extract.age.boundaries.2
+extract.age.boundaries.2 <- function(agestring, lower = TRUE){
+  agestring <- as.character(agestring)
+  if(is.na(agestring)){
+    NA
+  } else if(agestring == "90+"){
+    if(lower){
+      90
+    } else {
+      119
+    }
+  } else if(lower){
+    as.numeric(str_split_fixed(agestring, "-", Inf)[1])
+  } else {
+    as.numeric(str_split_fixed(agestring, "-", Inf)[2]) - 1
+  }
+}
+
+#' @keywords internal
 #' @export epiweek.year
 epiweek.year <- function(date){
   if(is.na(date)){
     return(NA)
   }
   if(year(date)==2019 & date > ymd("2019-12-28")){
+    2020
+  } else if(year(date)==2021 & date < ymd("2021-01-03")){
     2020
   } else {
     year(date)
