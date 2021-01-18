@@ -763,7 +763,16 @@ status.by.time.after.admission.prep <- function(input.tbl){
     dplyr::mutate(status = factor(status, levels = c("Discharge", "unknown", "Ward", "ICU", "Death"))) %>%
     ungroup() 
   
-  complete.timeline.2
+  #adding slider variables
+  slider <-  input.tbl %>%
+    select(usubjid, slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    mutate(subjid=usubjid) %>% 
+    select(-usubjid)
+  
+  final_dt <- complete.timeline.2 %>% 
+    left_join(slider, by="subjid") 
+  
+  final_dt
 }
 
 #' Aggregate data for length of stay within ICU
