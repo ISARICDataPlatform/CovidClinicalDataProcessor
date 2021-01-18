@@ -630,13 +630,13 @@ length.of.stay.sex.prep <- function(input.tbl){
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
+    filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     mutate(length.of.stay=dur_ho) %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, length.of.stay) %>%
     mutate(sex=slider_sex) %>% 
     mutate(sex=factor(sex,levels = c("Male", "Female")))  %>%  
     filter(!is.na(length.of.stay)) %>% 
     filter(!is.na(sex)) %>% 
-    filter(length.of.stay > 0) %>% 
     as_tibble() 
 }
 
@@ -651,13 +651,13 @@ length.of.stay.age.prep <- function(input.tbl){
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
+    filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     mutate(length.of.stay=dur_ho) %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, length.of.stay) %>%
     mutate(agegp10=as.character(slider_agegp10)) %>% 
     mutate(agegp10=ifelse(agegp10 %in% c("70-79","80-89","90+"), "70+", agegp10)) %>% 
     filter(!is.na(length.of.stay)) %>% 
     filter(!is.na(agegp10)) %>% 
-    filter(length.of.stay > 0) %>% 
     as_tibble() 
 }
 
@@ -671,14 +671,13 @@ admission.to.icu.prep <- function(input.tbl){
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
+    filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     mutate(admission.to.icu=t_ad_icu) %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, admission.to.icu) %>%
     filter(!is.na(admission.to.icu)) %>% 
     filter(admission.to.icu >= 0) %>% 
     as_tibble() 
 }
-admission.to.icu.input<-admission.to.icu.prep(input.tbl)
-save(admission.to.icu.input, file = "admission_to_icu_input.rda")
 
 #' Aggregate data for timeline plot
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -689,26 +688,26 @@ save(admission.to.icu.input, file = "admission_to_icu_input.rda")
 status.by.time.after.admission.prep <- function(input.tbl){
   
   timings.wrangle <- input.tbl %>% 
-    filter(!is.na(date_admit)) %>% 
-    select(usubjid, date_admit, icu_in, icu_out, dur_icu, dur_ho, t_ad_icu, outcome, date_outcome, date_last, slider_outcome) %>% 
+    filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
+    filter(!is.na(date_start)) %>% 
+    select(usubjid, date_start, icu_in, icu_out, dur_icu, dur_ho, t_ad_icu, date_outcome, date_last, slider_outcome) %>% 
     mutate(subjid=usubjid,
            final.status= ifelse(slider_outcome %in% c("LTFU","Ongoing care"), "unknown", slider_outcome),
            hospital.start = 0,
-           hospital.end=dur_ho,
-           ICU.start = t_ad_icu,
-           ICU.end= t_ad_icu+dur_icu,
-           censored.date=date_last-date_admit) %>% 
-    filter(censored.date>=0) %>% 
-    filter(icu_in>=date_admit|is.na(icu_in)) %>% 
+           hospital.end=date_outcome-date_start,
+           ICU.start = icu_in-date_start,
+           ICU.end= icu_out-date_start, 
+           last_date=date_last-date_start) %>% 
+    filter(icu_in>=date_start|is.na(icu_in)) %>% 
     filter(hospital.end >= 0 | is.na(hospital.end))  %>%
     mutate(ever.ICU = !is.na(ICU.start)) %>%
     # If hospital end is known but ICU end is not, impossible to resolve
     filter(!(!is.na(hospital.end) & is.na(ICU.end) & ever.ICU)) %>%
-    mutate(last.date = pmax(hospital.end, ICU.end, censored.date, na.rm = T))%>%
+    mutate(last.date = pmax(hospital.end, ICU.end, last_date, na.rm = T))%>%
     filter(last.date>=0) 
   
   overall.start <- 0
-  overall.end <- quantile(timings.wrangle$hospital.end, 0.99, na.rm = T)
+  overall.end <- quantile(timings.wrangle$hospital.end, 0.975, na.rm = T)
  
    # this generates a table of the status of every patient on every day
   complete.timeline <- map(1:nrow(timings.wrangle), function(pat.no){  
@@ -764,24 +763,7 @@ status.by.time.after.admission.prep <- function(input.tbl){
     dplyr::mutate(status = factor(status, levels = c("Discharge", "unknown", "Ward", "ICU", "Death"))) %>%
     ungroup() 
   
-  slider <-  input.tbl %>%
-    select(usubjid, slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
-    mutate(subjid=usubjid) %>% 
-    select(-usubjid)
-  
-  final_dt <- complete.timeline.2 %>% 
-    left_join(slider, by="subjid") %>% 
-    select(-subjid) %>% 
-    group_by(day,
-             status,
-             slider_sex,
-             slider_agegp10,
-             slider_country,
-             slider_monthyear) %>%
-    summarise(count = n()) %>%
-    as_tibble()
-  
-  final_dt
+  complete.timeline.2
 }
 
 #' Aggregate data for length of stay within ICU
@@ -794,6 +776,7 @@ length.of.stay.icu.prep <- function(input.tbl){
   
   tb1 <- input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
+    filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever,dur_ho) %>% 
     filter(dur_ho>0) %>% 
     rename(dur=dur_ho) %>% 
@@ -801,6 +784,7 @@ length.of.stay.icu.prep <- function(input.tbl){
     as_tibble() 
   tb2 <- input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
+    filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever,dur_icu) %>% 
     filter(dur_icu>0) %>% 
     rename(dur=dur_icu) %>% 
@@ -825,6 +809,7 @@ patient.by.country.prep <- function(input.tbl){
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
+    filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
     filter(!is.na(slider_country)) %>% 
     as_tibble() 
