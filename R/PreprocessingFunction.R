@@ -33,7 +33,7 @@ data.preprocessing <- function(input.tbl){
    
   #test<- input.tbl%>%
     lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid-19_symptoms",symptoms_asymptomatic, comorbid_smoking_former))%>%
+    select(-c("symptoms_covid.19_symptoms",symptoms_asymptomatic, comorbid_smoking_former))%>%
    
    #create upper respiratory tract symptoms combining several symptoms
     mutate(symptrcd_upper_respiratory_tract_symptoms=NA)%>%
@@ -127,13 +127,20 @@ data.preprocessing <- function(input.tbl){
                              vs_resp<=5 & age < 10 ~ NA_real_ ,
                              TRUE ~ vs_resp)) %>%  
   #set as NA outliers for time, vital sign and laboratory variables
-    mutate_at(vars(c(all_of(c(starts_with("vs_"),starts_with("lab_"),starts_with("t_"),starts_with("dur_"))))), 
+    mutate_at(vars(c(all_of(c(starts_with("vs_"),starts_with("lab_"))))), 
               function(x,na.rm = FALSE){replace(x, 
                                                 x<(quantile(x, 0.25, na.rm = TRUE))-(1.5*IQR(x, na.rm = TRUE))|
                                                 x>(quantile(x, 0.75, na.rm = TRUE))+(1.5*IQR(x, na.rm = TRUE)),
                                                 NA_real_)
                                                   })%>% 
+   mutate_at(vars(c(all_of(c(starts_with("t_"),starts_with("dur_"))))), 
+             function(x,na.rm = FALSE){replace(x, 
+                                               x>(quantile(x, 0.975, na.rm = TRUE)),
+                                               NA_real_)
+             }
+   )%>% 
    #calculating bmi
+
    mutate(vs_bmi_calc=vs_weight/(vs_height/100)^2)%>%
    mutate(vs_bmi_calc=as.numeric(vs_bmi_calc))%>%
    mutate(vs_bmi=as.numeric(vs_bmi))%>%
