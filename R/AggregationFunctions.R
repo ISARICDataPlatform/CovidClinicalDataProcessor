@@ -1028,7 +1028,8 @@ key.times.prep <- function(input.tbl){
   out<-select(input.tbl, c(starts_with("dur_"))) %>%
     pivot_longer(c(starts_with("dur_")), names_to = "key_time", values_to = "value")%>%
     rbind(data)%>%
-    filter(!(is.na(value)|value>330|value<0))%>%
+    filter(!is.na(value))%>%
+    filter(value>=0)%>%
     group_by(key_time)%>%
     summarise(mean=mean(value,na.rm=T),
               sd=sd(value,na.rm=T),
