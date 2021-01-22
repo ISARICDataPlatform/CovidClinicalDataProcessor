@@ -239,7 +239,11 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
 patient.site.time.map.prep <- function(input.tbl){
   
   patient.site.time.map.input   <- input.tbl %>%
-    tabyl(date_start,siteid_final)
+    filter(!is.na(date_start)& date_start!="" & !is.na(siteid_final))%>%
+    mutate(count=1)%>%
+    group_by(siteid_final,date_start)%>%
+    summarise(n_patients=sum(count,na.rm=T))
+
   
 }
 
