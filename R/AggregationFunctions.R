@@ -267,6 +267,7 @@ comorbidity.prevalence.prep <- function(input.tbl){
     lazy_dt(immutable = TRUE) %>%
     group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, comorbidity, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)))%>%
+    filter(comorbidity!="comorbid_other_comorbidities")%>%
     as.data.frame()
   
   
@@ -326,6 +327,7 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
     dplyr::summarise(Total = n(), Present = sum(Present, na.rm = T)) %>%
     ungroup() %>%
     filter(Condition != "other_mhyn") %>%
+    filter(Condition!="comorbid_other_comorbidities")%>%
     arrange(desc(Present)) %>%
     slice(1:max.comorbidities) %>%
     pull(Condition)
@@ -677,6 +679,12 @@ patient.characteristic.prep <- function(input.tbl){
     rename(value=n)%>%
     select(Description,value)
   
+  Description<-c(
+    'Female',
+    'Male',
+    'Unknown')
+  Description<-data.frame(Description)
+  
   by_sex<-input.tbl %>%
     mutate(Description=slider_sex)%>%
     mutate(Description=replace(Description,is.na(Description)|Description=="","Unknown"))%>%
@@ -685,7 +693,19 @@ patient.characteristic.prep <- function(input.tbl){
     summarise(n = sum(count, na.rm=T)) %>%
     mutate(value=round(n/tot,digit=2))%>%
     mutate(value=paste0(n," (",value, ")"))%>%
-    select(Description,value)
+    select(Description,value)%>%
+    full_join(Description)%>%
+    mutate(value=replace(value,is.na(value),"0 (0)"))%>%
+    arrange(Description, levels=c('Female',
+                                        'Male',
+                                        'Unknown'))
+  
+  Description<-c(
+    'Death',
+    'Discharge',
+    'Ongoing care',
+    'LTFU')
+  Description<-data.frame(Description)
   
   by_outcome<-input.tbl%>%
     mutate(Description=slider_outcome)%>%
@@ -695,8 +715,27 @@ patient.characteristic.prep <- function(input.tbl){
     summarise(n = sum(count, na.rm=T)) %>%
     mutate(value=round(n/tot,digit=2))%>%
     mutate(value=paste0(n," (",value, ")"))%>%
-    select(Description,value)
+    select(Description,value)%>%
+    full_join(Description)%>%
+    mutate(value=replace(value,is.na(value),"0 (0)"))%>%
+  arrange(Description, levels=c('Death',
+                                'Discharge',
+                                'Ongoing care',
+                                'LTFU'))
   
+  
+  Description<-c(
+    'By age',
+    '0-9',
+    '10-19',
+    '20-29',
+    '30-39',
+    '40-49',
+    '50-59',
+    '60-69',
+    '70+' ,
+    'Unknown')
+  Description<-data.frame(Description)
   
   by_age<-input.tbl%>%
     mutate(Description=as.character(slider_agegp10))%>%
@@ -712,9 +751,24 @@ patient.characteristic.prep <- function(input.tbl){
     summarise(n = sum(count, na.rm=T)) %>%
     mutate(value=round(n/tot,digit=2))%>%
     mutate(value=paste0(n," (",value, ")"))%>%
-    select(Description,value)
+    select(Description,value)%>%
+    full_join(Description)%>%
+    mutate(value=replace(value,is.na(value),"0 (0)"))%>%
+    arrange(Description, levels=c('0-9',
+                                  '10-19',
+                                  '20-29',
+                                  '30-39',
+                                  '40-49',
+                                  '50-59',
+                                  '60-69',
+                                  '70+' ,
+                                  'Unknown'))
   
-  
+  Description<-c(
+    'Yes',
+    'No',
+    'Unknown')
+  Description<-data.frame(Description) 
   by_icu<-input.tbl%>%
     mutate(Description=slider_icu_ever)%>%
     mutate(Description=case_when(Description==TRUE~"Yes",
@@ -726,16 +780,19 @@ patient.characteristic.prep <- function(input.tbl){
     mutate(value=round(n/tot,digit=2))%>%
     mutate(value=paste0(n," (",value, ")"))%>%
     select(Description,value)%>%
+    full_join(Description)%>%
+    mutate(value=replace(value,is.na(value),"0 (0)"))%>%
     arrange(Description, levels=c('Yes',
                                   'No',
                                   'Unknown'))
+    
   
+  out<-rbind(size_cohort,
+             c('By sex',''),by_sex,
+             c('By outcome status',''),by_outcome,
+             c('By age group',''), by_age,
+             c('Admitted to ICU/HDU?',''),by_icu  )  
   
-  out<-rbind(size_cohort,c('By sex',''),by_sex,c('By outcome status',''),by_outcome,
-             c('By age group',''), by_age,c('Admitted to ICU/HDU?',''),by_icu  )  
-  
-  #out<-rbind(size_cohort,c('',''),c('By sex',''),by_sex,c('',''),c('By outcome status',''),by_outcome,c('',''),
-  #          c('By age group',''), by_age,c('',''),c('Admitted to ICU/HDU?',''),by_icu  )  
   
 }
 
@@ -749,22 +806,16 @@ patient.characteristic.prep <- function(input.tbl){
 #' @export outcome.age.sex.table
 #' 
 outcome.age.sex.prep <- function(input.tbl){
-  
+
+  slider_outcome<-c('Death', 'Discharge','Ongoing care', 'LTFU')
+  slider_outcome<-data.frame(slider_outcome)
+    
   Variable<-c(
-    'age',
-    '0-9',
-    '10-19',
-    '20-29',
-    '30-39',
-    '40-49',
-    '50-59',
-    '60-69',
-    '70+' ,
-    #'',
-    'Sex',
     'Female',
     'Male')
-  Variable<-data.frame(Variable)
+  Variable<-data.frame(Variable) 
+  
+  
   
   sex<-input.tbl %>%
     mutate(Variable=slider_sex)%>%
@@ -778,12 +829,26 @@ outcome.age.sex.prep <- function(input.tbl){
     summarise(n = sum(count, na.rm=T)) %>%
     mutate(prop=round(n/tot,digit=2))%>%
     mutate(prop=paste0(n," (",prop, ")"))%>%
+    full_join(slider_outcome)%>%
     pivot_wider(id_cols = Variable, names_from = slider_outcome,  values_from = prop)%>%
-    #select("Ongoing care", Death, Discharge, LTFU)%>%
-    select(Death, Discharge, LTFU)%>%
-    #select(Variable, Death, Discharge, LFTU)%>%
+    full_join(Variable)%>%
+    arrange(Variable, levels=c('Female',
+                               'Male'))%>%
+    select('Death', 'Discharge','Ongoing care', 'LTFU')%>%
     ungroup()
+    sex<-replace(sex,is.na(sex),as.character("0 (0)"))
+ 
   
+  Variable<-c(
+    '0-9',
+    '10-19',
+    '20-29',
+    '30-39',
+    '40-49',
+    '50-59',
+    '60-69',
+    '70+')
+  Variable<-data.frame(Variable)
   
   age <- input.tbl %>%
     select(slider_agegp10,slider_outcome)%>%
@@ -802,27 +867,23 @@ outcome.age.sex.prep <- function(input.tbl){
     summarise(n = sum(count, na.rm=T)) %>%
     mutate(prop=round(n/tot,digit=2))%>%
     mutate(prop=paste0(n," (",prop, ")"))%>%
+    full_join(slider_outcome)%>%
     pivot_wider(id_cols = Variable, names_from = slider_outcome,  values_from = prop)%>%
-    #select("Ongoing care", Death, Discharge, LTFU)
-    select(Death, Discharge, LTFU)
-  #select(Variable, Death, Discharge, LFTU)
-  
-  
-  out<-rbind(age,sex)%>%
     full_join(Variable)%>%
-    arrange(factor(Variable, levels=c('age',
-                                      '0-9',
-                                      '10-19',
-                                      '20-29',
-                                      '30-39',
-                                      '40-49',
-                                      '50-59',
-                                      '60-69',
-                                      '70+' ,
-                                      #'',
-                                      'Sex',
-                                      'Female',
-                                      'Male')))
+    arrange(Variable, levels=c('0-9',
+                               '10-19',
+                               '20-29',
+                               '30-39',
+                               '40-49',
+                               '50-59',
+                               '60-69',
+                               '70+'))%>%
+    select('Death', 'Discharge','Ongoing care', 'LTFU')%>%
+    ungroup()
+  age<-replace(age,is.na(age),as.character("0 (0)"))
+  
+  out<-rbind(c('Age','','','',''),age,
+             c('Sex','','','',''),sex)  
   
 }
 
