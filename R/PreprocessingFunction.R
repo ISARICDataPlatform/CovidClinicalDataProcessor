@@ -12,8 +12,10 @@ data.preprocessing <- function(input.tbl){
 
 
   #create a list with the variable dates  
-  var_date<- input.tbl %>% select(date_admit, date_onset, 
-                             date_in_last, icu_in,
+  var_date<- input.tbl %>% select(date_admit, 
+                                  date_onset, 
+                             date_in_last, 
+                             icu_in,
                              icu_out,
                              date_ho_last,
                              extracorporeal_st,
