@@ -808,7 +808,19 @@ status.by.time.after.admission.prep <- function(input.tbl){
     select(-usubjid)
   
   final_dt <- complete.timeline.2 %>% 
-    left_join(slider, by="subjid") 
+    left_join(slider, by="subjid") %>% 
+    group_by(day,
+             status,
+             slider_sex,
+             slider_agegp10,
+             slider_country,
+             slider_monthyear,
+             slider_outcome,
+             slider_icu_ever,
+             lower.age.bound, 
+             upper.age.bound) %>%
+    summarise(count = n()) %>%
+    as_tibble()
   
   final_dt
 }
