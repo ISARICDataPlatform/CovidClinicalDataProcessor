@@ -776,7 +776,11 @@ status.by.time.after.admission.prep <- function(input.tbl){
              slider_sex,
              slider_agegp10,
              slider_country,
-             slider_monthyear) %>%
+             slider_monthyear,
+             slider_outcome,
+             slider_icu_ever,
+             lower.age.bound, 
+             upper.age.bound) %>%
     summarise(count = n()) %>%
     as_tibble()
   
