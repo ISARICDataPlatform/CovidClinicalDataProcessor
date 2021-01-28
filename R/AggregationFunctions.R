@@ -787,11 +787,11 @@ heatmap_plot <- function(data_plot_heatmap){
 ###################################################################################
 
 #Import the rds file
-import_martina  <- readRDS("Data/ISVARIC_dash_db_20210114_preprocess.rds")
+import_martina  <- readRDS("Data/ISVARIC_dash_db_2021jan_random_preprocess.rds")
 
-import_martina <- import_martina %>%
-  filter(embargo_length!=TRUE & cov_det_id=="POSITIVE")
 
+import_martina <- import_martina%>%
+  filter((embargo_length==FALSE | is.na(embargo_length)) & cov_det_id=="POSITIVE")
 
 #############
 #Figure 2 ###
@@ -1207,8 +1207,6 @@ admission.symptoms <- as_tibble(admission.symptoms)
 data_plot_heatmap <- symptom.heatmap(data = import_martina, admission.symptoms = admission.symptoms, asterisks = vector())
 
 save(data_plot_heatmap, file ="saved_rda_files/data_plot_heatmap.rda")
-heatmap_plot_try <- heatmap_plot(data_plot_heatmap)
-heatmap_plot_try
 
 
 
