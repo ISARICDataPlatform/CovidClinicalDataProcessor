@@ -1,4 +1,40 @@
-
+#load packages (some of these are not being used but we can delete them later)
+library(RColorBrewer)
+library(incidence)
+library(shiny)
+library(shinydashboard)
+library(magrittr)
+library(lattice)
+library(stringr)
+library(plyr)
+library(FSA)
+library(DescTools)
+library(vcd)
+library(rcompanion)
+library(ggplot2)
+library(MASS)
+library(sgr)
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(janitor)
+library(Hmisc)
+library(RColorBrewer)
+library(dtplyr) 
+library(data.table)
+library(tidyfast)
+library(naniar)
+library(shinyWidgets)
+library(viridis)
+library(hrbrthemes)
+library(splitstackshape)
+library(glue)
+library(lubridate)
+library(grid)
+library(gtable)
+library(gridExtra)
+#month.year.mapper()
 #' Preprocessing step for all aggregations. Currently: remaps outcome to death, discharge or NA, cuts age into 5-year age groups, and adds a year-epiweek column
 #' @param input.tbl Input tibble (output of \code{process.all.data})
 #' @import dtplyr dplyr purrr lubridate tibble
@@ -17,7 +53,7 @@ data.preprocessing <- function(input.tbl){
     mutate(slider_monthyear = map2_chr(calendar.year.admit, calendar.month.admit, month.year.mapper)) %>%
     mutate(year.admit = map_dbl(date_admit, epiweek.year)) %>%
     mutate(epiweek.admit = epiweek(date_admit)) %>%
-    mutate(year.epiweek.admit = glue("{year.admit}-{epiweek.admit}", .envir = .SD)) %>%
+    mutate(year.epiweek.admit = glue("{year.admit}-{epiweek.admit}", .envir = .SD)) %>% #Try replacing with unite if necesary
     mutate(year.epiweek.admit = replace(year.epiweek.admit, year.epiweek.admit == "NA-NA", NA)) %>%
     mutate(lower.age.bound  = map_dbl(agegp10, extract.age.boundaries, TRUE)) %>%
     mutate(upper.age.bound  = map_dbl(agegp10, extract.age.boundaries, FALSE)) %>%
@@ -42,7 +78,7 @@ age.pyramid.prep <- function(input.tbl){
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    dplyr::select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
     group_by(slider_sex, slider_outcome, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_agegp10, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
     summarise(count = n()) %>%
     as_tibble() 
@@ -233,7 +269,11 @@ outcome.remap <- function(oc, od){
   } else {
     out <- case_when(is.na(oc) ~ NA_character_,
                      oc == "Death" ~ "death",
-                     oc == "Discharge" ~ "discharge")
+                     oc ==  "Discharge" ~"discharge",
+                     oc == "Transferred" ~ "Transferred",
+                     oc == "Ongoing care" ~ "Ongoing care",
+                     oc ==  "" ~ "censored"
+                     )
   }
 }
 
@@ -560,7 +600,6 @@ icu.treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   
 }
 
-
 #' Aggregate data for hospital stay plot by sex
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dtplyr dplyr tibble purrr
@@ -734,3 +773,64 @@ status.by.time.after.admission.prep <- function(input.tbl){
   
   final_dt
 }
+
+###################################################################################
+###################################################################################
+#####Create tables for dashboard###################################################
+###################################################################################
+###################################################################################
+import  <- read.csv("ISVARIC_dash_db_20201109_.csv")
+
+tabyl(import, outcome)
+
+#Set the date_admit to a date form
+import$date_admit <-import$date_admit %>%
+  as.Date(tryFormats = "%m/%d/%y")
+
+#Work the import data
+data_to_proc <-  data.preprocessing(import) ## Should it be done like this?
+
+tabyl(data_to_proc, slider_outcome)
+
+################################
+#Run the functions created above
+################################
+   
+#Figure 2: Age and sex distribution of patients. Bar fills are outcome (death/discharge/ongoing care) at the time of report.
+      #Country/year-epiweek-adm/age10/age5/sex/outcome/icu
+age.pyramid.input <- age.pyramid.prep(data_to_proc)
+tabyl(age.pyramid.input, slider_outcome)
+
+
+outcome.admission.date <- outcome.admission.date.prep(data_to_proc)
+
+#Figure 7: Box and whisker plots for observations at hospital presentation stratified by age group.
+      #Country/year-epiweek-adm/age10/sex/outcome/icu/vital signs
+#Filter the data (outlier and na)
+data_plot_vs <- select(data_to_proc, c(slider_agegp10, vs_resp,
+                                       vs_hr, vs_oxysat, vs_sysbp, vs_temp)) %>%
+    pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
+  filter(!is.na(value)) #%>%
+  #subset(symptom == "vs_hr" & (value > (mean(value) + 3*(sd(value)))  | value < (mean(value) -  3*(sd(value)))))
+
+#Plot
+p <- ggplot(data = data_plot_vs, aes(x=slider_agegp10, y=value)) + 
+  geom_boxplot(aes(fill=slider_agegp10)) + facet_wrap( ~ symptom, ncol = 2) +
+  xlab("Age groups") + ylab("signs") + 
+  ggtitle("X number of individuals")+ guides(fill=guide_legend(title="Age groups"))
+p 
+
+
+#############################
+#Save the tables as rda files
+#############################
+
+
+
+
+
+
+save(age.pyramid.input, file ="age.pyramid.input.rda")
+#save(outcome.admission.date, file ="outcome_admission_date_input.rda")
+
+
