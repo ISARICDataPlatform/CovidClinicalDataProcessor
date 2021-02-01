@@ -161,6 +161,7 @@ import.microb.data <- function(file.name, dtplyr.step = FALSE){
 #' @import dplyr tibble stringr
 #' @return Formatted comorbidity and symptom data as a tibble or \code{dtplyr_step}
 #' @export import.symptom.and.comorbidity.data
+
 import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.step = FALSE){
   
   out <- shared.data.import(file.name, 
@@ -312,7 +313,8 @@ process.symptom.data <- function(input,  minimum=100, dtplyr.step = FALSE){
       symptom <- symptom %>% as.data.table %>% lazy_dt(immutable = FALSE)
     }
   }
-  
+
+
   symptom_w <- symptom %>%
     filter(sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION") %>%
     arrange(desc(saoccur))%>%
@@ -625,8 +627,8 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
 #' @importFrom glue glue
 #' @return Formatted common treatment data (wide format) as a tibble or \code{dtplyr_step}
 #' @export process.common.treatment.data
-
 process.common.treatment.data <- function(input, minimum=1000, dtplyr.step = FALSE){
+
   if(is.character(input)){
     # assume it's a path
     treatment_all <- process.treatment.data(input, TRUE)
