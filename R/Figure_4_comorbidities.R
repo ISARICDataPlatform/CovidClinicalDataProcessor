@@ -486,6 +486,7 @@ symptom.prevalence.prep <- function(input.tbl){
       temp2
     })) %>%
     mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
+                                    nice.symptom=="Cough bloody sputum haemoptysis" ~ "Cough with bloody sputum/haemoptysis",
                                     nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
                                     nice.symptom=="Vomiting nausea"~ "Vomiting/nausea",
                                     TRUE ~ nice.symptom))
@@ -549,8 +550,9 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
       temp2
     })) %>%
     mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
+                                    #nice.symptom=="Cough" ~ "Cough (no sputum)",
+                                    #nice.symptom=="Cough bloody sputum haemoptysis" ~ "Cough with bloody sputum/haemoptysis",
                                     nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
-                                    nice.symptom=="Vomiting nausea"~ "Vomiting/nausea",
                                     TRUE ~ nice.symptom))
   
   
