@@ -35,9 +35,8 @@ summary.input.prep<- function(input.tbl){
              t_ad_icu,
              t_son_ad,
              outcome,
-             slider_outcome,
              slider_icu_ever,
-             treat_high_flow_nasal_canula_oxygen_therapy,
+             #treat_high_flow_nasal_cannula,
              treat_nasal_mask_oxygen_therapy,
              treat_non_invasive_ventilation,
              treat_invasive_ventilation,
@@ -50,7 +49,7 @@ summary.input.prep<- function(input.tbl){
              icu_treat_non_invasive_ventilation,
              icu_treat_invasive_ventilation,
              icu_treat_nasal_mask_oxygen_therapy,
-             icu_treat_high_flow_nasal_canula_oxygen_therapy,
+             #icu_treat_high_flow_nasal_cannula,
              t_ad_niv,
              t_ad_imv,
              dur_niv,
@@ -58,12 +57,12 @@ summary.input.prep<- function(input.tbl){
              embargo_length))%>%
     mutate(oxygen_therapy=FALSE)%>%
     mutate(oxygen_therapy=case_when(
-      treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
+      #treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
         treat_nasal_mask_oxygen_therapy==TRUE|
         treat_non_invasive_ventilation==TRUE|
         treat_invasive_ventilation==TRUE
       ~TRUE,
-      is.na(treat_high_flow_nasal_canula_oxygen_therapy) &
+      #is.na(treat_high_flow_nasal_canula_oxygen_therapy) &
         is.na(treat_nasal_mask_oxygen_therapy) &
         is.na (treat_non_invasive_ventilation) &
         is.na(treat_invasive_ventilation) ~
@@ -71,11 +70,11 @@ summary.input.prep<- function(input.tbl){
       TRUE~oxygen_therapy))%>%
     mutate(icu_oxygen_therapy=FALSE)%>%
     mutate(icu_oxygen_therapy=case_when(
-      icu_treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
+      #icu_treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
         icu_treat_nasal_mask_oxygen_therapy==TRUE|
         icu_treat_non_invasive_ventilation==TRUE|
         icu_treat_invasive_ventilation==TRUE~TRUE,
-      is.na(icu_treat_high_flow_nasal_canula_oxygen_therapy)&
+      #is.na(icu_treat_high_flow_nasal_canula_oxygen_therapy)&
         is.na(icu_treat_nasal_mask_oxygen_therapy)&
         is.na(icu_treat_non_invasive_ventilation)&
         is.na(icu_treat_invasive_ventilation)~NA,
@@ -127,7 +126,7 @@ symptom.prevalence.prep <- function(input.tbl){
 #' @export symptom.upset.prep
 symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
   
-  input.tbl<-input.tbl %>%
+  
   
   data2 <- input.tbl %>%
     select(usubjid, starts_with("symp"))
@@ -725,7 +724,7 @@ patient.characteristic.prep <- function(input.tbl){
   
   
   Description<-c(
-    'By age',
+    #'By age',
     '0-9',
     '10-19',
     '20-29',
@@ -754,7 +753,9 @@ patient.characteristic.prep <- function(input.tbl){
     select(Description,value)%>%
     full_join(Description)%>%
     mutate(value=replace(value,is.na(value),"0 (0)"))%>%
-    arrange(Description, levels=c('0-9',
+    arrange(Description, levels=c(
+                                  #'By age',
+                                  '0-9',
                                   '10-19',
                                   '20-29',
                                   '30-39',
@@ -825,13 +826,13 @@ outcome.age.sex.prep <- function(input.tbl){
     mutate(tot = sum(count)) %>%
     ungroup()%>%
     group_by(Variable,slider_outcome, tot)%>%
-    group_by(Variable,slider_outcome,tot)%>%
     summarise(n = sum(count, na.rm=T)) %>%
     mutate(prop=round(n/tot,digit=2))%>%
     mutate(prop=paste0(n," (",prop, ")"))%>%
     full_join(slider_outcome)%>%
     pivot_wider(id_cols = Variable, names_from = slider_outcome,  values_from = prop)%>%
     full_join(Variable)%>%
+    filter(!is.na(Variable))%>%
     arrange(Variable, levels=c('Female',
                                'Male'))%>%
     select('Death', 'Discharge','Ongoing care', 'LTFU')%>%
@@ -870,6 +871,7 @@ outcome.age.sex.prep <- function(input.tbl){
     full_join(slider_outcome)%>%
     pivot_wider(id_cols = Variable, names_from = slider_outcome,  values_from = prop)%>%
     full_join(Variable)%>%
+    filter(!is.na(Variable))%>%
     arrange(Variable, levels=c('0-9',
                                '10-19',
                                '20-29',
