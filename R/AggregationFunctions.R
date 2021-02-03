@@ -787,7 +787,8 @@ heatmap_plot <- function(data_plot_heatmap){
 ###################################################################################
 
 #Import the rds file
-import_martina  <- readRDS("Data/ISVARIC_dash_db_2021jan_random_preprocess.rds")
+base::load("Data/ISVARIC_dash_db_preprocess.rda")
+import_martina  <- prepr.tbl
 
 
 import_martina <- import_martina%>%
