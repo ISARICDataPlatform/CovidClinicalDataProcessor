@@ -1290,24 +1290,6 @@ outcome.age.sex.prep <- function(input.tbl){
   out<-rbind(c('Age','','','',''),age,
              c('Sex','','','',''),sex)  
   
-<<<<<<< HEAD
-=======
-#'Create the function that makes the heatmap plot
-#'
-heatmap_plot <- function(data_plot_heatmap){
-  heatmap_plot <- ggplot(data_plot_heatmap) +
-    geom_tile(aes(x=label.x, y=label.y, fill=phi.correlation)) +
-    scale_fill_gradient2(low = "deepskyblue3", mid = "white", high = "indianred3",
-                         name = "phi coefficient", limits = c(-1,1)) +
-    theme_bw() +
-    theme(panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.title.x=element_blank(),
-          axis.title.y=element_blank(),
-          text = element_text(size=9),
-          axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-    coord_fixed()
->>>>>>> joaquin_graphs
 }
 
 
@@ -1430,7 +1412,7 @@ comorbidity.prep <- function(input.tbl){
 }
 
 
-<<<<<<< HEAD
+
 
 
 #' Prepare Table5. Prevalence of treatments
@@ -1553,7 +1535,7 @@ key.times.prep <- function(input.tbl){
     rename("IQR (observed)"=iqr)
   
 }
-=======
+
 
 #' vital signs
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -1962,125 +1944,6 @@ admission.symptoms <- cbind(field = c("symptoms_runny_nose",
                                       "Altered consciousness / confusion"))
 admission.symptoms <- as_tibble(admission.symptoms)
 
-
-
-###################################################################################
-###################################################################################
-#####Create tables for dashboard###################################################
-###################################################################################
-###################################################################################
-
-#Import the rds file and cleaning it
-base::load("Data/ISVARIC_dash_db_preprocess.rda")
-import_martina  <- prepr.tbl
-
-
-import_martina <- import_martina%>%
-  filter((embargo_length==FALSE | is.na(embargo_length)) & cov_det_id=="POSITIVE")
-
-######################################################
-#   Saving all the tables
-######################################################
-#Age pyramid part
-age.pyramid.input <- age.pyramid.prep(import_martina)
-save(age.pyramid.input, file ="saved_rda_files/age_pyramid_input.rda")
-
-#outcome by admision date
-outcome_admission_date_input <- outcome.admission.date.prep(import_martina)
-save(outcome_admission_date_input, file ="saved_rda_files/outcome_admission_date_input.rda")
-
-#vital signs
-data_plot_vs_resp <- func_plots_vs_resp(import_martina)
-data_plot_vs_hr <- func_plots_vs_hr(import_martina)
-data_plot_vs_temp <- func_plots_vs_temp(import_martina)
-data_plot_vs_sysbp <- func_plots_vs_sysbp(import_martina)
-data_plot_vs_oxysat <- func_plots_vs_oxysat(import_martina)
-
-save(data_plot_vs_resp, file ="saved_rda_files/data_plot_vs_resp.rda")
-save(data_plot_vs_hr, file ="saved_rda_files/data_plot_vs_hr.rda")
-save(data_plot_vs_temp, file ="saved_rda_files/data_plot_vs_temp.rda")
-save(data_plot_vs_sysbp, file ="saved_rda_files/data_plot_vs_sysbp.rda")
-save(data_plot_vs_oxysat, file ="saved_rda_files/data_plot_vs_oxysat.rda")
-
-#Lab data
-data_plot_lab_crp <- func_plot_lab_crp(import_martina)
-data_plot_lab_lym <- func_plot_lab_lym(import_martina)
-data_plot_lab_neut <- func_plot_lab_neut(import_martina)
-data_plot_lab_wbc <- func_plot_lab_crp(import_martina)
-data_plot_lab_urean <- func_plot_lab_urean(import_martina)
-data_plot_lab_pt <- func_plot_lab_pt(import_martina)
-data_plot_lab_alt <- func_plot_lab_alt(import_martina)
-data_plot_lab_aptt <- func_plot_lab_aptt(import_martina)
-data_plot_lab_bili <- func_plot_lab_bili(import_martina)
-data_plot_lab_ast <- func_plot_lab_ast(import_martina)
-
-save(data_plot_lab_crp, file ="saved_rda_files/data_plot_lab_crp.rda")
-save(data_plot_lab_lym, file ="saved_rda_files/data_plot_lab_lym.rda")
-save(data_plot_lab_neut, file ="saved_rda_files/data_plot_lab_neut.rda")
-save(data_plot_lab_wbc, file ="saved_rda_files/data_plot_lab_wbc.rda")
-save(data_plot_lab_urean, file ="saved_rda_files/data_plot_lab_urean.rda")
-save(data_plot_lab_pt, file ="saved_rda_files/data_plot_lab_pt.rda")
-save(data_plot_lab_alt, file ="saved_rda_files/data_plot_lab_alt.rda")
-save(data_plot_lab_aptt, file ="saved_rda_files/data_plot_lab_aptt.rda")
-save(data_plot_lab_bili, file ="saved_rda_files/data_plot_lab_bili.rda")
-save(data_plot_lab_ast, file ="saved_rda_files/data_plot_lab_ast.rda")
-
-
-#Symptom plots
-symptom.prevalence.input <- symptom.prevalence.prep(import_martina)
-symptom.upset.input <- symptom.upset.prep(import_martina, max.symptoms = 5)
-
-save(symptom.prevalence.input, file ="saved_rda_files/symptom_prevalence_input.rda")
-save(symptom.upset.input, file ="saved_rda_files/symptom_upset_input.rda")
-
-#Comorbidity plots by age
-data_plot_comorbid_asthma <- func_plot_comorbid_asthma(import_martina)
-data_plot_comorbid_malignant_neoplasm <-func_plot_comorbid_malignant_neoplasm(import_martina)
-data_plot_comorbid_obesity <- func_plot_comorbid_obesity(import_martina)
-data_plot_comorbid_diabetes <-func_plot_comorbid_diabetes(import_martina)
-data_plot_comorbid_dementia <-func_plot_comorbid_dementia(import_martina)
-data_plot_comorbid_smoking <-func_plot_comorbid_smoking(import_martina)
-data_plot_comorbid_hypertension <- func_plot_comorbid_hypertension(import_martina)
-
-save(data_plot_comorbid_asthma, file ="saved_rda_files/data_plot_comorbid_asthma.rda")
-save(data_plot_comorbid_malignant_neoplasm, file ="saved_rda_files/data_plot_comorbid_malignant_neoplasm.rda")
-save(data_plot_comorbid_obesity, file ="saved_rda_files/data_plot_comorbid_obesity.rda")
-save(data_plot_comorbid_diabetes, file ="saved_rda_files/data_plot_comorbid_diabetes.rda")
-save(data_plot_comorbid_dementia, file ="saved_rda_files/data_plot_comorbid_dementia.rda")
-save(data_plot_comorbid_smoking, file ="saved_rda_files/data_plot_comorbid_smoking.rda")
-save(data_plot_comorbid_hypertension, file ="saved_rda_files/data_plot_comorbid_hypertension.rda")
-
-
-#Symptoms by age
-data_plot_symptoms_history_of_fever <- func_plot_symptoms_history_of_fever(import_martina)
-data_plot_symptoms_cough <-func_plot_symptoms_cough(import_martina)
-data_plot_symptoms_cough_fever<-func_plot_symptoms_cough_fever(import_martina)
-data_plot_symptoms_shortness_of_breath<-func_plot_symptoms_shortness_of_breath(import_martina)
-data_plot_symptoms_cought_fever_shortness_of_breath<-func_plot_symptoms_cought_fever_shortness_of_breath(import_martina)
-data_plot_symptoms_upper_respiratory_tract_symptoms<-func_plot_symptoms_upper_respiratory_tract_symptoms(import_martina)
-data_plot_symptoms_altered_consciousness_confusion<-func_plot_symptoms_altered_consciousness_confusion(import_martina)
-data_plot_symptoms_constitutional<-func_plot_symptoms_constitutional(import_martina)
-data_plot_symptoms_vomiting_nausea<-func_plot_symptoms_vomiting_nausea
-data_plot_symptoms_diarrhoea <-func_plot_symptoms_diarrhoea(import_martina)
-data_plot_symptoms_abdominal_pain <- func_plot_symptoms_abdominal_pain(import_martina)
-
-save(data_plot_symptoms_history_of_fever, file ="saved_rda_files/data_plot_symptoms_history_of_fever.rda")
-save(data_plot_symptoms_cough, file ="saved_rda_files/data_plot_symptoms_cough.rda")
-save(data_plot_symptoms_cough_fever, file ="saved_rda_files/data_plot_symptoms_cough_fever.rda")
-save(data_plot_symptoms_shortness_of_breath, file ="saved_rda_files/data_plot_symptoms_shortness_of_breath.rda")
-save(data_plot_symptoms_cought_fever_shortness_of_breath, file ="saved_rda_files/data_plot_symptoms_cought_fever_shortness_of_breath.rda")
-save(data_plot_symptoms_upper_respiratory_tract_symptoms, file ="saved_rda_files/data_plot_symptoms_upper_respiratory_tract_symptoms.rda")
-save(data_plot_symptoms_altered_consciousness_confusion, file ="saved_rda_files/data_plot_symptoms_altered_consciousness_confusion.rda")
-save(data_plot_symptoms_constitutional, file ="saved_rda_files/data_plot_symptoms_constitutional.rda")
-save(data_plot_symptoms_vomiting_nausea, file ="saved_rda_files/data_plot_symptoms_vomiting_nausea.rda")
-save(data_plot_symptoms_diarrhoea, file ="saved_rda_files/data_plot_symptoms_diarrhoea.rda")
-save(data_plot_symptoms_abdominal_pain, file ="saved_rda_files/data_plot_symptoms_abdominal_pain.rda")
-
-#Heatmap
-data_plot_heatmap <- symptom.heatmap(data = import_martina, admission.symptoms = admission.symptoms, asterisks = vector())
-
-save(data_plot_heatmap, file ="saved_rda_files/data_plot_heatmap.rda")
->>>>>>> joaquin_graphs
 
 #' Aggregate data for length of stay within ICU
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
