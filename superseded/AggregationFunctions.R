@@ -869,60 +869,57 @@ status.by.time.after.admission.prep <- function(input.tbl){
 #####Create tables for dashboard###################################################
 ###################################################################################
 ###################################################################################
-import  <- read.csv("ISVARIC_dash_db_20201109_.csv")
-
-tabyl(import, outcome)
-
-#Set the date_admit to a date form
-import$date_admit <-import$date_admit %>%
-  as.Date(tryFormats = "%m/%d/%y")
-
-#Work the import data
-data_to_proc <-  data.preprocessing(import) ## Should it be done like this?
-
-tabyl(data_to_proc, slider_outcome)
-
-################################
-#Run the functions created above
-################################
-   
-#Figure 2: Age and sex distribution of patients. Bar fills are outcome (death/discharge/ongoing care) at the time of report.
-      #Country/year-epiweek-adm/age10/age5/sex/outcome/icu
-age.pyramid.input <- age.pyramid.prep(data_to_proc)
-tabyl(age.pyramid.input, slider_outcome)
-
-
-outcome.admission.date <- outcome.admission.date.prep(data_to_proc)
-
-#Figure 7: Box and whisker plots for observations at hospital presentation stratified by age group.
-      #Country/year-epiweek-adm/age10/sex/outcome/icu/vital signs
-#Filter the data (outlier and na)
-data_plot_vs <- select(data_to_proc, c(slider_agegp10, vs_resp,
-                                       vs_hr, vs_oxysat, vs_sysbp, vs_temp)) %>%
-    pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
-  filter(!is.na(value)) #%>%
-  #subset(symptom == "vs_hr" & (value > (mean(value) + 3*(sd(value)))  | value < (mean(value) -  3*(sd(value)))))
-
-#Plot
-p <- ggplot(data = data_plot_vs, aes(x=slider_agegp10, y=value)) + 
-  geom_boxplot(aes(fill=slider_agegp10)) + facet_wrap( ~ symptom, ncol = 2) +
-  xlab("Age groups") + ylab("signs") + 
-  ggtitle("X number of individuals")+ guides(fill=guide_legend(title="Age groups"))
-p 
-
-
-#############################
-#Save the tables as rda files
-#############################
-
-
-
-
-
-
-save(age.pyramid.input, file ="age.pyramid.input.rda")
-#save(outcome.admission.date, file ="outcome_admission_date_input.rda")
-
+AS_PACKAGE <- TRUE
+# if (AS_PACKAGE == FALSE) {
+#   import  <- read.csv("ISVARIC_dash_db_20201109_.csv")
+#   
+#   tabyl(import, outcome)
+#   
+#   #Set the date_admit to a date form
+#   import$date_admit <-import$date_admit %>%
+#     as.Date(tryFormats = "%m/%d/%y")
+#   
+#   #Work the import data
+#   data_to_proc <-  data.preprocessing(import) ## Should it be done like this?
+#   
+#   tabyl(data_to_proc, slider_outcome)
+#   
+#   ################################
+#   #Run the functions created above
+#   ################################
+#      
+#   #Figure 2: Age and sex distribution of patients. Bar fills are outcome (death/discharge/ongoing care) at the time of report.
+#         #Country/year-epiweek-adm/age10/age5/sex/outcome/icu
+#   age.pyramid.input <- age.pyramid.prep(data_to_proc)
+#   tabyl(age.pyramid.input, slider_outcome)
+#   
+#   
+#   outcome.admission.date <- outcome.admission.date.prep(data_to_proc)
+#   
+#   #Figure 7: Box and whisker plots for observations at hospital presentation stratified by age group.
+#         #Country/year-epiweek-adm/age10/sex/outcome/icu/vital signs
+#   #Filter the data (outlier and na)
+#   data_plot_vs <- select(data_to_proc, c(slider_agegp10, vs_resp,
+#                                          vs_hr, vs_oxysat, vs_sysbp, vs_temp)) %>%
+#       pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
+#     filter(!is.na(value)) #%>%
+#     #subset(symptom == "vs_hr" & (value > (mean(value) + 3*(sd(value)))  | value < (mean(value) -  3*(sd(value)))))
+#   
+#   #Plot
+#   p <- ggplot(data = data_plot_vs, aes(x=slider_agegp10, y=value)) + 
+#     geom_boxplot(aes(fill=slider_agegp10)) + facet_wrap( ~ symptom, ncol = 2) +
+#     xlab("Age groups") + ylab("signs") + 
+#     ggtitle("X number of individuals")+ guides(fill=guide_legend(title="Age groups"))
+#   p 
+#   
+#   
+#   #############################
+#   #Save the tables as rda files
+#   #############################
+#   
+#   save(age.pyramid.input, file ="age.pyramid.input.rda")
+#   #save(outcome.admission.date, file ="outcome_admission_date_input.rda")
+# }
 
 #' Aggregate data for length of stay within ICU
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})

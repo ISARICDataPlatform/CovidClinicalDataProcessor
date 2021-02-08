@@ -1,8 +1,19 @@
-
 #' Shared pre-processing of input CSV files
+#' 
+#' @description 
+#' Helper function that undertakes the first pre-processing steps common 
+#' to all RAW files provided by ISARIC.
+#' 
+#' @details 
+#' First, \code{required.columns} are included (even if empty). The file is cast
+#' as a mutable dtplyr \code{lazy_tb}. Sensitive \code{excluded.columns} are removed.
+#' All column names are transformed to lowercase.
+#' 
 #' @param file.name Path of the data file (CDISC format)
 #' @param excluded.columns Columns to be removed
-#' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
+#' @param dtplyr.step If FALSE, the processed tibble will be called \code{as_tibble} or \code{as.data.table}, otherwise not.
+#' @param immutable If False the dataframe is immutable, i.e. it changes. This is what we 
+#' want.
 #' @import dtplyr dplyr tibble
 #' @importFrom data.table fread
 #' @return The contents of \code{file.name} as a tibble or \code{dtplyr_step}
@@ -19,11 +30,12 @@ shared.data.import <- function(file.name,
   
   out <- fread(file.name, showProgress = FALSE) 
   
-  out <- out %>%
-    add_column(out, !!!blank.columns[setdiff(names(blank.columns), names(out))]) %>%
+  out <- out %>% # add blank columns that were required
+    # add_column(out, !!!blank.columns[setdiff(names(blank.columns), names(out))]) %>% 
+    add_column(!!!blank.columns[setdiff(names(blank.columns), names(out))]) %>% # !!! removed out
     lazy_dt(immutable = immutable) %>%
-    select(-all_of(excluded.columns)) %>%
-    rename_all(function(x){tolower(x)})
+    select(-all_of(excluded.columns)) %>% # drop cols we're not interested in
+    rename_all(function(x){tolower(x)}) # lower script
   if(dtplyr.step){
     return(out)
   } else {
@@ -33,24 +45,29 @@ shared.data.import <- function(file.name,
 
 
 #' Import demographic data
+#' @description 
+#' Processing for the demographic data
+#' 
+#' @details 
+#' 
+#' 
 #' @param file.name Path of the demographics data file (CDISC format)
-#' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
+#' @param dtplyr.step If FALSE, the processed tibble will be called \code{as_tibble} or \code{as.data.table}, otherwise not.
 #' @import dplyr tibble 
 #' @return Formatted demographic data as a tibble or \code{dtplyr_step}
 #' @export import.demographic.data
-import.demographic.data <- function(file.name, dtplyr.step = FALSE){
+import.demographic.data <- function(file.name, dtplyr.step = TRUE){
   
   country.lookup <- ISOcodes::ISO_3166_1 %>% as_tibble %>% select(Alpha_3, Name)
   #regexp <- "[[:digit:]]+"  # process string
   
-  out <- shared.data.import(file.name,
-                            dtplyr.step = TRUE) %>%
+  out <- shared.data.import(file.name, dtplyr.step = dtplyr.step) %>% # !!! changed constant to variable input
     mutate(country = replace(country, country == "", NA)) %>%
     left_join(country.lookup, by = c("country" = "Alpha_3")) %>%
     select(-country) %>%
     rename(country = Name) %>%
     rename(date_admit=rfstdtc)%>%
-    as.data.frame()%>%
+    # as.data.frame()%>% # !!! try remove
     mutate(age_d=case_when(ageu=="MONTHS"~12,
                            ageu=="YEARS" ~ 1,
                            ageu=="DAYS" ~ 365.25,
@@ -70,22 +87,23 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     mutate(ethnic = str_replace_all(ethnic, " ", "_")) %>%
     mutate(ethnic = str_replace_all(ethnic, ",", "_")) %>%
     mutate(ethnic = replace(ethnic, ethnic == "n_a" | ethnic == "na" | ethnic == "", NA))%>%
-    mutate(studyid=substr(usubjid,1, 7))%>%
-    mutate(siteid_final=invid)%>%
-    mutate(siteid_final=case_when(invid=="00741cca_network"~ substr(subjid,1, 12),
-                                invid=="227inserm"~ sub("\\-.*", "",subjid),
-                                invid=="00689us_nhlbi_peta"~ sub("\\-.*", "",subjid),
-                                invid==""~studyid,
-                                studyid=="CVPRQTA"~"CVPRQTA",
-                                #studyid=="CVCCPUK"~"CVCCPUK",
-                                TRUE~invid))%>%
+    mutate(studyid=substr(usubjid, 1, 7)) %>%
+    # mutate(siteid_final=invid)%>% # !!! could not find "invid"
+    # mutate(siteid_final=case_when(invid=="00741cca_network"~ substr(subjid,1, 12),
+    #                             invid=="227inserm"~ sub("\\-.*", "",subjid),
+    #                             invid=="00689us_nhlbi_peta"~ sub("\\-.*", "",subjid),
+    #                             invid==""~studyid,
+    #                             studyid=="CVPRQTA"~"CVPRQTA",
+    #                             #studyid=="CVCCPUK"~"CVCCPUK",
+    #                             TRUE~invid))%>%
     mutate(sex = case_when(sex == "M" ~ "Male",
                            sex == "F" ~ "Female",
                            TRUE ~ NA_character_)) %>%
     mutate(date_admit=substr(date_admit,1, 10))%>%
     mutate(date_admit=as_date(date_admit))%>%
     mutate(date_admit=replace(date_admit,date_admit >today(),NA))%>%
-    select(usubjid, studyid, siteid_final, date_admit, age, agegp5, agegp10, sex, ethnic, country)
+    # select(usubjid, studyid, siteid_final, date_admit, age, agegp5, agegp10, sex, ethnic, country)
+    select(usubjid, studyid, date_admit, age, agegp5, agegp10, sex, ethnic, country) # !!! remove site siteid_final
   
   if(dtplyr.step){
     return(out)
@@ -97,12 +115,16 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
 
 
 #' Import microb data
+#' 
+#' @description 
+#' 
+#' @details 
+#' 
 #' @param file.name Path of the microbio data file (CDISC format)
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
 #' @import dplyr tibble 
 #' @return Formatted demographic data as a tibble or \code{dtplyr_step}
 #' @export import.microbio.data
-
 import.microb.data <- function(file.name, dtplyr.step = FALSE){
   
   mb<-shared.data.import(file.name, dtplyr.step = TRUE)
@@ -146,8 +168,6 @@ import.microb.data <- function(file.name, dtplyr.step = FALSE){
                                cov_id_cronavir=="POSITIVE"~"POSITIVE",
                                cov_id_sarscov2=="POSITIVE"~"POSITIVE",
                                TRUE~cov_det_id))
-  
-
   if(dtplyr.step){
     return(out)
   } else {
@@ -156,17 +176,22 @@ import.microb.data <- function(file.name, dtplyr.step = FALSE){
 }
 
 #' Import data on symptoms and comorbidities
+#' 
+#' @description 
+#' 
+#' @details 
+#' 
 #' @param file.name Path of the symptoms data file (CDISC format)
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
 #' @import dplyr tibble stringr
 #' @return Formatted comorbidity and symptom data as a tibble or \code{dtplyr_step}
 #' @export import.symptom.and.comorbidity.data
-
 import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.step = FALSE){
   
   out <- shared.data.import(file.name, 
                             dtplyr.step = TRUE, 
-                            immutable = TRUE) %>% # this will often by used twice, so should be immutable
+                            immutable = TRUE) # this will often by used twice, so should be immutable # !!! ?
+  out <- out %>% 
     select(usubjid, saterm, sacat,  samodify, sapresp, saoccur, sastdtc) %>%
     filter(sacat=="MEDICAL HISTORY" | sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION") %>%
     mutate(sacat=replace(sacat,saterm=="MALNUTRITION","MEDICAL HISTORY"))%>%#temporary correction
@@ -255,7 +280,6 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
     return(out %>% as_tibble())
   }
 }
-
 
 #' Process data on comorbidities
 #' @param input Either the path of the symptoms/comorbidities data file (CDISC format) or output of \code{import.symptom.and.comorbidity.data}
@@ -358,8 +382,6 @@ process.symptom.data <- function(input,  minimum=100, dtplyr.step = FALSE){
     full_join(symptomatic, by=c("usubjid"))%>%
     full_join(symptom_w, by = c("usubjid"))
   
-  
-  
   if(dtplyr.step){
     return(symptom %>% lazy_dt(immutable = FALSE))
   } else {
@@ -368,14 +390,16 @@ process.symptom.data <- function(input,  minimum=100, dtplyr.step = FALSE){
 }
 
 #' Process data on pregnancy (as comorbidity)
+#' 
+#' @description 
+#' 
+#' @details 
+#' 
 #' @param file.name Path of the dispositions data file (CDISC format)
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
 #' @import dplyr tibble stringr
 #' @return Formatted pregnancy data as a tibble or \code{dtplyr_step}
 #' @export process.pregnancy.data
-
-
-
 process.pregnancy.data <- function(file.name, dtplyr.step = FALSE){
   comorbid_pregnancy <- shared.data.import(file.name, dtplyr.step = TRUE)%>%
     filter(rptestcd=="PREGIND") %>%
@@ -391,9 +415,12 @@ process.pregnancy.data <- function(file.name, dtplyr.step = FALSE){
   }
 }
 
-
-
 #' Process data on ICU admission
+#' 
+#' @description 
+#' 
+#' @details 
+#' 
 #' @param file.name Path of the healthcare encounters data file (CDISC format)
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
 #' @import dplyr tibble tidyfast dtplyr
@@ -458,9 +485,12 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
   }
 }
 
-
-
 #' Process data on treatments
+#' 
+#' @description 
+#' 
+#' @details 
+#' 
 #' @param file.name Path of the intervention data file (CDISC format)
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
 #' @import dplyr tibble stringr
@@ -610,7 +640,6 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
     mutate(treatment = str_replace_all(treatment, "/| / ", "_")) %>%
     mutate(treatment = str_replace_all(treatment, " ", "_"))#%>%
   
-  
   if(dtplyr.step){
     return(treatment)
   } else {
@@ -619,6 +648,11 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
 }
 
 #' Process data on the most common treatments
+#' 
+#' @description 
+#' 
+#' @details 
+#' 
 #' @param input Either the path of the interventions data file (CDISC format) or output of \code{process.treatment.data}
 #' @param minimum The minimum number of times a treatment need appear to be considered "common"; default 1000.
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
@@ -638,7 +672,6 @@ process.common.treatment.data <- function(input, minimum=1000, dtplyr.step = FAL
       treatment_all <- treatment_all %>% as.data.table  %>% lazy_dt(immutable = FALSE)
     }
   }
-  
   
   date_in_last <- treatment_all %>% 
     filter(inoccur==TRUE)%>% 
@@ -673,10 +706,12 @@ process.common.treatment.data <- function(input, minimum=1000, dtplyr.step = FAL
   
 }
 
-
-
-
 #' Process dates on IMV and NIV
+#' 
+#' @description 
+#' 
+#' @details 
+#' 
 #' @param input Either the path of the interventions data file (CDISC format) or output of \code{process.treatment.data}
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
 #' @import dplyr tibble dtplyr tidyfast lubridate
@@ -684,7 +719,6 @@ process.common.treatment.data <- function(input, minimum=1000, dtplyr.step = FAL
 #' @importFrom glue glue
 #' @return Formatted start (in) and end (out) dates for IMV and NIV treatment (wide format) as a tibble or \code{dtplyr_step}
 #' @export process.common.treatment.data
-
 process.IMV.NIV.ECMO.data <- function(input, dtplyr.step = FALSE){
   if(is.character(input)){
     # assume it's a path
@@ -711,8 +745,6 @@ process.IMV.NIV.ECMO.data <- function(input, dtplyr.step = FALSE){
     ))%>%
     as_tibble()
   
-  
-  
   vent_st<-ventilation%>% 
     filter(inoccur==TRUE)%>%
     arrange(indtc)%>%
@@ -731,23 +763,19 @@ process.IMV.NIV.ECMO.data <- function(input, dtplyr.step = FALSE){
   
   ventilation <- full_join(vent_st,vent_en)
   
-  
   if(dtplyr.step){
     return(ventilation) %>% lazy_dt(immutable = FALSE)
   } else {
     return(ventilation %>% as_tibble())
   }    
-  
 }
 
-
-
-
-
-
-
-
 #' Process data on vital sign
+#' 
+#' @description 
+#' 
+#' @details 
+#' 
 #' @param file.name Path of the dispositions data file (CDISC format)
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
 #' @import dplyr tibble dtplyr tidyfast
@@ -918,6 +946,7 @@ process.all.data <- function(demog.file.name, microb.file.name=NA, symptoms.file
                              outcome.file.name = NA, laboratory.file.name= NA, minimum.comorb=100, minimum.sympt=100, minimum.treatments = 1000, 
                              dtplyr.step = FALSE){
   
+  # dtplyr.step is FALSE due to ....!!! why?
   demographic <- import.demographic.data(demog.file.name, dtplyr.step = FALSE)
   
   if(!is.na(microb.file.name)){
@@ -937,7 +966,7 @@ process.all.data <- function(demog.file.name, microb.file.name=NA, symptoms.file
   if(!is.na(pregnancy.file.name)){
     comorbid_pregnancy <- process.pregnancy.data(pregnancy.file.name, dtplyr.step = FALSE)
     demographic <- demographic %>%
-      left_join(comorbid_pregnancy, by = c("usubjid")) 
+      left_join(comorbid_pregnancy, by = c("usubjid"))
   }
   
   
