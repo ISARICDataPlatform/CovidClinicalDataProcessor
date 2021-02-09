@@ -4,3 +4,7 @@
 .Ruserdata
 CovidClinicalDataProcessor.Rproj
 .DS_Store
+saved_rda_files/
+Archive/
+R/Archive/
+Data/
