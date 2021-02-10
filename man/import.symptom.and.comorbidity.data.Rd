@@ -4,7 +4,11 @@
 \alias{import.symptom.and.comorbidity.data}
 \title{Import data on symptoms and comorbidities}
 \usage{
-import.symptom.and.comorbidity.data(file.name, dtplyr.step = FALSE)
+import.symptom.and.comorbidity.data(
+  file.name,
+  minimum = 100,
+  dtplyr.step = FALSE
+)
 }
 \arguments{
 \item{file.name}{Path of the symptoms data file (CDISC format)}
@@ -15,5 +19,8 @@ import.symptom.and.comorbidity.data(file.name, dtplyr.step = FALSE)
 Formatted comorbidity and symptom data as a tibble or \code{dtplyr_step}
 }
 \description{
-Import data on symptoms and comorbidities
+
+}
+\details{
+
 }

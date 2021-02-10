@@ -4,16 +4,21 @@
 \alias{import.demographic.data}
 \title{Import demographic data}
 \usage{
-import.demographic.data(file.name, dtplyr.step = FALSE)
+import.demographic.data(file.name, dtplyr.step = TRUE, date_pull = Sys.Date())
 }
 \arguments{
 \item{file.name}{Path of the demographics data file (CDISC format)}
 
-\item{dtplyr.step}{Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}}
+\item{dtplyr.step}{If FALSE, the processed tibble will be called \code{as_tibble} or \code{as.data.table}, otherwise not.}
+
+\item{date_pull}{Date the CDISC data were provided, default is current date. Data beyond this date is discarded.}
 }
 \value{
 Formatted demographic data as a tibble or \code{dtplyr_step}
 }
 \description{
-Import demographic data
+Processing for the demographic data
+}
+\details{
+
 }

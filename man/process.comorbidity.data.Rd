@@ -4,7 +4,7 @@
 \alias{process.comorbidity.data}
 \title{Process data on comorbidities}
 \usage{
-process.comorbidity.data(input, dtplyr.step = FALSE)
+process.comorbidity.data(input, minimum = 100, dtplyr.step = FALSE)
 }
 \arguments{
 \item{input}{Either the path of the symptoms/comorbidities data file (CDISC format) or output of \code{import.symptom.and.comorbidity.data}}

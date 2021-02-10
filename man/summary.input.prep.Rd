@@ -2,16 +2,20 @@
 % Please edit documentation in R/AggregationFunctions.R
 \name{summary.input.prep}
 \alias{summary.input.prep}
-\title{Data for the report summary}
+\title{Aggregate data for the summary and flowchart}
 \usage{
+\method{summary}{input.prep}(input.tbl)
+
 \method{summary}{input.prep}(input.tbl)
 }
 \arguments{
 \item{input.tbl}{Input tibble (output of \code{data.preprocessing})}
 }
 \value{
+A \code{tibble} containing the input data for the summary and flowchart
+
 A \code{tibble} containing the input data for the symptoms upset plot
 }
 \description{
-Data for the report summary
+Aggregate data for the summary and flowchart
 }

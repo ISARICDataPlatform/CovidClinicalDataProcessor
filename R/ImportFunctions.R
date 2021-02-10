@@ -14,18 +14,15 @@
 #' @param dtplyr.step If FALSE, the processed tibble will be called \code{as_tibble} or \code{as.data.table}, otherwise not.
 #' @param immutable If False the dataframe is immutable, i.e. it changes. This is what we 
 #' want.
-#' @import dtplyr dplyr tibble
-#' @importFrom data.table fread
+#' @import dplyr tibble zoo
+#' @importFrom data.table fread 
 #' @return The contents of \code{file.name} as a tibble or \code{dtplyr_step}
 #' @keywords internal
 #' @export shared.data.import
-
-date_pull<-as_date("2020-11-30") # !!! move to global variable.
-
 shared.data.import <- function(file.name, 
                                excluded.columns = c("STUDYID", "DOMAIN"),
                                required.columns = character(), 
-                               dtplyr.step = FALSE, 
+                               dtplyr.step = TRUE, 
                                immutable = FALSE){
   
   blank.columns <- as.list(rep(NA, length(required.columns)))
@@ -34,9 +31,8 @@ shared.data.import <- function(file.name,
   out <- fread(file.name, showProgress = FALSE) 
   
   out <- out %>% # add blank columns that were required
-    # add_column(out, !!!blank.columns[setdiff(names(blank.columns), names(out))]) %>% 
-    add_column(!!!blank.columns[setdiff(names(blank.columns), names(out))]) %>% # !!! removed out
-    lazy_dt(immutable = immutable) %>%
+    add_column(!!!blank.columns[setdiff(names(blank.columns), names(out))]) %>% 
+    lazy_dt(immutable = immutable) %>% 
     select(-all_of(excluded.columns)) %>% # drop cols we're not interested in
     rename_all(function(x){tolower(x)}) # lower script
   if(dtplyr.step){
@@ -46,8 +42,8 @@ shared.data.import <- function(file.name,
   }
 }
 
-
 #' Import demographic data
+#' 
 #' @description 
 #' Processing for the demographic data
 #' 
@@ -56,29 +52,30 @@ shared.data.import <- function(file.name,
 #' 
 #' @param file.name Path of the demographics data file (CDISC format)
 #' @param dtplyr.step If FALSE, the processed tibble will be called \code{as_tibble} or \code{as.data.table}, otherwise not.
-#' @import dplyr tibble 
+#' @param date_pull Date the CDISC data were provided, default is current date. Data beyond this date is discarded.
+#' @import dplyr tibble dtplyr zoo
 #' @return Formatted demographic data as a tibble or \code{dtplyr_step}
 #' @export import.demographic.data
-import.demographic.data <- function(file.name, dtplyr.step = TRUE){
+import.demographic.data <- function(file.name, dtplyr.step = TRUE, date_pull = Sys.Date()) {# !!! move to global variable.){
   
   country.lookup <- ISOcodes::ISO_3166_1 %>% as_tibble %>% select(Alpha_3, Name)
   #regexp <- "[[:digit:]]+"  # process string
   
-  out <- shared.data.import(file.name, dtplyr.step = dtplyr.step) %>% # !!! changed constant to variable input
+  out <- shared.data.import(file.name, dtplyr.step = TRUE) %>% # !!! changed constant to variable input
     mutate(country = replace(country, country == "", NA)) %>%
     left_join(country.lookup, by = c("country" = "Alpha_3")) %>%
     select(-country) %>%
     rename(country = Name) %>%
     rename(date_admit=rfstdtc)%>%
-    # as.data.frame()%>% # !!! teset efffect of remove
+    as.data.frame() %>% # !!! teset effect of remove
     mutate(age_d=case_when(ageu=="MONTHS"~12,
                            ageu=="YEARS" ~ 1,
                            ageu=="DAYS" ~ 365.25,
-                           TRUE~ NA_real_))%>%
-    mutate(age2=age/age_d)%>%
-    select(-(age))%>%
-    rename(age=age2)%>%
-    mutate(age=replace(age,age<0,NA))%>%
+                           TRUE~ NA_real_)) %>%
+    mutate(age2=age/age_d) %>%
+    select(-(age)) %>%
+    rename(age=age2) %>%
+    mutate(age=replace(age,age<0,NA)) %>%
     mutate(ethnic = iconv(ethnic, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(ethnic = str_remove_all(ethnic, "\\s*\\([^)]*\\)")) %>%
     mutate(ethnic = str_replace_all(ethnic, " - ", "_")) %>%
@@ -86,32 +83,50 @@ import.demographic.data <- function(file.name, dtplyr.step = TRUE){
     mutate(ethnic = str_replace_all(ethnic, "/| / ", "_")) %>%
     mutate(ethnic = str_replace_all(ethnic, " ", "_")) %>%
     mutate(ethnic = str_replace_all(ethnic, ",", "_")) %>%
-    mutate(ethnic = replace(ethnic, ethnic == "n_a" | ethnic == "na" | ethnic == "", NA))%>%
-    mutate(studyid=substr(usubjid,1, 7))%>%
-    # mutate(siteid_final=invid)%>%
-    # mutate(siteid_final=case_when(invid=="00741cca_network"~ substr(subjid,1, 12),
-    #                             invid=="227inserm"~ sub("\\-.*", "",subjid),
-    #                             invid=="00689us_nhlbi_peta"~ sub("\\-.*", "",subjid),
-    #                             invid==""~studyid,
-    #                             studyid=="CVPRQTA"~"CVPRQTA",
-    #                             TRUE~invid))%>%
+    mutate(ethnic = replace(ethnic, ethnic == "n_a" | ethnic == "na" | ethnic == "", NA)) %>%
+    mutate(studyid = substr(usubjid,1, 7)) %>%
+    {
+      if ('invid' %in% tbl_vars(.)) { # !!! not all research groups receive this variable - sjm
+        mutate(., siteid_final=invid) %>%
+        mutate(., siteid_final=case_when(
+          invid=="00741cca_network" ~ substr(subjid,1, 12),
+          invid=="227inserm" ~ sub("\\-.*", "",subjid),
+          invid=="00689us_nhlbi_peta" ~ sub("\\-.*", "",subjid),
+          invid=="" ~ studyid,
+          studyid=="CVPRQTA" ~ "CVPRQTA",
+          TRUE ~ invid))
+      } 
+      else {
+      . # do nothing
+      }
+    } %>%
     mutate(sex = case_when(sex == "M" ~ "Male",
                            sex == "F" ~ "Female",
                            TRUE ~ NA_character_)) %>%
-    mutate(date_admit=substr(date_admit,1, 10))%>%
-    mutate(date_admit=as_date(date_admit))%>%
-    mutate(date_admit=replace(date_admit,date_admit >date_pull,NA))%>%
-    # select(usubjid, studyid, siteid_final, date_admit, age, agegp5, agegp10, sex, ethnic, country)
-    select(usubjid, studyid, date_admit, age, agegp5, agegp10, sex, ethnic, country) # !!! remove site siteid_final
-
+    mutate(date_admit=substr(date_admit, 1, 10)) %>%
+    # !!! not all research studies will receive %Y-%m-%d format, some receive %Y-%m format
+    mutate(date_admit = case_when(
+      nchar(date_admit) == 7 ~ as_date(as.yearmon(date_admit, "%Y-%m")), # isin %Y-%m format
+      TRUE ~ as_date(date_admit) # otherwise assumed to be in %Y-%m-%d format
+      )
+    ) %>%
+    # mutate(date_admit=as_date(date_admit)) %>%
+    mutate(date_admit=replace(date_admit, date_admit > date_pull, NA)) %>% # !!! this is filling dates with NA tail end of 2020!
+    {
+      if ('invid' %in% tbl_vars(.)) { # !!! not all research groups receive this variable - sjm
+        select(., usubjid, studyid, siteid_final, date_admit, age, sex, ethnic, country)
+      } 
+      else { # remove site siteid_final as it was never processed...
+        select(., usubjid, studyid, date_admit, age, sex, ethnic, country) 
+      }
+    }
+  
   if(dtplyr.step){
-    return(out)
+    return(out %>% lazy_dt(immutable = FALSE))
   } else {
     return(out %>% as_tibble())
   }
 }
-
-
 
 #' Import microb data
 #' 
@@ -123,13 +138,10 @@ import.demographic.data <- function(file.name, dtplyr.step = TRUE){
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
 #' @import dplyr tibble 
 #' @return Formatted demographic data as a tibble or \code{dtplyr_step}
-#' @export import.microbio.data
-
-# date_pull<-as_date("2020-11-30") # !!! already done at top of script
-
+#' @export import.microb.data
 import.microb.data <- function(file.name, dtplyr.step = FALSE){
   
-  mb<-shared.data.import(file.name, dtplyr.step = TRUE)
+  mb <- shared.data.import(file.name, dtplyr.step = TRUE)
   
   detection<- mb%>%
     #select(usubjid,mbtestcd,mbtest,mbtstdtl,mbcat,mbstresc,mbspec,mbloc,mbmethod)%>%
@@ -176,7 +188,7 @@ import.microb.data <- function(file.name, dtplyr.step = FALSE){
                                  NA_character_,
                                TRUE~cov_det_id))
   if(dtplyr.step){
-    return(out)
+    return(out )
   } else {
     return(out %>% as_tibble())
   }
@@ -196,18 +208,24 @@ import.microb.data <- function(file.name, dtplyr.step = FALSE){
 import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.step = FALSE){
   
   out <- shared.data.import(file.name, 
-                            dtplyr.step = TRUE, 
-                            immutable = TRUE) # this will often by used twice, so should be immutable # !!! ?
-  out <- out %>% 
-    select(usubjid, saterm, sacat,  samodify, sapresp, saoccur, sastdtc) %>%
+                            dtplyr.step = TRUE, # !!! referred to argument, rather than constant
+                            immutable = TRUE) %>% # this will often by used twice, so should be immutable # !!! ?
+    {
+      if ('sastdtc' %in% tbl_vars(.)) { # sastdtc may not exist for all study groups
+        select(., usubjid, saterm, sacat,  samodify, sapresp, saoccur, sastdtc)
+      }
+      else { # exclude sastdtc
+        select(., usubjid, saterm, sacat,  samodify, sapresp, saoccur)
+      }
+    } %>%
     filter(sacat=="MEDICAL HISTORY" | sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION") %>%
-    mutate(sacat=replace(sacat,saterm=="MALNUTRITION","MEDICAL HISTORY"))%>%#temporary correction
+    mutate(sacat=replace(sacat,saterm=="MALNUTRITION","MEDICAL HISTORY")) %>% #temporary correction
     filter( sapresp=="Y") %>%
     mutate(saoccur = case_when(saoccur == "Y" ~ TRUE,
                                saoccur == "N" ~ FALSE,
                                TRUE ~ NA)) %>%
-    filter(!is.na(saoccur)) %>%
-    mutate(saterm=toupper(saterm))%>%#to add
+    filter(!is.na(saoccur)) %>% 
+    mutate(saterm=toupper(saterm)) %>% # to add
     mutate(saterm=case_when(saterm=='CARDIAC ARRHYTHMIA'~'CHRONIC CARDIAC DISEASE',
                             saterm%like%'CARDIAC DISEASE'~'CHRONIC CARDIAC DISEASE',
                             saterm%like%'CHORNIC CARDIAC DISEASE'~'CHRONIC CARDIAC DISEASE',
@@ -221,10 +239,10 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm%like%'TUBERCULOSIS'~'TUBERCULOSIS',
                             saterm%like%'MALIGNANCY'~'MALIGNANT NEOPLASM',
                             saterm%like%'SPECIFIC CANCERS'~'MALIGNANT NEOPLASM',
-                 
+                            
                             saterm=='CHRONIC HEMATOLOGICAL DISEASE'~'CHRONIC HEMATOLOGIC DISEASE',
                             saterm=='CHRONIC LIVER DISEASE'~'LIVER DISEASE',
-                            
+                            # cronic kidney disease
                             saterm%like%'CHRONIC RENAL FAILURE'~'CHRONIC KIDNEY DISEASE',
                             
                             saterm%like%'CHRONIC LUNG DISEASE'~'CHRONIC PULMONARY DISEASE',
@@ -263,15 +281,15 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
                             saterm%like%'RASH'~'SKIN RASH',
                             
                             saterm=='EARPAIN'~'EAR PAIN',
-                            TRUE ~ saterm ))%>%
+                            TRUE ~ saterm )) %>%
     mutate(saterm = iconv(saterm, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(saterm = str_remove_all(saterm, "\\s*\\([^)]*\\)")) %>%
     mutate(saterm = str_replace_all(saterm, " - ", "_")) %>%
     mutate(saterm = str_replace_all(saterm, "/| / ", "_")) %>%
     mutate(saterm = str_replace_all(saterm, " ", "_")) %>%
-    arrange(desc(saoccur))%>%
-    distinct(usubjid,saterm, .keep_all =T)
-  
+    # ensure Y is first, before dropping duplicates to keep solicited observations...
+    arrange(desc(saoccur)) %>% 
+    distinct(usubjid, saterm, .keep_all = T)
   
   if(dtplyr.step){
     return(out)
@@ -290,9 +308,9 @@ import.symptom.and.comorbidity.data <- function(file.name, minimum=100, dtplyr.s
 #' @export process.comorbidity.data
 process.comorbidity.data <- function(input,  minimum=100, dtplyr.step = FALSE){
   if(is.character(input)){
-    # assume it's a path
+    #  it's a path
     comorbid <- import.symptom.and.comorbidity.data(input, TRUE)
-  } else {
+  } else { # otherwise input has been parsed through import.sym* already.
     comorbid <- input
     if(is_tibble(comorbid)){
       comorbid <- comorbid %>% as.data.table %>% lazy_dt(immutable = FALSE)
@@ -300,13 +318,14 @@ process.comorbidity.data <- function(input,  minimum=100, dtplyr.step = FALSE){
   }
   
   comorbid <- comorbid %>%
-    filter(sacat=="MEDICAL HISTORY") %>%
-    arrange(desc(saoccur))%>%
+    filter(sacat=="MEDICAL HISTORY") %>% # category of observation is just history
+    # note saoccur describes whether obs. is solicited 
+    arrange(desc(saoccur)) %>% # !!! is this needed if done two lines later?
     group_by(saterm) %>% 
-    arrange(desc(saoccur))%>%
-    mutate(n = sum(!is.na(saoccur))) %>%
-    filter(n >= eval(!!minimum))%>%
-    ungroup()%>%
+    arrange(desc(saoccur)) %>% 
+    mutate(n = sum(!is.na(saoccur))) %>% # how many observations in each group are solicited?
+    filter(n >= eval(!!minimum)) %>% # drop comorbid groups with less than minimum
+    ungroup() %>% 
     mutate(saterm = paste0("comorbid_",saterm)) %>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = saterm, values_from = saoccur) 
@@ -316,7 +335,6 @@ process.comorbidity.data <- function(input,  minimum=100, dtplyr.step = FALSE){
     return(comorbid %>% as_tibble())
   }
 }
-
 
 #' Process data on symptoms
 #' @param input Either the path of the symptoms/comorbidities data file (CDISC format) or output of \code{import.symptom.and.comorbidity.data}
@@ -334,6 +352,7 @@ process.symptom.data <- function(input,  minimum=100, dtplyr.step = FALSE){
     symptom <- input
     if(is_tibble(symptom)){
       symptom <- symptom %>% as.data.table %>% lazy_dt(immutable = FALSE)
+      
     }
   }
 
@@ -359,7 +378,7 @@ process.symptom.data <- function(input,  minimum=100, dtplyr.step = FALSE){
     mutate(sastdtc = replace(sastdtc, sastdtc =="" , NA))%>%
     mutate(sastdtc=substr(sastdtc,1, 10))%>%
     mutate(sastdtc=as_date(sastdtc))%>%
-    filter(sastdtc >= "2020-01-01")%>%
+    filter(sastdtc >= "2020-01-01")%>% # !!!
     filter(sastdtc < date_pull)%>%
     arrange(sastdtc)%>%
     distinct(usubjid, .keep_all =T)%>%
@@ -496,16 +515,16 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
   out <- shared.data.import(file.name,
                             dtplyr.step = TRUE)
   
-  treatment<-out%>%
+  treatment<-out %>%
     filter(inpresp =="Y") %>%
     mutate(inoccur = case_when(inoccur == "Y" ~ TRUE,
                                inoccur == "N" ~ FALSE,
-                               TRUE ~ NA))%>%
-    filter(!is.na(inoccur))%>%
-    filter(incat!="MEDICAL HISTORY")%>%
-    mutate(intrt=toupper(intrt))%>%
+                               TRUE ~ NA)) %>%
+    filter(!is.na(inoccur)) %>%
+    filter(incat!="MEDICAL HISTORY") %>%
+    mutate(intrt=toupper(intrt)) %>%
     mutate(intrt=case_when(inmodify!=""~inmodify,
-                          TRUE ~ intrt))%>%
+                          TRUE ~ intrt)) %>%
     mutate(intrt=case_when(incat=="EXTRACORPOREAL"~'EXTRACORPOREAL',
                            incat=="INVASIVE VENTILATION"~'INVASIVE VENTILATION',
                            incat=="NASAL / MASK OXYGEN THERAPY"~'NASAL / MASK OXYGEN THERAPY',
@@ -527,7 +546,7 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                                treatment=='EXTRACORPOREAL SUPPORT'~'EXTRACORPOREAL',
                                
                                treatment=='CONTINUOUS RENAL REPLACEMENT THERAPIES (CRRT)'~'RENAL REPLACEMENT THERAPIES',
-                               treatment%like%'RENAL REPLACEMENT THERAPY' |treatment%like% 'DIALYSIS'~ 'RENAL REPLACEMENT THERAPIES',
+                               treatment%like%'RENAL REPLACEMENT THERAPY' | treatment%like% 'DIALYSIS'~ 'RENAL REPLACEMENT THERAPIES',
                                
                                treatment=='INVASIVE MECHANICAL LUNG VENTILATION'~'INVASIVE VENTILATION',
                                treatment=='INVASIVE MECHANICAL VENTILATION'~'INVASIVE VENTILATION',
@@ -573,8 +592,6 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                                treatment%like%"REMDESIVIR" ~ "ANTIVIRAL AGENTS",
                                treatment%like%"NEURAMINIDASE INHIBITORS" ~ "ANTIVIRAL AGENTS",
                                treatment%like%"RIBAVARIN" ~ "ANTIVIRAL AGENTS",
-                               
-                               
                                
                                treatment%like%"ANTIBIOTIC"~ "ANTIBIOTIC AGENTS",
                                treatment%like%"AMIKACIN"~ "ANTIBIOTIC AGENTS",
@@ -913,29 +930,31 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
   
 }
 
-
 #' Fully process data
-#' @param demog.file.name Path of the demographics data file (CDISC format)
-#' @param microb.file.name Path of the demographics data file (CDISC format)
-#' @param symptoms.file.name Path of the symptoms data file (CDISC format, optional)
-#' @param pregnancy.file.name Path of the RP data file (CDISC format, optional)
-#' @param minimum.treatments The minimum number of instances of a treatment required for inclusion as a column
-#' @param ICU.file.name Path of the healthcare encounters data file (CDISC format, optional)
-#' @param treatment.file.name Path of the intervention data file (CDISC format, optional)
-#' @param vit_sign.file.name  Path of the VS data file (CDISC format, optional)
-#' @param laboratory.file.name Path of the LB data file (CDISC format, optional)
-#' @param outcome.file.name Path of the dispositions data file (CDISC format, optional)
-#' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
-#' @import dplyr tibble
+#' @param demog.file.name <String> Path of the demographics (DM) data file (CDISC format)
+#' @param microb.file.name <String> Path of the demographics (MB) data file (CDISC format)
+#' @param symptoms.file.name <String> Path of the symptoms (SA) data file (CDISC format, optional)
+#' @param pregnancy.file.name <String> Path of the RP data file (CDISC format, optional)
+#' @param ICU.file.name <String> Path of the healthcare encounters (HO) data file (CDISC format, optional)
+#' @param treatment.file.name <String> Path of the treatment and interventions (IN) data file (CDISC format, optional)
+#' @param vit_sign.file.name  <String> Path of the vital signs (VS) data file (CDISC format, optional)
+#' @param laboratory.file.name <String> Path of the LB data file (CDISC format, optional)
+#' @param outcome.file.name <String> Path of the dispositions data file (CDISC format, optional)
+#' @param dtplyr.step <Boolean> Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
+#' @param minimum.comorb <Integer> 
+#' @param minimum.sympt <Integer> 
+#' @param minimum.treatments <Integer> The minimum number of instances of a treatment required for inclusion as a column
+#' @param date_pull <Date> The date CDISC (e.g. "LB.csv") data was received. Data beyond \code{date_pull} is excluded
+#' @import dplyr tibble dtplyr
 #' @return Formatted outcome data as a tibble or \code{dtplyr_step}
 #' @export process.all.data
 process.all.data <- function(demog.file.name, microb.file.name=NA, symptoms.file.name = NA, pregnancy.file.name = NA,
                              ICU.file.name = NA, treatment.file.name = NA, vit_sign.file.name = NA, 
                              outcome.file.name = NA, laboratory.file.name= NA, minimum.comorb=100, minimum.sympt=100, minimum.treatments = 1000, 
-                             dtplyr.step = FALSE){
-  
+                             dtplyr.step = FALSE, date_pull = Sys.Date()){
+  print("processing demographic data from DM")
   # dtplyr.step is FALSE due to ....!!! why?
-  demographic <- import.demographic.data(demog.file.name, dtplyr.step = FALSE)
+  demographic <- import.demographic.data(demog.file.name, dtplyr.step = FALSE, date_pull = date_pull)
   
   if(!is.na(microb.file.name)){
     microb <- import.microb.data(microb.file.name, dtplyr.step = FALSE)
@@ -944,11 +963,16 @@ process.all.data <- function(demog.file.name, microb.file.name=NA, symptoms.file
   }
   
   if(!is.na(symptoms.file.name)){
+    print("processing comorbidity and symptom/complications data from SA")
     comorb.sympt.temp <-  import.symptom.and.comorbidity.data(symptoms.file.name, dtplyr.step = TRUE)
-    
+    print("comorbidity")
     comorbid <- process.comorbidity.data(comorb.sympt.temp, minimum.comorb, dtplyr.step = FALSE)
+    # !!! test comorbid.
+    # symptom <- process.symptom.data(comorb.sympt.temp, minimum.sympt, dtplyr.step = FALSE)
+    # add to wide table...
     demographic <- demographic %>%
-      left_join(comorbid, by = c("usubjid"))
+      left_join(comorbid, by = c("usubjid")) #%>%
+      # left_join(symptom, by = c("usubjid"))
   }
   
   if(!is.na(pregnancy.file.name)){
@@ -957,23 +981,11 @@ process.all.data <- function(demog.file.name, microb.file.name=NA, symptoms.file
       left_join(comorbid_pregnancy, by = c("usubjid"))
   }
   
-  
-  if(!is.na(symptoms.file.name)){
-    comorb.sympt.temp <-  import.symptom.and.comorbidity.data(symptoms.file.name, dtplyr.step = TRUE)
-    symptom <- process.symptom.data(comorb.sympt.temp, minimum.sympt, dtplyr.step = FALSE)
-    demographic <- demographic %>%
-      left_join(symptom, by = c("usubjid")) 
-  }
-  
-  
   if(!is.na(treatment.file.name)){
     treatment <- process.common.treatment.data(treatment.file.name, minimum.treatments, dtplyr.step = FALSE)
     demographic <- demographic %>%
       left_join(treatment, by = c("usubjid"))
   }
-  
-  
-  
   
   if(!is.na(ICU.file.name)){
     icu <- process.ICU.data(ICU.file.name, dtplyr.step = FALSE)
@@ -1010,6 +1022,7 @@ process.all.data <- function(demog.file.name, microb.file.name=NA, symptoms.file
     demographic <- demographic %>%
       left_join(icu_treat, by = c("usubjid"))
   } 
+  
   if(!is.na(treatment.file.name)){
     ventilation <- process.IMV.NIV.ECMO.data(treatment.file.name, dtplyr.step = FALSE)
     demographic <- demographic %>%

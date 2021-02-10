@@ -15,5 +15,8 @@ process.treatment.data(file.name, dtplyr.step = FALSE)
 Formatted treatment data (long format) as a tibble or \code{dtplyr_step}
 }
 \description{
-Process data on treatments
+
+}
+\details{
+
 }

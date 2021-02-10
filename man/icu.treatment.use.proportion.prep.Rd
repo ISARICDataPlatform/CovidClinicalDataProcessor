@@ -2,7 +2,7 @@
 % Please edit documentation in R/AggregationFunctions.R
 \name{icu.treatment.use.proportion.prep}
 \alias{icu.treatment.use.proportion.prep}
-\title{Aggregate data for ICU treatment use proportion plot}
+\title{Aggregate data for treatment ICU use proportion plot}
 \usage{
 icu.treatment.use.proportion.prep(input.tbl)
 }
@@ -10,8 +10,8 @@ icu.treatment.use.proportion.prep(input.tbl)
 \item{input.tbl}{Input tibble (output of \code{data.preprocessing})}
 }
 \value{
-A \code{tibble} containing the input data for the ICU treatment use proportion plot
+A \code{tibble} containing the input data for the treatment use proportion plot
 }
 \description{
-Aggregate data for ICU treatment use proportion plot
+Aggregate data for treatment ICU use proportion plot
 }

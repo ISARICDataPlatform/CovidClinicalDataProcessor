@@ -6,28 +6,49 @@
 \usage{
 process.all.data(
   demog.file.name,
+  microb.file.name = NA,
   symptoms.file.name = NA,
+  pregnancy.file.name = NA,
   ICU.file.name = NA,
   treatment.file.name = NA,
+  vit_sign.file.name = NA,
   outcome.file.name = NA,
+  laboratory.file.name = NA,
+  minimum.comorb = 100,
+  minimum.sympt = 100,
   minimum.treatments = 1000,
-  dtplyr.step = FALSE
+  dtplyr.step = FALSE,
+  date_pull = Sys.Date()
 )
 }
 \arguments{
-\item{demog.file.name}{Path of the demographics data file (CDISC format)}
+\item{demog.file.name}{<String> Path of the demographics (DM) data file (CDISC format)}
 
-\item{symptoms.file.name}{Path of the symptoms data file (CDISC format, optional)}
+\item{microb.file.name}{<String> Path of the demographics (MB) data file (CDISC format)}
 
-\item{ICU.file.name}{Path of the healthcare encounters data file (CDISC format, optional)}
+\item{symptoms.file.name}{<String> Path of the symptoms (SA) data file (CDISC format, optional)}
 
-\item{treatment.file.name}{Path of the intervention data file (CDISC format, optional)}
+\item{pregnancy.file.name}{<String> Path of the RP data file (CDISC format, optional)}
 
-\item{outcome.file.name}{Path of the dispositions data file (CDISC format, optional)}
+\item{ICU.file.name}{<String> Path of the healthcare encounters (HO) data file (CDISC format, optional)}
 
-\item{minimum.treatments}{The minimum number of instances of a treatment required for inclusion as a column}
+\item{treatment.file.name}{<String> Path of the treatment and interventions (IN) data file (CDISC format, optional)}
 
-\item{dtplyr.step}{Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}}
+\item{vit_sign.file.name}{<String> Path of the vital signs (VS) data file (CDISC format, optional)}
+
+\item{outcome.file.name}{<String> Path of the dispositions data file (CDISC format, optional)}
+
+\item{laboratory.file.name}{<String> Path of the LB data file (CDISC format, optional)}
+
+\item{minimum.comorb}{<Integer>}
+
+\item{minimum.sympt}{<Integer>}
+
+\item{minimum.treatments}{<Integer> The minimum number of instances of a treatment required for inclusion as a column}
+
+\item{dtplyr.step}{<Boolean> Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}}
+
+\item{date_pull}{<Date> The date CDISC (e.g. "LB.csv") data was received. Data beyond \code{date_pull} is excluded}
 }
 \value{
 Formatted outcome data as a tibble or \code{dtplyr_step}

@@ -17,5 +17,8 @@ process.common.treatment.data(input, minimum = 1000, dtplyr.step = FALSE)
 Formatted common treatment data (wide format) as a tibble or \code{dtplyr_step}
 }
 \description{
-Process data on the most common treatments
+
+}
+\details{
+
 }

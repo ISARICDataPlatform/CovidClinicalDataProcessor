@@ -15,8 +15,5 @@ process.laboratory.data(file.name, dtplyr.step = FALSE)
 Formatted laboratory (wide format) as a tibble or \code{dtplyr_step}
 }
 \description{
-
-}
-\details{
-
+Process data on laboratory
 }

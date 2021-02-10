@@ -17,12 +17,21 @@ shared.data.import(
 
 \item{excluded.columns}{Columns to be removed}
 
-\item{dtplyr.step}{Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}}
+\item{dtplyr.step}{If FALSE, the processed tibble will be called \code{as_tibble} or \code{as.data.table}, otherwise not.}
+
+\item{immutable}{If False the dataframe is immutable, i.e. it changes. This is what we
+want.}
 }
 \value{
 The contents of \code{file.name} as a tibble or \code{dtplyr_step}
 }
 \description{
-Shared pre-processing of input CSV files
+Helper function that undertakes the first pre-processing steps common
+to all RAW files provided by ISARIC.
+}
+\details{
+First, \code{required.columns} are included (even if empty). The file is cast
+as a mutable dtplyr \code{lazy_tb}. Sensitive \code{excluded.columns} are removed.
+All column names are transformed to lowercase.
 }
 \keyword{internal}
