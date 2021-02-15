@@ -7,7 +7,8 @@
 #' @export data.preprocessing
 
 
-date_pull<-as_date("2020-11-30")
+date_pull<-as_date("2021-01-17")
+
 data.preprocessing <- function(input.tbl){
 
 
@@ -28,15 +29,15 @@ data.preprocessing <- function(input.tbl){
                              date_outcome)%>% names()
  
   #create a list of symptoms, comorbidity and treatment variables to be removed since completness<5%
-  rmv<-exclud.sympt.comorb.tret(input.tbl)
+  #rmv<-exclud.sympt.comorb.tret(input.tbl)
   
  #preprocessing function
- input.tbl %>%
+  input.tbl %>%
    
   #test<- input.tbl%>%
-    lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid.19_symptoms",symptoms_asymptomatic, comorbid_smoking_former))%>%
-   
+    #lazy_dt(immutable = TRUE) %>%
+    select(-c("symptoms_covid-19_symptoms",symptoms_asymptomatic, comorbid_smoking_former))%>%
+    #select(-c("symptoms_covid-19_symptoms"))%>%
    #create upper respiratory tract symptoms combining several symptoms
     mutate(symptrcd_upper_respiratory_tract_symptoms=NA)%>%
     mutate(symptrcd_upper_respiratory_tract_symptoms=case_when(
@@ -63,8 +64,32 @@ data.preprocessing <- function(input.tbl){
               symptoms_loss_of_smell_taste==TRUE|
               symptoms_loss_of_taste==TRUE~TRUE,
               TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
+    mutate(oxygen_therapy=FALSE)%>%
+    mutate(oxygen_therapy=case_when(
+      treat_high_flow_nasal_cannula==TRUE|
+      treat_nasal_mask_oxygen_therapy==TRUE|
+        treat_non_invasive_ventilation==TRUE|
+        treat_invasive_ventilation==TRUE
+      ~TRUE,
+      is.na(treat_high_flow_nasal_cannula) &
+      is.na(treat_nasal_mask_oxygen_therapy) &
+        is.na (treat_non_invasive_ventilation) &
+        is.na(treat_invasive_ventilation) ~
+        NA,
+      TRUE~oxygen_therapy))%>%
+    mutate(icu_oxygen_therapy=FALSE)%>%
+    mutate(icu_oxygen_therapy=case_when(
+      icu_treat_high_flow_nasal_cannula==TRUE|
+      icu_treat_nasal_mask_oxygen_therapy==TRUE|
+        icu_treat_non_invasive_ventilation==TRUE|
+        icu_treat_invasive_ventilation==TRUE~TRUE,
+      is.na(icu_treat_high_flow_nasal_cannula)&
+      is.na(icu_treat_nasal_mask_oxygen_therapy)&
+        is.na(icu_treat_non_invasive_ventilation)&
+        is.na(icu_treat_invasive_ventilation)~NA,
+      TRUE~icu_oxygen_therapy))%>%
    #Removing variables with records UNK >95% (function: exclud.sympt.comorb.tret)
-  select(-c(all_of(rmv)))%>%
+  #select(-c(all_of(rmv)))%>%
    #Setting_up dates as date
    mutate_at(vars(all_of(var_date)), function(x){as_date(x)})%>%
    #creating first and last date
@@ -128,7 +153,7 @@ data.preprocessing <- function(input.tbl){
     mutate(vs_resp=case_when(vs_resp<= 3 ~ NA_real_,
                              vs_resp<=5 & age < 10 ~ NA_real_ ,
                              TRUE ~ vs_resp)) %>%  
-  #set as NA outliers for time, vital sign and laboratory variables
+  #set as NA outliers for vital sign and laboratory variables
     mutate_at(vars(c(all_of(c(starts_with("vs_"),starts_with("lab_"))))), 
               function(x,na.rm = FALSE){replace(x, 
                                                 x<(quantile(x, 0.25, na.rm = TRUE))-(1.5*IQR(x, na.rm = TRUE))|
