@@ -54,31 +54,9 @@ summary.input.prep<- function(input.tbl){
              t_ad_imv,
              dur_niv,
              dur_imv,
-             embargo_length))%>%
-    mutate(oxygen_therapy=FALSE)%>%
-    mutate(oxygen_therapy=case_when(
-      #treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
-        treat_nasal_mask_oxygen_therapy==TRUE|
-        treat_non_invasive_ventilation==TRUE|
-        treat_invasive_ventilation==TRUE
-      ~TRUE,
-      #is.na(treat_high_flow_nasal_canula_oxygen_therapy) &
-        is.na(treat_nasal_mask_oxygen_therapy) &
-        is.na (treat_non_invasive_ventilation) &
-        is.na(treat_invasive_ventilation) ~
-        NA,
-      TRUE~oxygen_therapy))%>%
-    mutate(icu_oxygen_therapy=FALSE)%>%
-    mutate(icu_oxygen_therapy=case_when(
-      #icu_treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
-        icu_treat_nasal_mask_oxygen_therapy==TRUE|
-        icu_treat_non_invasive_ventilation==TRUE|
-        icu_treat_invasive_ventilation==TRUE~TRUE,
-      #is.na(icu_treat_high_flow_nasal_canula_oxygen_therapy)&
-        is.na(icu_treat_nasal_mask_oxygen_therapy)&
-        is.na(icu_treat_non_invasive_ventilation)&
-        is.na(icu_treat_invasive_ventilation)~NA,
-      TRUE~icu_oxygen_therapy))
+           oxygen_therapy,
+           icu_oxygen_therapy,
+             embargo_length))
 }
 
 #' Aggregate data for symptom prevalence plot
@@ -702,7 +680,7 @@ patient.characteristic.prep <- function(input.tbl){
   Description<-c(
     'Death',
     'Discharge',
-    'Ongoing care',
+    #'Ongoing care',
     'LTFU')
   Description<-data.frame(Description)
   
@@ -715,11 +693,11 @@ patient.characteristic.prep <- function(input.tbl){
     mutate(value=round(n/tot,digit=2))%>%
     mutate(value=paste0(n," (",value, ")"))%>%
     select(Description,value)%>%
-    full_join(Description)%>%
-    mutate(value=replace(value,is.na(value),"0 (0)"))%>%
+    #full_join(Description)%>%
+    #mutate(value=replace(value,is.na(value),"0 (0)"))%>%
   arrange(Description, levels=c('Death',
                                 'Discharge',
-                                'Ongoing care',
+                                #'Ongoing care',
                                 'LTFU'))
   
   
@@ -808,7 +786,8 @@ patient.characteristic.prep <- function(input.tbl){
 #' 
 outcome.age.sex.prep <- function(input.tbl){
 
-  slider_outcome<-c('Death', 'Discharge','Ongoing care', 'LTFU')
+  #slider_outcome<-c('Death', 'Discharge','Ongoing care', 'LTFU')
+  slider_outcome<-c('Death', 'Discharge', 'LTFU')
   slider_outcome<-data.frame(slider_outcome)
     
   Variable<-c(
@@ -835,7 +814,8 @@ outcome.age.sex.prep <- function(input.tbl){
     filter(!is.na(Variable))%>%
     arrange(Variable, levels=c('Female',
                                'Male'))%>%
-    select('Death', 'Discharge','Ongoing care', 'LTFU')%>%
+    #select('Death', 'Discharge','Ongoing care', 'LTFU')%>%
+    select('Death', 'Discharge', 'LTFU')%>%
     ungroup()
     sex<-replace(sex,is.na(sex),as.character("0 (0)"))
  
@@ -880,7 +860,8 @@ outcome.age.sex.prep <- function(input.tbl){
                                '50-59',
                                '60-69',
                                '70+'))%>%
-    select('Death', 'Discharge','Ongoing care', 'LTFU')%>%
+    #select('Death', 'Discharge','Ongoing care', 'LTFU')%>%
+    select('Death', 'Discharge', 'LTFU')%>%
     ungroup()
   age<-replace(age,is.na(age),as.character("0 (0)"))
   
