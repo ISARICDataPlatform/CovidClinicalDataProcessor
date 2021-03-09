@@ -113,26 +113,17 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
   
   data2 <- data2 %>%
     pivot_longer(2:(n.symp+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
-    dplyr::mutate(Present = map_lgl(Present, function(x){
-      if(is.na(x)){
-        FALSE
-      } else if(x == 1){
-        TRUE
-      } else if(x == 2){
-        FALSE
-      } else {
-        FALSE
-      }
-    })) 
+    filter(!is.na(Present))
   
   # get the most common
   
   most.common <- data2 %>%
     group_by(Condition) %>%
-    dplyr::summarise(Total = n(), Present = sum(Present, na.rm = T)) %>%
+    dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
+    mutate(prop=Present/Total)%>%
     ungroup() %>%
     filter(Condition != "symptoms_other_signs_and_symptoms") %>%
-    arrange(desc(Present)) %>%
+    arrange(desc(prop)) %>%
     #slice(1:max.symptoms) %>%
     slice(1:5) %>%
     pull(Condition)
@@ -285,28 +276,19 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
   
   data2 <- data2 %>%
     pivot_longer(2:(n.comorb+1), names_to = "Condition", values_to = "Present") %>%
-    dplyr::mutate(Present = map_lgl(Present, function(x){
-      if(is.na(x)){
-        FALSE
-      } else if(x == 1){
-        TRUE
-      } else if(x == 2){
-        FALSE
-      } else {
-        FALSE
-      }
-    })) 
+    filter(!is.na(Present))
   
   # get the most common
   
   most.common <- data2 %>%
     group_by(Condition) %>%
-    dplyr::summarise(Total = n(), Present = sum(Present, na.rm = T)) %>%
+    dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
+    mutate(prop=Present/Total)%>%
     ungroup() %>%
     filter(Condition != "other_mhyn") %>%
     filter(Condition!="comorbid_other_comorbidities")%>%
-    arrange(desc(Present)) %>%
-    slice(1:max.comorbidities) %>%
+    arrange(desc(prop)) %>%
+    slice(1:max.treatments) %>%
     pull(Condition)
   
   
@@ -420,25 +402,16 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   
   data2 <- data2 %>%
     pivot_longer(2:(n.treat+1), names_to = "Treatment", values_to = "Present") %>%
-    dplyr::mutate(Present = map_lgl(Present, function(x){
-      if(is.na(x)){
-        FALSE
-      } else if(x == 1){
-        TRUE
-      } else if(x == 2){
-        FALSE
-      } else {
-        FALSE
-      }
-    })) 
+    filter(!is.na(Present))
   
   # get the most common
   
   most.common <- data2 %>%
     group_by(Treatment) %>%
-    dplyr::summarise(Total = n(), Present = sum(Present, na.rm = T)) %>%
+    dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
+    mutate(prop=Present/Total)%>%
     ungroup() %>%
-    arrange(desc(Present)) %>%
+    arrange(desc(prop)) %>%
     slice(1:max.treatments) %>%
     pull(Treatment)
   
@@ -555,25 +528,16 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
   
   data2 <- data2 %>%
     pivot_longer(2:(n.treat+1), names_to = "Treatment", values_to = "Present") %>%
-    dplyr::mutate(Present = map_lgl(Present, function(x){
-      if(is.na(x)){
-        FALSE
-      } else if(x == 1){
-        TRUE
-      } else if(x == 2){
-        FALSE
-      } else {
-        FALSE
-      }
-    })) 
+    filter(!is.na(Present))
   
   # get the most common
   
   most.common <- data2 %>%
     group_by(Treatment) %>%
-    dplyr::summarise(Total = n(), Present = sum(Present, na.rm = T)) %>%
+    dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
+    mutate(prop=Present/Total)%>%
     ungroup() %>%
-    arrange(desc(Present)) %>%
+    arrange(desc(prop)) %>%
     slice(1:max.treatments) %>%
     pull(Treatment)
   
