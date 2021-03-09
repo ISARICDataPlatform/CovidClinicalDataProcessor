@@ -19,24 +19,23 @@ data.preprocessing <- function(input.tbl){
                              icu_in,
                              icu_out,
                              date_ho_last,
-                             extracorporeal_st,
-                             imv_st,
-                             niv_st,
-                             niv_st,
-                             extracorporeal_en,
-                             imv_en,
-                             niv_en,
+                             #extracorporeal_st,
+                             #imv_st,
+                             #niv_st,
+                             #extracorporeal_en,
+                             #imv_en,
+                             #niv_en,
                              date_outcome)%>% names()
  
   #create a list of symptoms, comorbidity and treatment variables to be removed since completness<5%
-  #rmv<-exclud.sympt.comorb.tret(input.tbl)
+  rmv<-exclud.sympt.comorb.tret(input.tbl)
   
  #preprocessing function
   input.tbl %>%
    
   #test<- input.tbl%>%
     #lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid-19_symptoms",symptoms_asymptomatic, comorbid_smoking_former))%>%
+    select(-c("symptoms_covid-19_symptoms",symptoms_asymptomatic))%>%
     #select(-c("symptoms_covid-19_symptoms"))%>%
    #create upper respiratory tract symptoms combining several symptoms
     mutate(symptrcd_upper_respiratory_tract_symptoms=NA)%>%
@@ -88,8 +87,8 @@ data.preprocessing <- function(input.tbl){
         is.na(icu_treat_non_invasive_ventilation)&
         is.na(icu_treat_invasive_ventilation)~NA,
       TRUE~icu_oxygen_therapy))%>%
-   #Removing variables with records UNK >95% (function: exclud.sympt.comorb.tret)
-  #select(-c(all_of(rmv)))%>%
+   #Removing variables with records UNK >95% (function: exclud.sympt.comorb.tret)#perhaps to be removed from here and to be added when preparing the aggregated table
+    select(-c(all_of(rmv)))%>%
    #Setting_up dates as date
    mutate_at(vars(all_of(var_date)), function(x){as_date(x)})%>%
    #creating first and last date
@@ -139,17 +138,16 @@ data.preprocessing <- function(input.tbl){
     mutate(t_ad_icu=icu_in-date_start)%>%
     mutate(t_ad_imv=imv_st-date_start)%>%
     mutate(t_ad_niv=niv_st-date_start)%>%
-    mutate(t_ad_icu=icu_in-date_start)%>%
     mutate(dur_icu=icu_out-icu_in)%>%
     mutate(dur_ho=date_outcome-date_start)%>%
-    mutate(dur_imv=imv_en-imv_st)%>%
-    mutate(dur_niv=niv_en-niv_st)%>%
-  #set as NA implausible negative value 
+    #mutate(dur_imv=imv_en-imv_st)%>%
+    #mutate(dur_niv=niv_en-niv_st)%>%
+    #set as NA implausible negative value 
     mutate_at(vars(all_of(c(starts_with("t_"),starts_with("dur_")))), function(x){replace(x,x<0,NA)})%>%
-   #create time variable: t_son_ad
+    #create time variable: t_son_ad
     mutate(t_son_ad=case_when(date_admit>=date_onset~date_admit-date_onset,
                               TRUE~ NA_real_))%>%
-  #deleting implausible respiratory rates based on age
+    #deleting implausible respiratory rates based on age
     mutate(vs_resp=case_when(vs_resp<= 3 ~ NA_real_,
                              vs_resp<=5 & age < 10 ~ NA_real_ ,
                              TRUE ~ vs_resp)) %>%  
@@ -267,7 +265,7 @@ data<-select(input.tbl, c(starts_with("symptoms_"),starts_with("comorbid_"),star
   summarise(n = sum(count, na.rm=T))%>%
   mutate(prop=round(n/tot,digit=2))%>%
   filter(is.na(value))%>%
-  filter(prop>=0.95)%>%
+  filter(prop>=0.90)%>%#changing from 0.95 to 0.90
   select(variable)
 
 data2<-select(input.tbl, c(starts_with("icu_treat"),ever_icu)) %>%
@@ -280,7 +278,7 @@ data2<-select(input.tbl, c(starts_with("icu_treat"),ever_icu)) %>%
   summarise(n = sum(count, na.rm=T))%>%
   mutate(prop=round(n/tot_icu,digit=2))%>%
   filter(is.na(value))%>%
-  filter(prop>=0.95)%>%
+  filter(prop>=0.90)%>%#changing from 0.95 to 0.90
   select(variable)
 
 rmv<-unique(c(data$variable, data2$variable))
