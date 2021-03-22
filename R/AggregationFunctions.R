@@ -211,9 +211,8 @@ summary.input.prep<- function(input.tbl){
              t_ad_icu,
              t_son_ad,
              outcome,
-             slider_outcome,
              slider_icu_ever,
-             treat_high_flow_nasal_canula_oxygen_therapy,
+             #treat_high_flow_nasal_cannula,
              treat_nasal_mask_oxygen_therapy,
              treat_non_invasive_ventilation,
              treat_invasive_ventilation,
@@ -226,36 +225,14 @@ summary.input.prep<- function(input.tbl){
              icu_treat_non_invasive_ventilation,
              icu_treat_invasive_ventilation,
              icu_treat_nasal_mask_oxygen_therapy,
-             icu_treat_high_flow_nasal_canula_oxygen_therapy,
+             #icu_treat_high_flow_nasal_cannula,
              t_ad_niv,
              t_ad_imv,
              dur_niv,
              dur_imv,
-             embargo_length))%>%
-    mutate(oxygen_therapy=FALSE)%>%
-    mutate(oxygen_therapy=case_when(
-      treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
-        treat_nasal_mask_oxygen_therapy==TRUE|
-        treat_non_invasive_ventilation==TRUE|
-        treat_invasive_ventilation==TRUE
-      ~TRUE,
-      is.na(treat_high_flow_nasal_canula_oxygen_therapy) &
-        is.na(treat_nasal_mask_oxygen_therapy) &
-        is.na (treat_non_invasive_ventilation) &
-        is.na(treat_invasive_ventilation) ~
-        NA,
-      TRUE~oxygen_therapy))%>%
-    mutate(icu_oxygen_therapy=FALSE)%>%
-    mutate(icu_oxygen_therapy=case_when(
-      icu_treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
-        icu_treat_nasal_mask_oxygen_therapy==TRUE|
-        icu_treat_non_invasive_ventilation==TRUE|
-        icu_treat_invasive_ventilation==TRUE~TRUE,
-      is.na(icu_treat_high_flow_nasal_canula_oxygen_therapy)&
-        is.na(icu_treat_nasal_mask_oxygen_therapy)&
-        is.na(icu_treat_non_invasive_ventilation)&
-        is.na(icu_treat_invasive_ventilation)~NA,
-      TRUE~icu_oxygen_therapy))
+           oxygen_therapy,
+           icu_oxygen_therapy,
+             embargo_length))
 }
 
 #' Aggregate data for symptom prevalence plot
@@ -303,7 +280,7 @@ symptom.prevalence.prep <- function(input.tbl){
 #' @export symptom.upset.prep
 symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
   
-  input.tbl<-input.tbl %>%
+  
   
   data2 <- input.tbl %>%
     select(usubjid, starts_with("symp"))
@@ -312,26 +289,17 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
   
   data2 <- data2 %>%
     pivot_longer(2:(n.symp+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
-    dplyr::mutate(Present = map_lgl(Present, function(x){
-      if(is.na(x)){
-        FALSE
-      } else if(x == 1){
-        TRUE
-      } else if(x == 2){
-        FALSE
-      } else {
-        FALSE
-      }
-    })) 
+    filter(!is.na(Present))
   
   # get the most common
   
   most.common <- data2 %>%
     group_by(Condition) %>%
-    dplyr::summarise(Total = n(), Present = sum(Present, na.rm = T)) %>%
+    dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
+    mutate(prop=Present/Total)%>%
     ungroup() %>%
     filter(Condition != "symptoms_other_signs_and_symptoms") %>%
-    arrange(desc(Present)) %>%
+    arrange(desc(prop)) %>%
     #slice(1:max.symptoms) %>%
     slice(1:5) %>%
     pull(Condition)
@@ -545,28 +513,19 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
   
   data2 <- data2 %>%
     pivot_longer(2:(n.comorb+1), names_to = "Condition", values_to = "Present") %>%
-    dplyr::mutate(Present = map_lgl(Present, function(x){
-      if(is.na(x)){
-        FALSE
-      } else if(x == 1){
-        TRUE
-      } else if(x == 2){
-        FALSE
-      } else {
-        FALSE
-      }
-    })) 
+    filter(!is.na(Present))
   
   # get the most common
   
   most.common <- data2 %>%
     group_by(Condition) %>%
-    dplyr::summarise(Total = n(), Present = sum(Present, na.rm = T)) %>%
+    dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
+    mutate(prop=Present/Total)%>%
     ungroup() %>%
     filter(Condition != "other_mhyn") %>%
     filter(Condition!="comorbid_other_comorbidities")%>%
-    arrange(desc(Present)) %>%
-    slice(1:max.comorbidities) %>%
+    arrange(desc(prop)) %>%
+    slice(1:max.treatments) %>%
     pull(Condition)
   
   
@@ -680,25 +639,16 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   
   data2 <- data2 %>%
     pivot_longer(2:(n.treat+1), names_to = "Treatment", values_to = "Present") %>%
-    dplyr::mutate(Present = map_lgl(Present, function(x){
-      if(is.na(x)){
-        FALSE
-      } else if(x == 1){
-        TRUE
-      } else if(x == 2){
-        FALSE
-      } else {
-        FALSE
-      }
-    })) 
+    filter(!is.na(Present))
   
   # get the most common
   
   most.common <- data2 %>%
     group_by(Treatment) %>%
-    dplyr::summarise(Total = n(), Present = sum(Present, na.rm = T)) %>%
+    dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
+    mutate(prop=Present/Total)%>%
     ungroup() %>%
-    arrange(desc(Present)) %>%
+    arrange(desc(prop)) %>%
     slice(1:max.treatments) %>%
     pull(Treatment)
   
@@ -815,25 +765,16 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
   
   data2 <- data2 %>%
     pivot_longer(2:(n.treat+1), names_to = "Treatment", values_to = "Present") %>%
-    dplyr::mutate(Present = map_lgl(Present, function(x){
-      if(is.na(x)){
-        FALSE
-      } else if(x == 1){
-        TRUE
-      } else if(x == 2){
-        FALSE
-      } else {
-        FALSE
-      }
-    })) 
+    filter(!is.na(Present))
   
   # get the most common
   
   most.common <- data2 %>%
     group_by(Treatment) %>%
-    dplyr::summarise(Total = n(), Present = sum(Present, na.rm = T)) %>%
+    dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
+    mutate(prop=Present/Total)%>%
     ungroup() %>%
-    arrange(desc(Present)) %>%
+    arrange(desc(prop)) %>%
     slice(1:max.treatments) %>%
     pull(Treatment)
   
@@ -1108,7 +1049,7 @@ patient.characteristic.prep <- function(input.tbl){
   Description<-c(
     'Death',
     'Discharge',
-    'Ongoing care',
+    #'Ongoing care',
     'LTFU')
   Description<-data.frame(Description)
   
@@ -1121,16 +1062,16 @@ patient.characteristic.prep <- function(input.tbl){
     mutate(value=round(n/tot,digit=2))%>%
     mutate(value=paste0(n," (",value, ")"))%>%
     select(Description,value)%>%
-    full_join(Description)%>%
-    mutate(value=replace(value,is.na(value),"0 (0)"))%>%
+    #full_join(Description)%>%
+    #mutate(value=replace(value,is.na(value),"0 (0)"))%>%
   arrange(Description, levels=c('Death',
                                 'Discharge',
-                                'Ongoing care',
+                                #'Ongoing care',
                                 'LTFU'))
   
   
   Description<-c(
-    'By age',
+    #'By age',
     '0-9',
     '10-19',
     '20-29',
@@ -1159,7 +1100,9 @@ patient.characteristic.prep <- function(input.tbl){
     select(Description,value)%>%
     full_join(Description)%>%
     mutate(value=replace(value,is.na(value),"0 (0)"))%>%
-    arrange(Description, levels=c('0-9',
+    arrange(Description, levels=c(
+                                  #'By age',
+                                  '0-9',
                                   '10-19',
                                   '20-29',
                                   '30-39',
@@ -1212,7 +1155,8 @@ patient.characteristic.prep <- function(input.tbl){
 #' 
 outcome.age.sex.prep <- function(input.tbl){
 
-  slider_outcome<-c('Death', 'Discharge','Ongoing care', 'LTFU')
+  #slider_outcome<-c('Death', 'Discharge','Ongoing care', 'LTFU')
+  slider_outcome<-c('Death', 'Discharge', 'LTFU')
   slider_outcome<-data.frame(slider_outcome)
     
   Variable<-c(
@@ -1230,16 +1174,17 @@ outcome.age.sex.prep <- function(input.tbl){
     mutate(tot = sum(count)) %>%
     ungroup()%>%
     group_by(Variable,slider_outcome, tot)%>%
-    group_by(Variable,slider_outcome,tot)%>%
     summarise(n = sum(count, na.rm=T)) %>%
     mutate(prop=round(n/tot,digit=2))%>%
     mutate(prop=paste0(n," (",prop, ")"))%>%
     full_join(slider_outcome)%>%
     pivot_wider(id_cols = Variable, names_from = slider_outcome,  values_from = prop)%>%
     full_join(Variable)%>%
+    filter(!is.na(Variable))%>%
     arrange(Variable, levels=c('Female',
                                'Male'))%>%
-    select('Death', 'Discharge','Ongoing care', 'LTFU')%>%
+    #select('Death', 'Discharge','Ongoing care', 'LTFU')%>%
+    select('Death', 'Discharge', 'LTFU')%>%
     ungroup()
     sex<-replace(sex,is.na(sex),as.character("0 (0)"))
  
@@ -1275,6 +1220,7 @@ outcome.age.sex.prep <- function(input.tbl){
     full_join(slider_outcome)%>%
     pivot_wider(id_cols = Variable, names_from = slider_outcome,  values_from = prop)%>%
     full_join(Variable)%>%
+    filter(!is.na(Variable))%>%
     arrange(Variable, levels=c('0-9',
                                '10-19',
                                '20-29',
@@ -1283,7 +1229,8 @@ outcome.age.sex.prep <- function(input.tbl){
                                '50-59',
                                '60-69',
                                '70+'))%>%
-    select('Death', 'Discharge','Ongoing care', 'LTFU')%>%
+    #select('Death', 'Discharge','Ongoing care', 'LTFU')%>%
+    select('Death', 'Discharge', 'LTFU')%>%
     ungroup()
   age<-replace(age,is.na(age),as.character("0 (0)"))
   
