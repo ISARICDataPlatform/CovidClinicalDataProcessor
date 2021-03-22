@@ -28,7 +28,7 @@ data.preprocessing <- function(input.tbl){
                              date_outcome)%>% names()
  
   #create a list of symptoms, comorbidity and treatment variables to be removed since completness<5%
-  rmv<-exclud.sympt.comorb.tret(input.tbl)
+  #rmv<-exclud.sympt.comorb.tret(input.tbl)
   
  #preprocessing function
   input.tbl %>%
@@ -88,7 +88,7 @@ data.preprocessing <- function(input.tbl){
         is.na(icu_treat_invasive_ventilation)~NA,
       TRUE~icu_oxygen_therapy))%>%
    #Removing variables with records UNK >95% (function: exclud.sympt.comorb.tret)#perhaps to be removed from here and to be added when preparing the aggregated table
-    select(-c(all_of(rmv)))%>%
+    #select(-c(all_of(rmv)))%>%
    #Setting_up dates as date
    mutate_at(vars(all_of(var_date)), function(x){as_date(x)})%>%
    #creating first and last date
