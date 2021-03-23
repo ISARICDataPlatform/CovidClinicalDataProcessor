@@ -35,7 +35,14 @@ library(lubridate)
 library(grid)
 library(gtable)
 library(gridExtra)
-#month.year.mapper()
+
+
+
+
+
+
+
+
 #' Preprocessing step for all aggregations. Currently: remaps outcome to death, discharge or NA, cuts age into 5-year age groups, and adds a year-epiweek column
 #' @param input.tbl Input tibble (output of \code{process.all.data})
 #' @import dtplyr dplyr purrr lubridate tibble
@@ -146,31 +153,16 @@ age.pyramid.prep <- function(input.tbl){
 #' @export outcome.admission.date.prep
 outcome.admission.date.prep <- function(input.tbl){
   
-  complete.date.listing <- tibble(date = seq(min(input.tbl$date_admit, na.rm = TRUE), today(), by = 'days'))%>%
-    mutate(calendar.year.admit = year(date)) %>%
-    mutate(calendar.month.admit = month(date)) %>%
-    mutate(year.admit = map_dbl(date, epiweek.year)) %>%
-    mutate(epiweek.admit = epiweek(date)) %>%
-    mutate(year.epiweek.admit = glue("{year.admit}-{epiweek.admit}")) %>%
-    mutate(year.epiweek.admit = factor(year.epiweek.admit, ordered= TRUE))
+  epiweek.order <- glue("{c(rep(2019,4), rep(2020,max(input.tbl$epiweek.admit[which(input.tbl$year.admit == 2020)], na.rm = T)))}-{c(49:52, 1:max(input.tbl$epiweek.admit[which(input.tbl$year.admit == 2020)], na.rm = T))}")
   
-  
-  tstt <- input.tbl %>%
-    # lazy_dt(immutable = TRUE) %>%
-    select(-slider_monthyear, -lower.age.bound, -upper.age.bound) %>% # horrible, horrible hack but this is such a painful figure in general
-    mutate(year.epiweek.admit = factor(year.epiweek.admit, levels =  levels(complete.date.listing$year.epiweek.admit), ordered = TRUE)) %>%
-    filter(!is.na(year.epiweek.admit) & !is.na(slider_outcome)) %>%
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, slider_outcome, slider_icu_ever) %>%
-    group_by(slider_sex, slider_outcome, slider_country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, slider_agegp10, slider_icu_ever) %>%
-    summarise(count = n()) %>%
-    as_tibble() %>%
-    complete(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, year.epiweek.admit, slider_outcome, slider_icu_ever, fill = list(count = 0)) %>%
+  input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    semi_join(complete.date.listing, by = c("calendar.year.admit", "calendar.month.admit", "year.epiweek.admit"))  %>%
-    mutate(lower.age.bound  = map_dbl(slider_agegp10, extract.age.boundaries.2, TRUE)) %>%
-    mutate(upper.age.bound  = map_dbl(slider_agegp10, extract.age.boundaries.2, FALSE))  %>%
-    mutate(slider_monthyear = map2_chr(calendar.year.admit, calendar.month.admit, month.year.mapper)) %>%
-    as_tibble()
+    mutate(year.epiweek.admit = factor(year.epiweek.admit, levels = epiweek.order)) %>%
+    filter(!is.na(year.epiweek.admit) & !is.na(slider_outcome)) %>%
+    select(slider_sex, slider_agegp10, lower.age.bound, upper.age.bound, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, year.epiweek.admit, slider_outcome, slider_icu_ever) %>%
+    group_by(slider_sex, slider_outcome, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, year.epiweek.admit, slider_agegp10, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    summarise(count = n()) %>%
+    as_tibble() 
 }
 
 #' @return A \code{tibble} containing the input data for the symptoms upset plot
@@ -342,11 +334,6 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
 }
 
 
-
-
-
-
-
 #' Aggregate data for case enrolment over time by site
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dtplyr dplyr janitor
@@ -428,48 +415,9 @@ extract.age.boundaries.2 <- function(agestring, lower = TRUE){
   }
 }
 
-#' @keywords internal
-#' @export epiweek.year
-epiweek.year <- function(date){
-  if(is.na(date)){
-    return(NA)
-  }
-  if(year(date)==2019 & date > ymd("2019-12-28")){
-    2020
-  } else if(year(date)==2021 & date < ymd("2021-01-03")){
-    2020
-  } else {
-    year(date)
-  }
-}
 
-#' @keywords internal
-#' @export outcome.remap
-outcome.remap <- function(oc, od){
-  if(is.na(od) & is.na(oc)){
-    "censored"
-  } else {
-    out <- case_when(is.na(oc) ~ NA_character_,
-                     oc == "Death" ~ "death",
-                     oc ==  "Discharge" ~"discharge",
-                     oc == "Transferred" ~ "Transferred",
-                     oc == "Ongoing care" ~ "Ongoing care",
-                     oc ==  "" ~ "censored"
-                     )
-  }
-}
 
-#' @keywords internal
-#' @export month.year.mapper
-month.year.mapper <- function(y,m){
-  if(any(is.na(c(y,m)))){
-    NA
-  } else if(m<10){
-    glue("0{m}-{y}")
-  } else {
-    glue("{m}-{y}")
-  }
-}
+
 
 #' Aggregate data for comorbidities upset plot
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -501,7 +449,7 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
     filter(Condition != "other_mhyn") %>%
     filter(Condition!="comorbid_other_comorbidities")%>%
     arrange(desc(prop)) %>%
-    slice(1:max.treatments) %>%
+    slice(1:max.comorbidities) %>%
     pull(Condition)
   
   
@@ -1417,9 +1365,11 @@ key.times.prep <- function(input.tbl){
   key_time<-data.frame(key_time)
   
   data<-select(input.tbl, c(starts_with("t_"))) %>%
+    mutate_at(vars(all_of(starts_with("t_"))), function(x){as.numeric(x)})%>%
     pivot_longer(c(starts_with("t_")), names_to = "key_time", values_to = "value")
   
   out<-select(input.tbl, c(starts_with("dur_"))) %>%
+    mutate_at(vars(all_of(starts_with("dur_"))), function(x){as.numeric(x)})%>%
     pivot_longer(c(starts_with("dur_")), names_to = "key_time", values_to = "value")%>%
     rbind(data)%>%
     filter(!is.na(value))%>%
@@ -1866,6 +1816,95 @@ admission.symptoms <- cbind(field = c("symptoms_runny_nose",
                                       "Seizures",
                                       "Altered consciousness / confusion"))
 admission.symptoms <- as_tibble(admission.symptoms)
+
+##### Prevalence of symptoms heatmap #####
+#'  Plot pairwise symptom prevalance.
+#'
+#'  Plots a heatmap for prevalance of pairwise combinations of symptoms.
+#'  The pairwise prevalence proportions are caculated amongst patients with recorded presence or absence of both symptoms.
+#' @export symptom.heatmap
+#' @param data \code{detailed.data}, a component of the output of \code{\link{import.and.process.data}}..
+#'
+#' @return  Heatmap showing the proportion of patients for each pairwise combination of symptoms.
+symptom.heatmap <- function(data, admission.symptoms, asterisks = vector(), ...){
+  
+  data2 <- data %>%
+    dplyr::select(usubjid, one_of(admission.symptoms$field))
+  
+  
+  phi.correlation <- function(c1, c2){
+    if(c1 == c2){
+      return(1)
+    } else {
+      restricted.df <- data2 %>% dplyr::select_at(c(c1, c2))
+      
+      restricted.df <- restricted.df %>%
+        filter((!!sym(c1) != 3) & (!!sym(c2) != 3) & !is.na(!!sym(c1)) & !is.na(!!sym(c2))) %>%
+        mutate(!!sym(c1) := (!!sym(c1) == 1)) %>%
+        mutate(!!sym(c2) := !!sym(c2) == 1)
+      
+      twobytwo <- table(restricted.df[[c1]], restricted.df[[c2]])
+      # print(twobytwo)
+      
+      if(nrow(twobytwo) == 2 & ncol(twobytwo) == 2){
+        return(phi(twobytwo))
+      } else {
+        return(NA)
+      }
+      
+      
+    }
+  }
+  
+  fct.order <- c("Runny nose",
+                 "Sore throat",
+                 "Ear pain",
+                 "Diarrhoea",
+                 "Vomiting / Nausea",
+                 "Abdominal pain",
+                 "Muscle aches / Joint pain",
+                 "Fatigue / Malaise",
+                 "Headache",
+                 "Shortness of breath",
+                 "History of fever",
+                 "Wheezing",
+                 "Cough",
+                 "Chest pain",
+                 "Lymphadenopathy",
+                 "Loss of taste",
+                 "Loss of smell",
+                 "Conjunctivitis",
+                 "Bleeding",
+                 "Skin ulcers",
+                 "Skin rash",
+                 "Seizures",
+                 "Altered consciousness / confusion"  )
+  
+  fct.order[which(fct.order %in% admission.symptoms$label[which(admission.symptoms$field %in% asterisks)])] <- 
+    glue("{fct.order[which(fct.order %in% admission.symptoms$label[which(admission.symptoms$field %in% asterisks)])]}*")
+  
+  
+  admission.symptoms$label[which(admission.symptoms$field %in% asterisks)] <- 
+    glue("{admission.symptoms$label[which(admission.symptoms$field %in% asterisks)]}*")
+  
+  
+  combinations.tibble <- tibble(cond1 = rep(admission.symptoms$field, length(admission.symptoms$field)),
+                                cond2 = rep(admission.symptoms$field, each = length(admission.symptoms$field))) %>%
+    mutate(phi.correlation = map2_dbl(cond1, cond2, phi.correlation)) %>%
+    left_join(admission.symptoms, by=c("cond1" = "field"), suffix = c(".x", ".y")) %>%
+    left_join(admission.symptoms, by=c("cond2" = "field"), suffix = c(".x", ".y"))
+  
+  
+  if(length(asterisks) > 0){
+    fct.order[asterisks] <- glue("{fct.order[asterisks]}*")
+  }
+  
+  combinations.tibble.2 <- combinations.tibble %>%
+    mutate(label.x = factor(label.x, levels = fct.order)) %>%
+    mutate(label.y = factor(label.y, levels = fct.order))
+  
+  return(combinations.tibble.2)
+}
 
 
 #' Aggregate data for length of stay within ICU
