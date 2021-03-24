@@ -140,8 +140,8 @@ data.preprocessing <- function(input.tbl){
     mutate(t_ad_niv=niv_st-date_start)%>%
     mutate(dur_icu=icu_out-icu_in)%>%
     mutate(dur_ho=date_outcome-date_start)%>%
-    #mutate(dur_imv=imv_en-imv_st)%>%
-    #mutate(dur_niv=niv_en-niv_st)%>%
+    mutate(dur_imv=as.numeric(indur_imv))%>%
+    mutate(dur_niv=as.numeric(indur_niv))%>%
     #set as NA implausible negative value 
     mutate_at(vars(all_of(c(starts_with("t_"),starts_with("dur_")))), function(x){replace(x,x<0,NA)})%>%
     #create time variable: t_son_ad
