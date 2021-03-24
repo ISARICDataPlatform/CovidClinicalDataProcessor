@@ -1,6 +1,4 @@
 
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-02-15"
-setwd(folder)
 
 
 load("ISVARIC_dash_db_prepr_completeness.rda")
@@ -14,8 +12,10 @@ input.tbl<-input.tbl%>%
 
 
 ####
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-02-15/aggregated"
+folder <- "./saved_rda_files/"
 setwd(folder)
+
+
 
 #####################tables pre inclusion criteria
 
@@ -65,6 +65,7 @@ symptom.prevalence.input<-symptom.prevalence.prep(input.tbl)
 save(symptom.prevalence.input, file = "symptom_prevalence_input.rda")
 
 symptom.upset.input<-symptom.upset.prep(input.tbl)
+#
 save(symptom.upset.input, file = "symptom_upset_input.rda")
 
 patient.characteristic.table<-patient.characteristic.prep(input.tbl)
@@ -169,7 +170,7 @@ data_plot_symptoms_cought_fever_shortness_of_breath<-func_plot_symptoms_cought_f
 data_plot_symptoms_upper_respiratory_tract_symptoms<-func_plot_symptoms_upper_respiratory_tract_symptoms(input.tbl)
 data_plot_symptoms_altered_consciousness_confusion<-func_plot_symptoms_altered_consciousness_confusion(input.tbl)
 data_plot_symptoms_constitutional<-func_plot_symptoms_constitutional(input.tbl)
-data_plot_symptoms_vomiting_nausea<-func_plot_symptoms_vomiting_nausea
+data_plot_symptoms_vomiting_nausea<-func_plot_symptoms_vomiting_nausea(input.tbl)
 data_plot_symptoms_diarrhoea <-func_plot_symptoms_diarrhoea(input.tbl)
 data_plot_symptoms_abdominal_pain <- func_plot_symptoms_abdominal_pain(input.tbl)
 
@@ -189,6 +190,25 @@ save(data_plot_symptoms_abdominal_pain, file ="data_plot_symptoms_abdominal_pain
 data_plot_heatmap <- symptom.heatmap(data = input.tbl, admission.symptoms = admission.symptoms, asterisks = vector())
 
 save(data_plot_heatmap, file ="data_plot_heatmap.rda")
+
+
+#age_pyramid_table
+age.pyramid.input <- age.pyramid.prep(input.tbl)
+save(age.pyramid.input, file ="age_pyramid_input.rda")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
