@@ -1,4 +1,6 @@
 
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-02-15"
+setwd(folder)
 
 
 load("ISVARIC_dash_db_prepr_completeness.rda")
@@ -12,7 +14,7 @@ input.tbl<-input.tbl%>%
 
 
 ####
-folder <- "./saved_rda_files/"
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-02-15/aggregated"
 setwd(folder)
 
 
