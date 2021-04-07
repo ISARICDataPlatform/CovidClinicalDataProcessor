@@ -1,9 +1,10 @@
 
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-02-15"
+####
+folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor"
 setwd(folder)
 
 
-load("ISVARIC_dash_db_prepr_completeness.rda")
+load("ISVARIC_dash_db_prepr_completeness_24_march.rda")
 input.tbl<-prepr.tbl
 backup<-input.tbl
 
@@ -14,8 +15,10 @@ input.tbl<-input.tbl%>%
 
 
 ####
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-02-15/aggregated"
+folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor/Data/2021-02-15/aggregated"
 setwd(folder)
+
+
 
 
 
@@ -122,7 +125,8 @@ save(data_plot_vs_sysbp, file ="data_plot_vs_sysbp.rda")
 save(data_plot_vs_oxysat, file ="data_plot_vs_oxysat.rda")
 
 #Lab data
-data_plot_lab_crp <- func_plot_lab_crp(input.tbl)
+data_plot_lab_crp <- func_plot_lab_crp(input.tbl)  %>%
+  rename(value = lab_crp)
 data_plot_lab_lym <- func_plot_lab_lym(input.tbl)
 data_plot_lab_neut <- func_plot_lab_neut(input.tbl)
 data_plot_lab_wbc <- func_plot_lab_crp(input.tbl)
