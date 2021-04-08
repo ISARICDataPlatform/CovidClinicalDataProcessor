@@ -1952,7 +1952,6 @@ patient.by.country.prep <- function(input.tbl){
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
     filter(!is.na(slider_country)) %>% 
     as_tibble() 
