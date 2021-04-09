@@ -32,13 +32,13 @@ date_cdisc_received = as_date("2021-01-01") # !!!
 df_data <- process.all.data(
   demog.file.name,
   microb.file.name=NA, # checkit out later
-  symptoms.file.name = symptoms.file.name, 
+  symptoms.file.name = NA, 
   pregnancy.file.name = NA,
   ICU.file.name = NA, 
   treatment.file.name = NA, 
   vit_sign.file.name = NA, 
   outcome.file.name = NA, 
-  laboratory.file.name = NA, 
+  laboratory.file.name = laboratory.file.name, 
   minimum.comorb=100, 
   minimum.sympt=100, 
   minimum.treatments = 1000, 

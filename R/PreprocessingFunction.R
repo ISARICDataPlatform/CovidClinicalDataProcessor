@@ -6,13 +6,11 @@
 #' @return A \code{tibble} intended for input into other aggregation functions (e.g. \code{age.pyramid.prep})
 #' @export data.preprocessing
 
-
 date_pull<-as_date("2020-11-30")
 data.preprocessing <- function(input.tbl){
 
-
   #create a list with the variable dates  
-  var_date<- input.tbl %>% select(date_admit, 
+  var_date <- input.tbl %>% select(date_admit, 
                                   date_onset, 
                              date_in_last, 
                              icu_in,
@@ -25,31 +23,29 @@ data.preprocessing <- function(input.tbl){
                              extracorporeal_en,
                              imv_en,
                              niv_en,
-                             date_outcome)%>% names()
+                             date_outcome) %>% names()
  
   #create a list of symptoms, comorbidity and treatment variables to be removed since completness<5%
   rmv<-exclud.sympt.comorb.tret(input.tbl)
   
  #preprocessing function
  input.tbl %>%
-   
-  #test<- input.tbl%>%
     lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid.19_symptoms",symptoms_asymptomatic, comorbid_smoking_former))%>%
+    select(-c("symptoms_covid.19_symptoms", symptoms_asymptomatic, comorbid_smoking_former)) %>%
    
    #create upper respiratory tract symptoms combining several symptoms
-    mutate(symptrcd_upper_respiratory_tract_symptoms=NA)%>%
+    mutate(symptrcd_upper_respiratory_tract_symptoms=NA) %>%
     mutate(symptrcd_upper_respiratory_tract_symptoms=case_when(
               symptoms_upper_respiratory_tract_symptoms==FALSE|
               symptoms_sore_throat==FALSE|
               symptoms_runny_nose==FALSE|
               symptoms_ear_pain==FALSE~FALSE,
-              TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
+              TRUE~symptrcd_upper_respiratory_tract_symptoms)) %>%
     mutate(symptrcd_upper_respiratory_tract_symptoms=case_when(
               symptoms_upper_respiratory_tract_symptoms==TRUE|
               symptoms_sore_throat==TRUE|
               symptoms_runny_nose==TRUE|
-              symptoms_ear_pain==TRUE~TRUE,
+              symptoms_ear_pain==TRUE ~ TRUE,
               TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
    #create loss_of_taste_smell combining several symptoms
    mutate(symptrcd_loss_of_taste_smell=NA)%>%
@@ -57,20 +53,20 @@ data.preprocessing <- function(input.tbl){
                symptoms_loss_of_smell==FALSE|
                symptoms_loss_of_smell_taste==FALSE|
                symptoms_loss_of_taste==FALSE~FALSE,
-               TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
+               TRUE~symptrcd_upper_respiratory_tract_symptoms)) %>%
   mutate(symptrcd_loss_of_taste_smell=case_when(
               symptoms_loss_of_smell==TRUE|
               symptoms_loss_of_smell_taste==TRUE|
               symptoms_loss_of_taste==TRUE~TRUE,
-              TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
+              TRUE~symptrcd_upper_respiratory_tract_symptoms)) %>%
    #Removing variables with records UNK >95% (function: exclud.sympt.comorb.tret)
-  select(-c(all_of(rmv)))%>%
+  select(-c(all_of(rmv))) %>% 
    #Setting_up dates as date
-   mutate_at(vars(all_of(var_date)), function(x){as_date(x)})%>%
+   mutate_at(vars(all_of(var_date)), function(x){as_date(x)}) %>%
    #creating first and last date
-    mutate(date_hoin_last=case_when(is.na(date_ho_last) ~ date_in_last,
-                                    date_ho_last<date_in_last ~ date_in_last,
-                                    TRUE ~ date_ho_last ))%>%
+    mutate(date_hoin_last=case_when(is.na(date_ho_last) ~ date_in_last, # fix last hospital in date
+                                    date_ho_last < date_in_last ~ date_in_last,
+                                    TRUE ~ date_ho_last )) %>%
     mutate(date_start=case_when(is.na(date_onset) ~ date_admit,
                                 date_onset<=date_admit ~ date_admit,
                                 TRUE ~  date_onset  ))%>%
@@ -78,11 +74,11 @@ data.preprocessing <- function(input.tbl){
                                TRUE~ date_hoin_last))%>%
     mutate(date_last=case_when(!is.na(date_outcome)~date_outcome,
                                 TRUE  ~ date_last))%>%
-    mutate(date_admit=replace(date_admit,date_admit < "2019-01-01"|date_admit >date_pull,NA))%>%
-    mutate(date_start=replace(date_start,date_start < "2020-01-01",NA))%>%
-    mutate(date_last=replace(date_last,date_last < "2020-01-01",NA))%>%
+    mutate(date_admit=replace(date_admit, date_admit < "2019-01-01"| date_admit > date_pull,NA)) %>%
+    mutate(date_start=replace(date_start, date_start < "2020-01-01",NA)) %>%
+    mutate(date_last=replace(date_last, date_last < "2020-01-01",NA)) %>%
     #categorizing outcome
-    mutate(slider_outcome="LTFU")%>%
+    mutate(slider_outcome="LTFU") %>%
     mutate(slider_outcome=case_when(outcome == "death" ~ "Death",
                                     outcome == "discharge" ~ "Discharge",
                                     is.na(outcome) & as_date(date_last)> date_pull-45 ~"Ongoing care",
@@ -114,7 +110,7 @@ data.preprocessing <- function(input.tbl){
     mutate(t_ad_icu=icu_in-date_start)%>%
     mutate(t_ad_imv=imv_st-date_start)%>%
     mutate(t_ad_niv=niv_st-date_start)%>%
-    mutate(t_ad_icu=icu_in-date_start)%>%
+    # mutate(t_ad_icu=icu_in-date_start)%>% !!! duplicated
     mutate(dur_icu=icu_out-icu_in)%>%
     mutate(dur_ho=date_outcome-date_start)%>%
     mutate(dur_imv=imv_en-imv_st)%>%
@@ -123,7 +119,7 @@ data.preprocessing <- function(input.tbl){
     mutate_at(vars(all_of(c(starts_with("t_"),starts_with("dur_")))), function(x){replace(x,x<0,NA)})%>%
    #create time variable: t_son_ad
     mutate(t_son_ad=case_when(date_admit>=date_onset~date_admit-date_onset,
-                              TRUE~ NA_real_))%>%
+                              TRUE~ NA_real_)) %>%
   #deleting implausible respiratory rates based on age
     mutate(vs_resp=case_when(vs_resp<= 3 ~ NA_real_,
                              vs_resp<=5 & age < 10 ~ NA_real_ ,
@@ -140,9 +136,9 @@ data.preprocessing <- function(input.tbl){
                                                x>(quantile(x, 0.975, na.rm = TRUE)),
                                                NA_real_)
              }
-   )%>% 
+   ) %>% 
    #calculating bmi
-
+  
    mutate(vs_bmi_calc=vs_weight/(vs_height/100)^2)%>%
    mutate(vs_bmi_calc=as.numeric(vs_bmi_calc))%>%
    mutate(vs_bmi=as.numeric(vs_bmi))%>%
@@ -237,7 +233,7 @@ data<-select(input.tbl, c(starts_with("symptoms_"),starts_with("comorbid_"),star
   pivot_longer(c(starts_with("symptoms_"),starts_with("comorbid_"),starts_with("treat_")), 
                names_to = "variable", 
                values_to = "value")%>%
-  mutate(count=1)%>%
+  mutate(count=1) %>%
   group_by(variable,value)%>%
   summarise(n = sum(count, na.rm=T))%>%
   mutate(prop=round(n/tot,digit=2))%>%

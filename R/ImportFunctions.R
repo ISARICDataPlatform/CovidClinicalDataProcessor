@@ -708,7 +708,7 @@ process.common.treatment.data <- function(input, minimum=1000, dtplyr.step = FAL
     full_join(date_in_last)
   
   if(dtplyr.step){
-    return(treatment) %>% lazy_dt(immutable = FALSE)
+    return(treatment %>% lazy_dt(immutable = FALSE))
   } else {
     return(treatment %>% as_tibble())
   }
@@ -727,7 +727,7 @@ process.common.treatment.data <- function(input, minimum=1000, dtplyr.step = FAL
 #' @importFrom data.table as.data.table
 #' @importFrom glue glue
 #' @return Formatted start (in) and end (out) dates for IMV and NIV treatment (wide format) as a tibble or \code{dtplyr_step}
-#' @export process.common.treatment.data
+#' @export process.IMV.NIV.ECMO.data
 process.IMV.NIV.ECMO.data <- function(input, dtplyr.step = FALSE){
   if(is.character(input)){
     # assume it's a path
@@ -830,6 +830,11 @@ process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
 
 
 #' Process data on laboratory
+#' 
+#' @description 
+#' 
+#' @details 
+#' 
 #' @param file.name Path of the dispositions data file (CDISC format)
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
 #' @import dplyr tibble dtplyr tidyfast
@@ -837,15 +842,15 @@ process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
 #' @importFrom glue glue
 #' @return Formatted laboratory (wide format) as a tibble or \code{dtplyr_step}
 #' @export process.laboratory.data
-process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
+process.laboratory.data <- function(file.name, dtplyr.step = TRUE){
   laboratory <- shared.data.import(file.name, dtplyr.step = TRUE) %>%
-    select(usubjid, lbdy, lbtestcd, lbcat,lborres,lbdtc) %>%
-    mutate(lborres=replace(lborres,lborres=="",NA))%>%
-    mutate(studyid=substr(usubjid,1, 7))%>%
+    select(usubjid, lbdy, lbtestcd, lbcat, lborres, lbdtc) %>%
+    mutate(lborres=replace(lborres,lborres=="",NA)) %>%
+    mutate(studyid=substr(usubjid,1, 7)) %>% # !!! why do this? 
     mutate(lbcat=case_when(lbdy==1 & studyid=="CVCCPUK"~"LABORATORY RESULTS ON ADMISSION",
                            lbdy==1 & studyid=="CVMEWUS"~"LABORATORY RESULTS ON ADMISSION",
-                           TRUE~lbcat))%>%
-    filter(lbcat=="LABORATORY RESULTS ON ADMISSION")%>%
+                           TRUE~lbcat)) %>% 
+    filter(lbcat=="LABORATORY RESULTS ON ADMISSION") %>% 
     filter(lbtestcd=="ALT"|
             lbtestcd=="APTT"|
             lbtestcd=="CRP"|
@@ -855,28 +860,27 @@ process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
             lbtestcd=="WBC"|
            lbtestcd=="BILI"|
             lbtestcd=="AST"|
-           lbtestcd=="UREAN")%>%
-    mutate(lborres=as.numeric(lborres))%>%
-    filter(!is.na(lborres))%>%
-    arrange(desc(lbdtc))%>%
-    distinct(usubjid,lbtestcd, .keep_all =T)%>%
+           lbtestcd=="UREAN") %>%
+    mutate(lborres=as.numeric(lborres)) %>%
+    filter(!is.na(lborres)) %>%
+    arrange(desc(lbdtc)) %>%
+    distinct(usubjid,lbtestcd, .keep_all =T) %>%
     mutate(lborres=case_when(lbtestcd=="NEUT" & lborres>100 ~ lborres/1000,
                              lbtestcd=="LYM" & lborres>100 ~ lborres/1000,
                              lbtestcd=="WBC" & lborres>100 ~ lborres/1000, 
                              lbtestcd=="ALT" & lborres>9999 ~ NA_real_, 
-                             lbtestcd=="ALT" & lborres<0 ~ NA_real_,
-                             TRUE ~ lborres ))%>%
+                             lbtestcd=="ALT" & lborres<0 ~ NA_real_, 
+                             TRUE ~ lborres )) %>%
     mutate(lbtestcd  = paste0("lab_",lbtestcd )) %>%
     #mutate(lbtestcd = glue("lab_{lbtestcd}", lbtestcd = lbtestcd)) %>%
     mutate(lbtestcd = iconv(lbtestcd, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     as.data.table() %>%
     dt_pivot_wider(id_cols = usubjid, names_from = lbtestcd,  values_from = lborres)
   
-  
   if(dtplyr.step){
-    return(laboratory)
+    return(laboratory %>% lazy_dt(immutable = FALSE))
   } else {
-    return(laboratory%>% as_tibble())
+    return(laboratory %>% as_tibble())
   }
   
 }  
