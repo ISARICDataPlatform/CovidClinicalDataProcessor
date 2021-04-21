@@ -1,0 +1,26 @@
+---
+title: "Tables outliers"
+author: ""
+date: "4/12/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+
+```{r code, include=FALSE}
+folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor"
+setwd(folder)
+source("./R/tables_outliers.R")
+```
+
+
+
+```{r pressure, echo=FALSE}
+ft_1
+ft_2
+ft_3
+```
