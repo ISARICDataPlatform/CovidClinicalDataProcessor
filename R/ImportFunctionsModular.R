@@ -827,6 +827,40 @@ process.vital.sign.data <- function(file.name, dtplyr.step = FALSE){
     mutate(vsstresn=as.numeric(vsstresn))%>%
     mutate(vsstresn=case_when(vstestcd=="OXYSAT"& vsstresn< 1~ NA_real_,
                               vstestcd=="OXYSAT"& vsstresn> 100~ NA_real_,
+                              
+                              vstestcd=="BMI"& vsstresn< 0~ NA_real_,
+                              vstestcd=="BMI"& vsstresn> 100~ NA_real_,
+                              
+                              vstestcd=="DIABP"& vsstresn< 0~ NA_real_,
+                              vstestcd=="DIABP"& vsstresn> 300~ NA_real_,
+                              
+                              vstestcd=="HEIGHT"& vsstresn< 0~ NA_real_,
+                              vstestcd=="HEIGHT"& vsstresn> 250~ NA_real_,
+                              
+                              vstestcd=="HR"& vsstresn< 0~ NA_real_,
+                              vstestcd=="HR"& vsstresn> 250~ NA_real_,
+                              
+                              vstestcd=="MAP"& vsstresn< 0~ NA_real_,
+                              vstestcd=="MAP"& vsstresn> 250~ NA_real_,
+                              
+                              vstestcd=="MUARMCIR"& vsstresn< 0~ NA_real_,
+                              vstestcd=="MUARMCIR"& vsstresn> 100~ NA_real_,
+                              
+                              vstestcd=="PULSE"& vsstresn< 0~ NA_real_,
+                              vstestcd=="PULSE"& vsstresn> 250~ NA_real_,
+                              
+                              vstestcd=="RESP"& vsstresn< 0~ NA_real_,
+                              vstestcd=="RESP"& vsstresn> 60~ NA_real_,
+                              
+                              vstestcd=="SYSBP"& vsstresn< 0~ NA_real_,
+                              vstestcd=="SYSBP"& vsstresn> 250~ NA_real_,
+                              
+                              vstestcd=="TEMP"& vsstresn< 30~ NA_real_,
+                              vstestcd=="TEMP"& vsstresn> 44~ NA_real_,
+                              
+                              vstestcd=="WEIGHT"& vsstresn< 0~ NA_real_,
+                              vstestcd=="WEIGHT"& vsstresn> 300~ NA_real_,
+                              
                               TRUE~vsstresn))%>%
     filter(!is.na(vsstresn))%>%
     arrange(desc(vsdtc))%>%
@@ -892,12 +926,45 @@ process.laboratory.data <- function(file.name, dtplyr.step = FALSE){
     arrange(desc(lbdtc))%>%
     distinct(usubjid,lbtestcd, .keep_all =T)%>%
     mutate(lborres=case_when(lbtestcd=="NEUT" & lborres>100 ~ lborres/1000,
+                             
                              lbtestcd=="LYM" & lborres>100 ~ lborres/1000,
+                             
                              lbtestcd=="WBC" & lborres>100 ~ lborres/1000, 
-                             lbtestcd=="ALT" & lborres>9999 ~ NA_real_, 
+                             
+                             lbtestcd=="ALT" & lborres>2000 ~ NA_real_,
                              lbtestcd=="ALT" & lborres<0 ~ NA_real_,
+                             
+                             lbtestcd=="AST" & lborres>2000 ~ NA_real_,
+                             lbtestcd=="AST" & lborres<0 ~ NA_real_,
+                             
+                             lbtestcd=="BILI" & lborres>2000 ~ NA_real_,
+                             lbtestcd=="BILI" & lborres<0 ~ NA_real_,
+                             
+                             lbtestcd=="CRP" & lborres>500 ~ NA_real_,
+                             lbtestcd=="CRP" & lborres<0 ~ NA_real_,
+                             
+                             lbtestcd=="PT" & lborres>105 ~ NA_real_,
+                             lbtestcd=="PT" & lborres<0 ~ NA_real_,
+                             
+                             lbtestcd=="UREAN" & lborres>100 ~ NA_real_,
+                             lbtestcd=="UREAN" & lborres<0 ~ NA_real_,
+                             
+                             lbtestcd=="APTT" & lborres>2000 ~ NA_real_,
+                             lbtestcd=="APTT" & lborres<0 ~ NA_real_,
+                             
                              TRUE ~ lborres ))%>%
-    mutate(lbtestcd  = paste0("lab_",lbtestcd )) %>%
+    mutate(lborres=case_when(lbtestcd=="NEUT" & lborres>100 ~ NA_real_,
+                             lbtestcd=="NEUT" & lborres<0 ~ NA_real_,
+                             
+                             lbtestcd=="LYM" & lborres>100 ~ NA_real_,
+                             lbtestcd=="LYM" & lborres<0 ~ NA_real_,
+                             
+                             lbtestcd=="WBC" & lborres>100 ~ NA_real_,
+                             lbtestcd=="WBC" & lborres<0 ~ NA_real_,
+                             
+                             TRUE ~ lborres ))%>%
+    
+        mutate(lbtestcd  = paste0("lab_",lbtestcd )) %>%
     #mutate(lbtestcd = glue("lab_{lbtestcd}", lbtestcd = lbtestcd)) %>%
     mutate(lbtestcd = iconv(lbtestcd, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     as.data.table() %>%
