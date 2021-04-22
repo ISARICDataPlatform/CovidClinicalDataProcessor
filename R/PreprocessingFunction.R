@@ -147,24 +147,31 @@ data.preprocessing <- function(input.tbl){
     #create time variable: t_son_ad
     mutate(t_son_ad=case_when(date_admit>=date_onset~date_admit-date_onset,
                               TRUE~ NA_real_))%>%
+
     #deleting implausible respiratory rates based on age
     mutate(vs_resp=case_when(vs_resp<= 3 ~ NA_real_,
                              vs_resp<=5 & age < 10 ~ NA_real_ ,
                              TRUE ~ vs_resp)) %>%  
-  #set as NA outliers for vital sign and laboratory variables
+  ##################################################################
+    #set as NA outliers for vital sign and laboratory variables
+    mutate(age_outlier = ifelse(age>10,1,0))%>% 
+    group_by(age_outlier)%>% 
     mutate_at(vars(c(all_of(c(starts_with("vs_"),starts_with("lab_"))))), 
               function(x,na.rm = FALSE){replace(x, 
-                                                x<(quantile(x, 0.25, na.rm = TRUE))-(1.5*IQR(x, na.rm = TRUE))|
-                                                x>(quantile(x, 0.75, na.rm = TRUE))+(1.5*IQR(x, na.rm = TRUE)),
+                                                x<(quantile(x, 0.025, na.rm = TRUE))|
+                                                x>(quantile(x, 0.975, na.rm = TRUE)),
                                                 NA_real_)
                                                   })%>% 
-   mutate_at(vars(c(all_of(c(starts_with("t_"),starts_with("dur_"))))), 
+    ungroup()%>%
+    filter(!age_outlier)  %>%  
+    mutate_at(vars(c(all_of(c(starts_with("t_"),starts_with("dur_"))))), 
              function(x,na.rm = FALSE){replace(x, 
                                                x>(quantile(x, 0.975, na.rm = TRUE)),
                                                NA_real_)
-             }
-   )%>% 
-   #calculating bmi
+             })%>% 
+    #######################
+   #############################################################################################
+    #calculating bmi
 
    mutate(vs_bmi_calc=vs_weight/(vs_height/100)^2)%>%
    mutate(vs_bmi_calc=as.numeric(vs_bmi_calc))%>%
