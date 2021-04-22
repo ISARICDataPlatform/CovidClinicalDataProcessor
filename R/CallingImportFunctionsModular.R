@@ -1,4 +1,4 @@
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-02-15"
+folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor/data"
 
 setwd(folder)
 memory.limit(size=80000)
