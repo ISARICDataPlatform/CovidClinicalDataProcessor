@@ -11,65 +11,54 @@
 #' @export
 
 
-randomization <- function(data, var_identifier = "usubjid"){
+randomization <- function(import.tbl, var_identifier = "usubjid"){
   
   #Full list of variable
-  var_all<-data %>% names()
+  var_all<-import.tbl %>% names()
+  
   
   # Classify variables--------------
-  if(is.null(var_identifier)==F){var_identifer <- data %>%
+  if(is.null(var_identifier)==F){var_identifer <- import.tbl %>%
     select(tidyselect::any_of(c(var_identifier))) %>% 
     names()}
   
   # Variables grouped because with a logical link--------------
-  var_group<-data %>% select(ever_icu,
+  var_group<-import.tbl %>% select(ever_icu,
                              date_admit, 
                              date_onset, 
                              date_in_last, 
                              icu_in,
                              icu_out,
                              date_ho_last,
-                             extracorporeal_st,
-                             imv_st,
-                             niv_st,
-                             niv_st,
-                             extracorporeal_en,
-                             imv_en,
-                             niv_en,
                              date_outcome,
+                             dur_niv,
+                             dur_imv,
                                 treat_invasive_ventilation,
                                 treat_non_invasive_ventilation,
-                                treat_extracorporeal,
                                 starts_with("icu_"),
                                 icu_treat_invasive_ventilation,
                                 icu_treat_non_invasive_ventilation,
-                                icu_treat_extracorporeal,
                                 date_outcome,
                                 outcome)%>% names()
   
   # Variables link to icu admission and icu dates--------------
-  var_icu_treat <- data %>% select(starts_with("icu_")) %>% names()
+  var_icu_treat <- import.tbl %>% select(starts_with("icu_")) %>% names()
   
   # Variables dates--------------
-  var_date<- data %>% select(date_admit, 
+  var_date<- import.tbl %>% select(date_admit, 
                              date_onset, 
                              date_in_last, 
                              icu_in,
                              icu_out,
                              date_ho_last,
-                             extracorporeal_st,
-                             imv_st,
-                             niv_st,
-                             niv_st,
-                             extracorporeal_en,
-                             imv_en,
-                             niv_en,
                              date_outcome)%>% names()
-  var_other <- data %>% select(-all_of(c(var_group, var_identifer))) %>% names()
+  var_other <- import.tbl %>% select(-all_of(c(var_group, var_identifer))) %>% names()
+  
+  
   
   # Randomizing the wide preprocessed database--------------
   
-  randomized <- data %>%
+  randomized <- import.tbl %>%
     mutate(icu_treat_inc=case_when
            (ever_icu==TRUE &
                 !is.na(icu_in)&
