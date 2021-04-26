@@ -722,6 +722,22 @@ process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = F
     as.data.frame()%>%
     full_join(date_in_last)
   
+  ###adding duration for inasive_ventilation and non_invasive_ventilation
+  
+  indur<-imp_int%>%select(usubjid,treatment, inoccur,indur,indtc,instdtc,inendtc)%>%
+    filter(treatment=="invasive_ventilation"|treatment=="non_invasive_ventilation")%>%
+    mutate(treatment=case_when(treatment=='non_invasive_ventilation'~'dur_niv',
+                               treatment=='invasive_ventilation'~'dur_imv',
+                               TRUE~treatment))%>%
+    mutate(indur_clean=as.numeric(gsub("[^0-9.]", "",indur)))%>%
+    filter(!is.na(indur_clean)  | indur_clean!="")%>%
+    distinct(usubjid,treatment, .keep_all =T)%>%
+    dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = indur_clean)%>%
+    as_tibble()
+  
+  treatment <-treatment%>%
+    left_join(indur)
+  
   if(dtplyr.step){
     return(treatment) %>% lazy_dt(immutable = FALSE)
   } else {
@@ -739,42 +755,12 @@ process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = F
 #' @return Formatted start (in) and end (out) dates for IMV and NIV treatment (wide format) as a tibble or \code{dtplyr_step}
 #' @export process.common.treatment.data
 
-process.IMV.NIV.ECMO.data <- function(input, dtplyr.step = FALSE){
-  
-  ventilation <- imp_int %>% 
-    filter(treatment == 'non_invasive_ventilation' |
-             treatment == 'invasive_ventilation')%>%
-    mutate(indtc=substr(indtc,1, 10))%>%
-    mutate(indtc=as_date(indtc))%>%
-    mutate(indtc=replace(indtc,indtc < "2020-01-01" | indtc >date_pull,NA))%>%
-    mutate(treatment=case_when(treatment=='non_invasive_ventilation'~'niv',
-                               treatment=='invasive_ventilation'~'imv',
-                               TRUE~treatment
-    ))%>%
-    as_tibble()
-  
-  
-  
-  vent_st<-ventilation%>% 
-    filter(inoccur==TRUE)%>%
-    arrange(indtc)%>%
-    distinct(usubjid,treatment, .keep_all =T)%>%
-    mutate(treatment = glue("{treatment}_st", treatment = treatment)) %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = indtc)%>%
-    as_tibble()
-  
-  vent_en<-ventilation%>% 
-    filter(inoccur==TRUE)%>%
-    arrange(desc(indtc))%>%
-    distinct(usubjid,treatment, .keep_all =T)%>% 
-    mutate(treatment = glue("{treatment}_en", treatment = treatment)) %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = indtc)%>%
-    as_tibble() 
+process.IMV.NIV.data <- function(input, dtplyr.step = FALSE){
   
   indur<-imp_int%>%select(usubjid,treatment, inoccur,indur,indtc,instdtc,inendtc)%>%
     filter(treatment=="invasive_ventilation"|treatment=="non_invasive_ventilation")%>%
-    mutate(treatment=case_when(treatment=='non_invasive_ventilation'~'indur_niv',
-                               treatment=='invasive_ventilation'~'indur_imv',
+    mutate(treatment=case_when(treatment=='non_invasive_ventilation'~'dur_niv',
+                               treatment=='invasive_ventilation'~'dur_imv',
                                TRUE~treatment))%>%
     mutate(indur_clean=as.numeric(gsub("[^0-9.]", "",indur)))%>%
     filter(!is.na(indur_clean)  | indur_clean!="")%>%
@@ -782,29 +768,13 @@ process.IMV.NIV.ECMO.data <- function(input, dtplyr.step = FALSE){
     dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = indur_clean)%>%
     as_tibble() 
   
-  incalc<-imp_int%>%select(usubjid,treatment, inoccur,indur,indtc,instdtc,inendtc)%>%
-    filter(treatment=="invasive_ventilation"|treatment=="non_invasive_ventilation")%>%
-    mutate(treatment=case_when(treatment=='non_invasive_ventilation'~'incalc_niv',
-                               treatment=='invasive_ventilation'~'incalc_imv',
-                               TRUE~treatment))%>%
-    mutate(inendtc=as.Date(inendtc))%>%
-    mutate(instdtc=as.Date(instdtc))%>%
-    mutate(indur_calc=inendtc-instdtc)%>%
-    filter(!is.na(indur_calc))%>%
-    distinct(usubjid,treatment, .keep_all =T)%>%
-    dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = indur_calc)%>%
-    as_tibble() 
-  
-  intest<-full_join(incalc,indur)
-  ventilation <- full_join(vent_st,vent_en)%>%
-    full_join(intest)
   
   
   
   if(dtplyr.step){
-    return(ventilation) %>% lazy_dt(immutable = FALSE)
+    return(indur) %>% lazy_dt(immutable = FALSE)
   } else {
-    return(ventilation %>% as_tibble())
+    return(indur %>% as_tibble())
   }    
   
 }
