@@ -3,9 +3,16 @@
 folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor"
 setwd(folder)
 
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-02-15"
+setwd(folder)
+
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-02-15/random"
+setwd(folder)
 
 load("ISVARIC_dash_db_prepr_completeness_24_march.rda")
 input.tbl<-prepr.tbl
+
+input.tbl<-random.prepr.tbl
 backup<-input.tbl
 
 #####cleaning dataset for the report/dashboard
@@ -35,11 +42,6 @@ save(patient.by.country.input, file="patient_by_country_input.rda")
 
 input.tbl<-input.tbl%>%
   filter((embargo_length==FALSE | is.na(embargo_length)) & cov_det_id=="POSITIVE")
-
-input.tbl<-input.tbl%>%
-  rename(dur_niv=indur_niv)%>%
-  rename(dur_imv=indur_imv)
-
 
 summary_input<-summary.input.prep(input.tbl)
 save(summary_input, file = "summary_input.rda") 
