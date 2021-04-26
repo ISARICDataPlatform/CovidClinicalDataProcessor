@@ -1,8 +1,33 @@
+#libraries
+
+
+
+library(stringr)
+library(plyr)
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(Hmisc)
+library(dtplyr) 
+library(data.table)
+library(tidyfast)
+library(glue)
+library(lubridate)
+
+
+
+
+
+
+
+
 folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor/data"
 
 setwd(folder)
 memory.limit(size=80000)
 
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-02-15"
+setwd(folder)
 
 #'Importing csv files
 dm<-read.csv("DM.csv")
@@ -107,7 +132,7 @@ imp_treat_icu<-imp_int%>%
 save(imp_treat_icu, file = "imp_treat_icu.rda") 
 
 
-imp_ventilation <- process.IMV.NIV.ECMO.data(imp_int, dtplyr.step = FALSE)
+imp_ventilation <- process.IMV.NIV.data(imp_int, dtplyr.step = FALSE)
 save(imp_ventilation, file = "imp_ventilation.rda") 
 
 
@@ -136,14 +161,14 @@ save(clinic_diagn, file = "clinic_diagn.rda")
 
 
 #########joining all data
-inport.tbl<-imp_dm%>%
+import.tbl<-imp_dm%>%
   left_join(imp_mb, by = c("usubjid"))%>%
   left_join(clinic_diagn, by = c("usubjid"))%>%
   left_join(imp_comorb, by = c("usubjid"))%>%
   left_join(imp_rp, by = c("usubjid"))%>%
   left_join(imp_symptom, by = c("usubjid"))%>%
   left_join(imp_treat, by = c("usubjid"))%>%
-  left_join(imp_ventilation, by = c("usubjid"))%>%
+  #left_join(imp_ventilation, by = c("usubjid"))%>%
   left_join(imp_icu, by = c("usubjid"))%>%
   left_join(imp_treat_icu, by = c("usubjid"))%>%
   left_join(imp_lb, by = c("usubjid"))%>%
@@ -151,4 +176,22 @@ inport.tbl<-imp_dm%>%
   left_join(imp_ds, by = c("usubjid"))
 
 
+save(import.tbl, file = "import.tbl.rda")
+load("import.tbl.rda")
 
+#########calling preprocessing function
+
+prepr.tbl<-data.preprocessing(import.tbl)
+
+save(prepr.tbl, file = "prepr.tbl.rda")
+
+#########if needed launching randomization function on the imported data and then preprocess the data
+
+random.import.tbl<-randomization(import.tbl)
+save(random.import.tbl, file = "random.import.tbl.rda")
+load("random.import.tbl.rda")
+
+import.tbl<-random.import.tbl
+random.prepr.tbl<-data.preprocessing(import.tbl)
+save(random.prepr.tbl, file = "random.prepr.tbl.rda")
+load("prepr.tbl.rda")
