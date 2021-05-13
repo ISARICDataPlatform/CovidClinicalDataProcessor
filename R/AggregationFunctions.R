@@ -58,7 +58,8 @@ library(gridExtra)
 #' @export summary.prep
 summary.input.prep<- function(input.tbl){
   input.tbl%>%
-    select(c(siteid_final,
+    select(c(
+      siteid_final,
              starts_with("slider_"),
              age,
              date_admit,

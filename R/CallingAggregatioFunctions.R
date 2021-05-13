@@ -3,22 +3,24 @@
 folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor"
 setwd(folder)
 
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-02-15"
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-04-07/aggregated"
 setwd(folder)
 
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-02-15/random"
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-04-07"
 setwd(folder)
 
-load("ISVARIC_dash_db_prepr_completeness_24_march.rda")
+load("prepr.tbl.rda")
 input.tbl<-prepr.tbl
 
 input.tbl<-random.prepr.tbl
+
+input.tbl<-prepr.tbl
 backup<-input.tbl
 
-#####cleaning dataset for the report/dashboard
 
-input.tbl<-input.tbl%>%
-  select(-c(comorbid_pregnant_women_with_significant_heart_disease))
+#####cleaning dataset for the report/dashboard
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-04-07/aggregated"
+setwd(folder)
 
 
 ####

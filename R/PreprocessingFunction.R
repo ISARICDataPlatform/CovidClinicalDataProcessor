@@ -7,7 +7,7 @@
 #' @export data.preprocessing
 
 
-date_pull<-as_date("2021-01-17")
+date_pull<-as_date("2021-04-07")
 
 data.preprocessing <- function(input.tbl){
 
@@ -35,7 +35,7 @@ data.preprocessing <- function(input.tbl){
    
   #test<- input.tbl%>%
     #lazy_dt(immutable = TRUE) %>%
-    select(-c("symptoms_covid-19_symptoms",symptoms_asymptomatic))%>%
+    #select(-c(symptoms_asymptomatic))%>%
     #select(-c("symptoms_covid-19_symptoms"))%>%
    #create upper respiratory tract symptoms combining several symptoms
     mutate(symptrcd_upper_respiratory_tract_symptoms=NA)%>%
@@ -55,12 +55,12 @@ data.preprocessing <- function(input.tbl){
    mutate(symptrcd_loss_of_taste_smell=NA)%>%
    mutate(symptrcd_loss_of_taste_smell=case_when(
                symptoms_loss_of_smell==FALSE|
-               symptoms_loss_of_smell_taste==FALSE|
+               #symptoms_loss_of_smell_taste==FALSE|
                symptoms_loss_of_taste==FALSE~FALSE,
                TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
   mutate(symptrcd_loss_of_taste_smell=case_when(
               symptoms_loss_of_smell==TRUE|
-              symptoms_loss_of_smell_taste==TRUE|
+              #symptoms_loss_of_smell_taste==TRUE|
               symptoms_loss_of_taste==TRUE~TRUE,
               TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
     mutate(oxygen_therapy=FALSE)%>%
@@ -136,8 +136,6 @@ data.preprocessing <- function(input.tbl){
     rename(slider_symptomatic = symptomatic) %>%
   #create time variables but t_son_ad
     mutate(t_ad_icu=icu_in-date_start)%>%
-    mutate(t_ad_imv=imv_st-date_start)%>%
-    mutate(t_ad_niv=niv_st-date_start)%>%
     mutate(dur_icu=icu_out-icu_in)%>%
     mutate(dur_ho=date_outcome-date_start)%>%
     #mutate(dur_imv=imv_en-imv_st)%>%
@@ -163,7 +161,7 @@ data.preprocessing <- function(input.tbl){
                                                 NA_real_)
                                                   })%>% 
     ungroup()%>%
-    filter(!age_outlier)  %>%  
+    #filter(!age_outlier)  %>%  
     mutate_at(vars(c(all_of(c(starts_with("t_"),starts_with("dur_"))))), 
              function(x,na.rm = FALSE){replace(x, 
                                                x>(quantile(x, 0.975, na.rm = TRUE)),
