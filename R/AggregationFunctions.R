@@ -1470,8 +1470,8 @@ func_plots_vs_oxysat <- function(input.tbl){
 #crp
 func_plot_lab_crp <- function(input.tbl){
   data_plot_lab_crp <- select(input.tbl, c(starts_with("slider"),lab_crp, upper.age.bound, lower.age.bound)) %>%
-    #pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
-    filter(!is.na(lab_crp)) %>%
+    pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
+    filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
     as.data.frame()
 }

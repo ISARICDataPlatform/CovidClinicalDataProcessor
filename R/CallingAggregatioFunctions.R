@@ -129,8 +129,7 @@ save(data_plot_vs_sysbp, file ="data_plot_vs_sysbp.rda")
 save(data_plot_vs_oxysat, file ="data_plot_vs_oxysat.rda")
 
 #Lab data
-data_plot_lab_crp <- func_plot_lab_crp(input.tbl)  %>%
-  rename(value = lab_crp)
+data_plot_lab_crp <- func_plot_lab_crp(input.tbl)  
 data_plot_lab_lym <- func_plot_lab_lym(input.tbl)
 data_plot_lab_neut <- func_plot_lab_neut(input.tbl)
 data_plot_lab_wbc <- func_plot_lab_crp(input.tbl)
