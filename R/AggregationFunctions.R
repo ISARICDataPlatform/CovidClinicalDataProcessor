@@ -71,7 +71,7 @@ summary.input.prep<- function(input.tbl){
              outcome,
              slider_outcome,
              slider_icu_ever,
-             treat_high_flow_nasal_canula_oxygen_therapy,
+             treat_high_flow_nasal_cannula,
              treat_nasal_mask_oxygen_therapy,
              treat_non_invasive_ventilation,
              treat_invasive_ventilation,
@@ -84,29 +84,29 @@ summary.input.prep<- function(input.tbl){
              icu_treat_non_invasive_ventilation,
              icu_treat_invasive_ventilation,
              icu_treat_nasal_mask_oxygen_therapy,
-             icu_treat_high_flow_nasal_canula_oxygen_therapy,
-             t_ad_niv,
-             t_ad_imv,
+             icu_treat_high_flow_nasal_cannula,
+             # t_ad_niv,
+             # t_ad_imv,
              dur_niv,
              dur_imv))%>%
     mutate(oxygen_therapy=NA)%>%
     mutate(oxygen_therapy=case_when(
-      treat_high_flow_nasal_canula_oxygen_therapy==FALSE|
+      treat_high_flow_nasal_cannula==FALSE|
         treat_nasal_mask_oxygen_therapy==FALSE|
         treat_non_invasive_ventilation==FALSE|
         treat_invasive_ventilation==FALSE~FALSE,
-      treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
+      treat_high_flow_nasal_cannula==TRUE|
         treat_nasal_mask_oxygen_therapy==TRUE|
         treat_non_invasive_ventilation==TRUE|
         treat_invasive_ventilation==TRUE~TRUE,
       TRUE~oxygen_therapy))%>%
     mutate(icu_oxygen_therapy=NA)%>%
     mutate(icu_oxygen_therapy=case_when(
-      icu_treat_high_flow_nasal_canula_oxygen_therapy==FALSE|
+      icu_treat_high_flow_nasal_cannula==FALSE|
         icu_treat_nasal_mask_oxygen_therapy==FALSE|
         icu_treat_non_invasive_ventilation==FALSE|
         icu_treat_invasive_ventilation==FALSE~FALSE,
-      icu_treat_high_flow_nasal_canula_oxygen_therapy==TRUE|
+      icu_treat_high_flow_nasal_cannula==TRUE|
         icu_treat_nasal_mask_oxygen_therapy==TRUE|
         icu_treat_non_invasive_ventilation==TRUE|
         icu_treat_invasive_ventilation==TRUE~TRUE,
@@ -347,7 +347,7 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
 patient.site.time.map.prep <- function(input.tbl){
   
   patient.site.time.map.input   <- input.tbl %>%
-    filter(!is.na(date_start)& date_start!="" & !is.na(siteid_final))%>%
+    filter(!is.na(date_start) & !is.na(siteid_final))%>%
     mutate(count=1)%>%
     group_by(siteid_final,date_start)%>%
     summarise(n_patients=sum(count,na.rm=T))
@@ -1783,7 +1783,7 @@ admission.symptoms <- cbind(field = c("symptoms_runny_nose",
                                       "symptoms_headache",  
                                       "symptoms_shortness_of_breath",
                                       "symptoms_history_of_fever", 
-                                      "symptoms_wheezing", 
+                                      "symptoms_wheeze", 
                                       "symptoms_cough", 
                                       "symptoms_chest_pain",
                                       "symptoms_lymphadenopathy",
