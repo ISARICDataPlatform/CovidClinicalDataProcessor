@@ -62,10 +62,12 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     arrange(desc(siteid_final, country))%>%
     distinct(siteid_final, .keep_all =T)%>% 
     mutate(country=ifelse(siteid_final=="321cub_erasme__bru","Belgium",country))%>% 
+    mutate(country=ifelse(siteid_final=="00580netcare_unita","Italy",country))%>%
     select(siteid_final, 'country_2'=country)
   
   out<-out%>% 
-    left_join(site_id_country)
+    left_join(site_id_country)%>%
+    mutate(country=country_2)%>%select(-c(country_2))
   
   if(dtplyr.step){
     return(out)
@@ -461,7 +463,7 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
                                hooccur == "N" ~ FALSE,
                                TRUE ~ NA)) %>%
     filter(!is.na (hooccur))%>%
-    select(usubjid, hodecod, hostdtc, hoendtc, hooccur, hodur)%>% 
+    select(usubjid, hodecod, hostdtc, hoendtc, hooccur, hostdy,hoendy)%>% 
     mutate(hostdtc=substr(hostdtc,1, 10))%>%
     mutate(hostdtc=as_date(hostdtc))%>%
     mutate(hoendtc=substr(hoendtc,1, 10))%>%
@@ -522,6 +524,7 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
   treatment<-int%>%
     #filter(studyid=="CVCCPUK")%>%
     filter(inpresp =="Y") %>%
+    filter(inevintx!="BEFORE HOSPITAL ADMISSION")%>%
     mutate(inoccur = case_when(inoccur == "Y" ~ TRUE,
                                inoccur == "N" ~ FALSE,
                                TRUE ~ NA))%>%
@@ -688,7 +691,8 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                            intrt%like%"DIURETIC" ~ "DIURETICS",
                            
                            intrt%like%"NITROUS OXIDE" ~ "inhaled_nitric_oxide",
-
+                           intrt=="CPR" ~ "Cardiopulmonary resuscitation",
+                            
                            intrt%like%"EXPERIMENTAL AGENT" ~ "EXPERIMENTAL AGENTS",
                            intrt%like%"SARILUMAB" ~ "EXPERIMENTAL AGENTS",
                            intrt%like%"IV FLUID" ~ "INTRAVENOUS FLUIDS",
@@ -696,7 +700,7 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                            intrt %like% "ANGIOTENSIN" | intrt %like% "ACE"~ "AGENTS ACTING ON THE RENIN-ANGIOTENSIN SYSTEM",
                            intrt%like%"ANTIINFLAMMATORY" ~ "ANTIINFLAMMATORY",
                            TRUE ~ intrt))%>%    as.data.frame()%>%
-    select(usubjid,'treatment'=intrt,inoccur,indy,indur, indtc,instdtc,inendtc)%>%
+    select(usubjid,'treatment'=intrt,inoccur,indy,indur, indtc,instdtc,inendtc, inevintx)%>%
     mutate(treatment = iconv(treatment, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(treatment = str_remove_all(treatment, "\\s*\\([^)]*\\)")) %>%
     mutate(treatment = str_replace_all(treatment, " - ", "_")) %>%
@@ -724,7 +728,7 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
 #' @return Formatted common treatment data (wide format) as a tibble or \code{dtplyr_step}
 #' @export process.common.treatment.data
 
-process.common.treatment.data <- function(file.name, minimum=100, dtplyr.step = FALSE){
+process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = FALSE){
   
   date_in_last <- imp_int %>% 
     filter(inoccur==TRUE)%>% 
@@ -736,12 +740,13 @@ process.common.treatment.data <- function(file.name, minimum=100, dtplyr.step = 
     select(usubjid, date_in_last )
   
   treatment <- imp_int %>%
-    filter(!is.na(indtc))%>%
+    #filter(!is.na(indtc))%>%
     group_by(treatment) %>% 
     arrange(desc(inoccur))%>%
     mutate(n = sum(!is.na(inoccur))) %>%
     filter(n >= eval(!!minimum)) %>%
     ungroup()%>%
+    #mutate(treatment=replace(treatment,treatment=="cpr","cardiopulmonary_resuscitation"))%>%
     filter(treatment!="covid_19_vaccination")%>%
     filter(treatment!="supplemental_oxygen_fio2")%>%
     arrange(desc(inoccur))%>%
@@ -755,7 +760,7 @@ process.common.treatment.data <- function(file.name, minimum=100, dtplyr.step = 
   
   ###adding duration for inasive_ventilation and non_invasive_ventilation
   
-  indur<-imp_int%>%select(usubjid,treatment, inoccur,indur,indtc,instdtc,inendtc)%>%
+  indur<-imp_int%>%select(usubjid,treatment, inoccur,indur,indtc,instdtc,inendtc,indy)%>%
     filter(treatment=="invasive_ventilation"|treatment=="non_invasive_ventilation")%>%
     mutate(treatment=case_when(treatment=='non_invasive_ventilation'~'dur_niv',
                                treatment=='invasive_ventilation'~'dur_imv',
@@ -766,8 +771,58 @@ process.common.treatment.data <- function(file.name, minimum=100, dtplyr.step = 
     dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = indur_clean)%>%
     as_tibble()
   
-  treatment <-treatment%>%
-    left_join(indur)
+  
+  
+  vent_st_instdtc<-imp_int%>%select(usubjid,treatment, inoccur,indur,indtc,instdtc)%>%
+    filter(treatment=="invasive_ventilation"|treatment=="non_invasive_ventilation")%>%
+    mutate(treatment=case_when(treatment=='non_invasive_ventilation'~'date_niv_st',
+                               treatment=='invasive_ventilation'~'date_imv_st',
+                               TRUE~treatment))%>%
+    filter(inoccur==TRUE)%>%
+    mutate(instdtc=substr(instdtc,1, 10))%>%
+    mutate(instdtc=as_date(instdtc))%>%
+    filter(!is.na(instdtc))%>%
+    arrange(instdtc)%>%
+    distinct(usubjid,treatment, .keep_all =T)%>%
+    dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = instdtc)%>%
+    as_tibble()
+
+  vent_st_indtc<-imp_int%>%
+    filter(inevintx=="00:00-24:00 ON DAY OF ASSESSMENT")%>%
+    filter(treatment=="invasive_ventilation"|treatment=="non_invasive_ventilation")%>%
+    mutate(treatment=case_when(treatment=='non_invasive_ventilation'~'date_niv_indtc_st',
+                               treatment=='invasive_ventilation'~'date_imv_indtc_st',
+                               TRUE~treatment))%>%
+    filter(inoccur==TRUE)%>%
+    mutate(indtc=substr(indtc,1, 10))%>%
+    mutate(indtc=as_date(indtc))%>%
+    filter(!is.na(indtc))%>%
+    arrange(instdtc)%>%
+    distinct(usubjid,treatment, .keep_all =T)%>%
+    dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = indtc)%>%
+    as_tibble()
+    
+  
+  vent_at_adm<-imp_int%>%
+    filter(inevintx=="AT HOSPITAL ADMISSION")%>%
+    filter(treatment=="invasive_ventilation"|treatment=="non_invasive_ventilation")%>%
+    mutate(treatment=case_when(treatment=='non_invasive_ventilation'~'niv_at_adm',
+                               treatment=='invasive_ventilation'~'imv_at_adm',
+                               TRUE~treatment))%>%
+    filter(inoccur==TRUE)%>%
+    distinct(usubjid,treatment, .keep_all =T)%>%
+    dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur)%>%
+    as_tibble()
+
+    treatment <-treatment%>%
+    full_join(indur)%>%
+    full_join(vent_st_instdtc)%>%
+    full_join(vent_st_indtc)%>%
+    full_join(vent_at_adm)%>%
+    mutate(date_imv_st=case_when(is.na(date_imv_st)~date_imv_indtc_st,
+                                 TRUE~date_imv_st))%>%
+    select(-c(date_imv_indtc_st))%>%
+    rename("date_niv_st"=date_niv_indtc_st)
   
   if(dtplyr.step){
     return(treatment) %>% lazy_dt(immutable = FALSE)
@@ -787,28 +842,60 @@ process.common.treatment.data <- function(file.name, minimum=100, dtplyr.step = 
 #' @return Formatted common treatment data (wide format) as a tibble or \code{dtplyr_step}
 #' @export process.common.treatment.data
 
-process.treatment.icu.data <- function(file.name,imp_icu, minimum=100, dtplyr.step = FALSE){
+process.treatment.icu.data <- function(file.name,imp_icu,imp_dm, minimum=100, dtplyr.step = FALSE){
   
-
+  adm_date<-imp_dm%>%
+    select(usubjid,date_admit)
+  
+  #tabindy_icu<-tabyl(imp_treat_icu$indy)
+  
   icu_ever<-imp_icu%>%
     filter(ever_icu==TRUE)%>%
-    filter(!is.na(icu_in))
+    filter(!is.na(icu_in))%>%
+    left_join(adm_date)%>%
+    left_join(imp_ds)%>%
+    mutate(icu_dy_in=icu_in-date_admit+1)%>%
+    mutate(icu_dy_in=as.double(icu_dy_in))%>%
+    mutate(icu_dy_in=case_when(icu_dy_in<0~NA_real_,
+                               TRUE~icu_dy_in))%>%
+    mutate(icu_dy_out=case_when(!is.na(icu_out)~icu_dy_in+(icu_out-icu_in),
+                                is.na(icu_out)&!is.na(date_ho_last)~icu_dy_in+(date_ho_last-icu_in),
+                                is.na(icu_out)&is.na(date_ho_last)~icu_dy_in+(date_outcome-icu_in),
+                                #is.na(icu_out)&is.na(date_ho_last)~icu_dy_in+(date_outcome-icu_in),
+                                TRUE~NA_real_))%>%
+    mutate(icu_dy_out=as.integer(icu_dy_out))%>%
+    mutate(hoendy=case_when(is.na(hoendy)~icu_dy_out,
+                            TRUE~hoendy))%>%
+    select(usubjid,hostdy,hoendy)#%>%
+    #filter(!is.na(hoendy)& hoendy>-1 &!is.na(hostdy)& hostdy>-1)%>%
+    #filter(!is.na(hoendy) & !is.na(hostdy))%>%
+    #left_join(imp_int)%>%
   
-  imp_treat_icu<-imp_int%>%
-    filter(!is.na(indtc))%>%
+    
+  imp_treat_icu_2<-imp_int%>%
+    filter(!is.na(indy))%>%
     group_by(treatment) %>% 
     arrange(desc(inoccur))%>%
     mutate(n = sum(!is.na(inoccur))) %>%
     filter(n >= eval(!!minimum)) %>%
     ungroup()%>%
+    mutate(treatment=replace(treatment,treatment=="cpr","cardiopulmonary_resuscitation"))%>%
     filter(treatment!="covid_19_vaccination")%>%
     filter(treatment!="supplemental_oxygen_fio2")%>%
     arrange(desc(inoccur))%>%
-    mutate(indtc=as.Date(indtc))%>%
-    filter(indtc>= "2020-01-01"|indtc<date_pull)%>%
+    #mutate(indtc=as.Date(indtc))%>%
+    #filter(indtc>= "2020-01-01"|indtc<date_pull)%>%
     left_join(icu_ever,by = c("usubjid"))%>%
-    mutate(int_icu=case_when(indtc>=icu_in ~ TRUE, 
+    #filter((indy>=hostdy)&(indy<=hoendy))%>%
+    mutate(indy=as.numeric(indy))%>%
+    mutate(hostdy=as.numeric(hostdy))%>%
+    mutate(hoendy=as.numeric(hoendy))%>%
+    #mutate(int_icu=case_when((indy>=hostdy)&(indy<=hoendy) ~ TRUE, 
+     #                        TRUE ~ FALSE))%>%
+    mutate(int_icu=case_when((indy>=hostdy)~ TRUE, 
                              TRUE ~ FALSE))%>%
+    #mutate(int_icu=case_when(indtc>=icu_in ~ TRUE, 
+    #                         TRUE ~ FALSE))%>%
     filter(int_icu==TRUE)%>%
     arrange(desc(inoccur))%>%
     distinct(usubjid, treatment, .keep_all =T)%>%
@@ -1047,7 +1134,11 @@ process.outcome.data <- function(file.name, dtplyr.step = FALSE){
                              outcome=="unknown"~"unknown outcome",
                              outcome=="not recorded"~"unknown outcome",
                              TRUE ~ outcome))%>%
-    select(-c(dsterm,dsmodify))
+    select(-c(dsterm,dsmodify))%>%
+  group_by(usubjid) %>% 
+    mutate(count=1)%>% 
+    mutate(n = sum(count)) %>%
+    filter(n == 1) 
   
   
   if(dtplyr.step){
