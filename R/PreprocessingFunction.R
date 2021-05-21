@@ -19,16 +19,12 @@ data.preprocessing <- function(input.tbl){
                              icu_in,
                              icu_out,
                              date_ho_last,
-                             #extracorporeal_st,
-                             #imv_st,
-                             #niv_st,
-                             #extracorporeal_en,
-                             #imv_en,
-                             #niv_en,
+                             date_niv_st,
+                             date_imv_st,
                              date_outcome)%>% names()
  
   #create a list of symptoms, comorbidity and treatment variables to be removed since completness<5%
-  rmv<-exclud.sympt.comorb.tret(input.tbl)
+  #rmv<-exclud.sympt.comorb.tret(input.tbl)
   
  #preprocessing function
   input.tbl %>%
@@ -88,7 +84,7 @@ data.preprocessing <- function(input.tbl){
         is.na(icu_treat_invasive_ventilation)~NA,
       TRUE~icu_oxygen_therapy))%>%
    #Removing variables with records UNK >95% (function: exclud.sympt.comorb.tret)#perhaps to be removed from here and to be added when preparing the aggregated table
-    select(-c(all_of(rmv)))%>%
+    #select(-c(all_of(rmv)))%>%
    #Setting_up dates as date
    mutate_at(vars(all_of(var_date)), function(x){as_date(x)})%>%
    #creating first and last date
@@ -136,6 +132,8 @@ data.preprocessing <- function(input.tbl){
     rename(slider_symptomatic = symptomatic) %>%
   #create time variables but t_son_ad
     mutate(t_ad_icu=icu_in-date_start)%>%
+    mutate(t_ad_imv=date_imv_st-date_start)%>%
+    mutate(t_ad_niv=date_niv_st-date_start)%>%
     mutate(dur_icu=icu_out-icu_in)%>%
     mutate(dur_ho=date_outcome-date_start)%>%
     #mutate(dur_imv=imv_en-imv_st)%>%
@@ -145,7 +143,11 @@ data.preprocessing <- function(input.tbl){
     #create time variable: t_son_ad
     mutate(t_son_ad=case_when(date_admit>=date_onset~date_admit-date_onset,
                               TRUE~ NA_real_))%>%
-
+    ##completing t_ad_imv 
+    mutate(t_ad_imv=as.numeric(t_ad_imv))%>%
+    mutate(imv_at_adm=as.numeric(imv_at_adm))%>%
+    mutate(t_ad_imv=case_when(is.na(t_ad_imv)~imv_at_adm,
+                              TRUE~t_ad_imv))%>%
     #deleting implausible respiratory rates based on age
     mutate(vs_resp=case_when(vs_resp<= 3 ~ NA_real_,
                              vs_resp<=5 & age < 10 ~ NA_real_ ,
