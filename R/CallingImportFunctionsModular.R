@@ -42,8 +42,10 @@ mb<-read.csv("MB.csv")
 colnames(mb) <- tolower(colnames(mb))
 vs<-read.csv("VS.csv")
 colnames(vs) <- tolower(colnames(vs))
+save(vs,file="vs.rda")
 lb<-read.csv("LB.csv")
 colnames(lb) <- tolower(colnames(lb))
+save(lb,file="lb.rda")
 ds<-read.csv("DS.csv")
 colnames(ds) <- tolower(colnames(ds))
 
@@ -67,6 +69,7 @@ sa7<-
 
 colnames(sa) <- tolower(colnames(sa))
 save(sa,file="sa.rda")
+load("sa.rda")
 
 
 
@@ -121,24 +124,16 @@ imp_rp <- process.pregnancy.data(rp, dtplyr.step = FALSE)
 save(imp_rp, file = "imp_rp.rda")
 
 load("int.rda")
-int<-int4
+int4<-int
+save(int, file = "int.rda")
+in_FIO2<-int4%>%filter(intrt%like%"FIO2")
+#incl_studyid<-unique(as.character(int$studyid))  
 
-incl_studyid<-unique(as.character(int$studyid))  
-
   
-int<-int4%>%
-  filter(studyid=="CVZXZMV")%>%
-  slice_head(n = 5257525)
-  
-  
-imp_int_CVZXZMV_head<-process.treatment.data(int, dtplyr.step = FALSE)
 
 int<-int4%>%
-  filter(studyid=="CVZXZMV")%>%
-  slice_tail(n = 5257525)
-
-
-imp_int_CVZXZMV_tail<-process.treatment.data(int, dtplyr.step = FALSE)
+  filter(studyid=="CVZXZMV")
+imp_int_CVZXZMV<-process.treatment.data(int, dtplyr.step = FALSE)
 
 int<-int4%>%
   filter(studyid=="CVCCPUK")
@@ -146,25 +141,45 @@ imp_int_CVCCPUK<-process.treatment.data(int, dtplyr.step = FALSE)
 
 
 int<-int4%>%
-  filter(studyid!="CVCCPUK"&studyid!="CVZXZMV")
+  filter(studyid!="CVCCPUK")%>%
+  filter(studyid!="CVZXZMV")
 imp_int_rest<-process.treatment.data(int, dtplyr.step = FALSE)
+
 
 imp_int<-imp_int_rest%>%
     rbind(imp_int_CVCCPUK)%>%
-    rbind(imp_int_CVZXZMV_tail)%>%
-    rbind(imp_int_CVZXZMV_head)
+    rbind(imp_int_CVZXZMV)
+
+tab_CVZXZMV_int<-int%>%tabyl(inevintx)
+tab_CVZXZMV<-imp_int_CVZXZMV%>%tabyl(treatment)
+tab<-imp_int%>%tabyl(treatment)
+
+
 save(imp_int, file = "imp_int.rda")
 
 load(file="imp_int.rda")
 
-imp_treat<-process.common.treatment.data(imp_int, minimum=100, dtplyr.step = FALSE)
+tab<-int%>%
+  filter(inevintx=="00:00-24:00 ON DAY OF ASSESSMENT")
+  mutate(indy=as.numeric(indy))%>%
+  mutate(inevintx=as.character(inevintx))%>%
+  mutate(inevintx=case_when(inevintx=="WHILE HOSPITALIZED OR AT DISCHARGE"~"WHILE HOSPITALISED OR AT DISCHARGE",
+                            inevintx%like%"WITHIN 14 DAYS OF"~"WITHIN 14 DAYS OF ADMISSION",
+                            TRUE~inevintx))%>%
+         filter(inpresp =="Y")%>%filter(inevintx!="BEFORE HOSPITAL ADMISSION")%>%tabyl(indy,inevintx)
+tab<-int%>%filter(inpresp =="Y")%>%filter(inevintx!="BEFORE HOSPITAL ADMISSION")%>%tabyl(indy,inevintx)
+INEVINTX
+
+
+imp_treat<-process.common.treatment.data(imp_int, minimum=10, dtplyr.step = FALSE)
+var<-as.data.frame(colnames(imp_treat))
 save(imp_treat, file = "imp_treat.rda")
 
 imp_icu<- process.ICU.data(ho, dtplyr.step = FALSE)
 save(imp_icu, file = "imp_icu.rda")
 
-imp_treat_icu<-process.treatment.icu.data(imp_int, imp_icu, minimum=100,dtplyr.step = FALSE)
-save(imp_treat_icu, file = "imp_treat_icu.rda")
+imp_treat_icu<-process.treatment.icu.data(imp_int, imp_icu,imp_dm, minimum=100,dtplyr.step = FALSE)
+save(imp_treat_icu, file = "imp_treat_icu2.rda")
 
 imp_vs<- process.vital.sign.data(vs, dtplyr.step = FALSE)
 save(imp_vs, file = "imp_vs.rda")
@@ -174,7 +189,7 @@ save(imp_lb, file = "imp_lb.rda")
 
 imp_ds <-process.outcome.data(ds, dtplyr.step = FALSE)
 save(imp_ds, file = "imp_ds.rda")
-tab<-tabyl(imp_ds$outcome)
+tab<-tabyl(imp_ds$usubjid)
 
 
 
@@ -240,7 +255,12 @@ import.tbl<-imp_dm%>%
   left_join(imp_treat_icu, by = c("usubjid"))%>%
   left_join(imp_lb, by = c("usubjid"))%>%
   left_join(imp_vs, by = c("usubjid"))%>%
-  left_join(imp_ds, by = c("usubjid"))
+  left_join(imp_ds, by = c("usubjid"))%>%
+  group_by(usubjid) %>% 
+  mutate(count=1)%>% 
+  mutate(n = sum(count)) %>%
+  filter(n == 1) %>%
+  ungroup()
 
 
 save(import.tbl, file = "import.tbl.rda")
@@ -250,8 +270,12 @@ load("import.tbl.rda")
 
 prepr.tbl<-data.preprocessing(import.tbl)
 
-save(prepr.tbl, file = "prepr.tbl.rda")
+list_2<-as.data.frame(colnames(prepr.tbl))
+save(prepr.tbl, file = "prepr.tbl.all.rda")
 
+rmv<-exclud.sympt.comorb.tret(import.tbl)
+prepr.tbl<-prepr.tbl%>%select(-c(all_of(rmv)))
+save(prepr.tbl, file = "prepr.tbl.rda")
 #########if needed launching randomization function on the imported data and then preprocess the data
 
 random.import.tbl<-randomization(import.tbl)

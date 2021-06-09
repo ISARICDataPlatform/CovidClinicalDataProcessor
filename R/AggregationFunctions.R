@@ -85,8 +85,8 @@ summary.input.prep<- function(input.tbl){
              icu_treat_invasive_ventilation,
              icu_treat_nasal_mask_oxygen_therapy,
              icu_treat_high_flow_nasal_cannula,
-             # t_ad_niv,
-             # t_ad_imv,
+             t_ad_niv,
+             t_ad_imv,
              dur_niv,
              dur_imv))%>%
     mutate(oxygen_therapy=NA)%>%
@@ -1957,6 +1957,7 @@ patient.by.country.prep <- function(input.tbl){
     filter(!is.na(slider_country)) %>% 
     as_tibble() 
 }
+
 
 
 
