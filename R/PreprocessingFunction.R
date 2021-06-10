@@ -216,7 +216,7 @@ extract.age.boundaries <- function(agestring, lower = TRUE){
 
 #' @keywords internal
 #' @export cleaning.unplosible.dates
-epiweek.year <- function(date){
+cleaning.unplosible.dates <- function(date){
   if(is.na(date)){
     return(NA)
   }
