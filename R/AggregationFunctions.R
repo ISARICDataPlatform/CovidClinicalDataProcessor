@@ -13,7 +13,7 @@ library(DescTools)
 library(vcd)
 library(rcompanion)
 library(ggplot2)
-library(MASS)
+#library(MASS)
 library(sgr)
 library(tidyverse)
 library(dplyr)
@@ -38,57 +38,15 @@ library(gridExtra)
 
 
 
-
-
-
-
-
-#' Preprocessing step for all aggregations. Currently: remaps outcome to death, discharge or NA, cuts age into 5-year age groups, and adds a year-epiweek column
-#' @param input.tbl Input tibble (output of \code{process.all.data})
-#' @import dtplyr dplyr purrr lubridate tibble
-#' @importFrom glue glue
-#' @return A \code{tibble} intended for input into other aggregation functions (e.g. \code{age.pyramid.prep})
-#' @export data.preprocessing
-
 #' Aggregate data for the summary and flowchart
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dtplyr dplyr tibble purrr
 #' @importFrom glue glue
 #' @return A \code{tibble} containing the input data for the summary and flowchart
 #' @export summary.prep
+#' 
 summary.input.prep<- function(input.tbl){
   input.tbl%>%
-    select(c(
-      siteid_final,
-             starts_with("slider_"),
-             age,
-             date_admit,
-             cov_det_id,
-             dur_ho,
-             dur_icu,
-             t_ad_icu,
-             t_son_ad,
-             outcome,
-             slider_outcome,
-             slider_icu_ever,
-             treat_high_flow_nasal_cannula,
-             treat_nasal_mask_oxygen_therapy,
-             treat_non_invasive_ventilation,
-             treat_invasive_ventilation,
-             treat_antibiotic_agents,
-             treat_antiviral_agents,
-             treat_corticosteroids,
-             vs_oxysat,
-             icu_treat_antibiotic_agents,
-             icu_treat_antiviral_agents,
-             icu_treat_non_invasive_ventilation,
-             icu_treat_invasive_ventilation,
-             icu_treat_nasal_mask_oxygen_therapy,
-             icu_treat_high_flow_nasal_cannula,
-             t_ad_niv,
-             t_ad_imv,
-             dur_niv,
-             dur_imv))%>%
     mutate(oxygen_therapy=NA)%>%
     mutate(oxygen_therapy=case_when(
       treat_high_flow_nasal_cannula==FALSE|
@@ -110,7 +68,37 @@ summary.input.prep<- function(input.tbl){
         icu_treat_nasal_mask_oxygen_therapy==TRUE|
         icu_treat_non_invasive_ventilation==TRUE|
         icu_treat_invasive_ventilation==TRUE~TRUE,
-      TRUE~icu_oxygen_therapy))
+      TRUE~icu_oxygen_therapy))%>%
+    select(siteid_final,
+         starts_with("slider_"),
+         age,
+         date_admit,
+         cov_det_id,
+         dur_ho,
+         dur_icu,
+         t_ad_icu,
+         t_son_ad,
+         outcome,
+         #slider_outcome,
+         #slider_icu_ever,
+         treat_high_flow_nasal_cannula,
+         treat_nasal_mask_oxygen_therapy,
+         treat_non_invasive_ventilation,
+         treat_invasive_ventilation,
+         treat_antibiotic_agents,
+         treat_antiviral_agents,
+         treat_corticosteroids,
+         vs_oxysat,
+         icu_treat_antibiotic_agents,
+         icu_treat_antiviral_agents,
+         icu_treat_non_invasive_ventilation,
+         icu_treat_invasive_ventilation,
+         icu_treat_nasal_mask_oxygen_therapy,
+         icu_treat_high_flow_nasal_cannula,
+         t_ad_niv,
+         t_ad_imv,
+         dur_niv,
+         dur_imv,oxygen_therapy,icu_oxygen_therapy)
 }
 #' Data for the report summary
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -1772,6 +1760,7 @@ func_plot_symptoms_abdominal_pain <- function(input.tbl){
 #' Create the Heat admission.symptoms 
 #' @title Heat admission.symptoms 
 ######################
+
 admission.symptoms <- cbind(field = c("symptoms_runny_nose",
                                       "symptoms_sore_throat",
                                       "symptoms_ear_pain",
@@ -1783,15 +1772,15 @@ admission.symptoms <- cbind(field = c("symptoms_runny_nose",
                                       "symptoms_headache",  
                                       "symptoms_shortness_of_breath",
                                       "symptoms_history_of_fever", 
-                                      "symptoms_wheeze", 
+                                      #"symptoms_wheeze", 
                                       "symptoms_cough", 
                                       "symptoms_chest_pain",
                                       "symptoms_lymphadenopathy",
-                                      "symptoms_loss_of_taste",
-                                      "symptoms_loss_of_smell", 
+                                      "symptoms_lost_altered_sense_of_taste",
+                                      "symptoms_lost_altered_sense_of_smell", 
                                       "symptoms_conjunctivitis",
                                       "symptoms_bleeding",  
-                                      "symptoms_skin_ulcers", 
+                                      #"symptoms_skin_ulcers", 
                                       "symptoms_skin_rash",  
                                       "symptoms_seizures",
                                       "symptoms_altered_consciousness_confusion"),
@@ -1806,7 +1795,7 @@ admission.symptoms <- cbind(field = c("symptoms_runny_nose",
                                       "Headache",
                                       "Shortness of breath",
                                       "History of fever",
-                                      "Wheezing",
+                                      #"Wheezing",
                                       "Cough",
                                       "Chest pain",
                                       "Lymphadenopathy",
@@ -1814,7 +1803,7 @@ admission.symptoms <- cbind(field = c("symptoms_runny_nose",
                                       "Loss of smell",
                                       "Conjunctivitis",
                                       "Bleeding",
-                                      "Skin ulcers",
+                                      #"Skin ulcers",
                                       "Skin rash",
                                       "Seizures",
                                       "Altered consciousness / confusion"))
@@ -1832,6 +1821,7 @@ admission.symptoms <- as_tibble(admission.symptoms)
 symptom.heatmap <- function(data, admission.symptoms, asterisks = vector(), ...){
   
   data2 <- data %>%
+    #data2 <- input.tbl %>%
     dplyr::select(usubjid, one_of(admission.symptoms$field))
   
   
@@ -1870,7 +1860,7 @@ symptom.heatmap <- function(data, admission.symptoms, asterisks = vector(), ...)
                  "Headache",
                  "Shortness of breath",
                  "History of fever",
-                 "Wheezing",
+                 #"Wheezing",
                  "Cough",
                  "Chest pain",
                  "Lymphadenopathy",
@@ -1878,7 +1868,7 @@ symptom.heatmap <- function(data, admission.symptoms, asterisks = vector(), ...)
                  "Loss of smell",
                  "Conjunctivitis",
                  "Bleeding",
-                 "Skin ulcers",
+                 #"Skin ulcers",
                  "Skin rash",
                  "Seizures",
                  "Altered consciousness / confusion"  )
