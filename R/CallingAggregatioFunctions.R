@@ -6,7 +6,7 @@ setwd(folder)
 folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-04-07/aggregated"
 setwd(folder)
 
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-04-07"
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24"
 setwd(folder)
 
 load("prepr.tbl.rda")
@@ -19,9 +19,9 @@ backup<-input.tbl
 
 
 #####cleaning dataset for the report/dashboard
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-04-07/aggregated"
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24/aggregated"
 setwd(folder)
-
+memory.limit(size=120000)
 
 ####
 folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor/Data/2021-02-15/aggregated"
@@ -74,7 +74,6 @@ symptom.prevalence.input<-symptom.prevalence.prep(input.tbl)
 save(symptom.prevalence.input, file = "symptom_prevalence_input.rda")
 
 symptom.upset.input<-symptom.upset.prep(input.tbl)
-#
 save(symptom.upset.input, file = "symptom_upset_input.rda")
 
 patient.characteristic.table<-patient.characteristic.prep(input.tbl)

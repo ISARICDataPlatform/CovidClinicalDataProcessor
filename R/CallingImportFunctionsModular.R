@@ -17,18 +17,14 @@ library(janitor)
 library(tools)
 library(stringy)
 
-
-
-
-
-
-
 folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor/data"
 
 setwd(folder)
-memory.limit(size=160000)
+memory.limit(size=120000)
 
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-04-07"
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24"
+
+
 setwd(folder)
 
 #'Importing csv files
@@ -49,9 +45,9 @@ save(lb,file="lb.rda")
 ds<-read.csv("DS.csv")
 colnames(ds) <- tolower(colnames(ds))
 
-sa7<-
+sa<-
   read_csv(
-   "sa_1_saterm_no_quotes.csv",
+   "SA.csv",
     col_names = TRUE,
     col_types = NULL,
     locale = default_locale(),
@@ -67,6 +63,10 @@ sa7<-
     skip_empty_rows = TRUE
   )
 
+sa <- read.csv.ffdf(file="SA.csv", header=TRUE, VERBOSE=TRUE, quote = ,
+                     first.rows=1000, next.rows=50000, 
+                     colClasses = c(rep("factor", 66), rep("NULL", 66)), na = '')
+sa<-as.data.frame(sa)
 colnames(sa) <- tolower(colnames(sa))
 save(sa,file="sa.rda")
 load("sa.rda")
@@ -74,21 +74,16 @@ load("sa.rda")
 
 
 
-int4 <- read.csv.ffdf(file="in.csv", header=TRUE, VERBOSE=TRUE, quote = '"',
-                      first.rows=1000, next.rows=5000000, 
+int <- read.csv.ffdf(file="IN.csv", header=TRUE, VERBOSE=TRUE, quote = '"',
+                      first.rows=1000, next.rows=50000, 
                       colClasses = c(rep("factor", 66), rep("NULL", 66)), na = '')
-int4<-as.data.frame(int4)
-colnames(int4) <- tolower(colnames(int4))
+int<-as.data.frame(int)
+
+colnames(int) <- tolower(colnames(int))
 save(int,file="int.rda")
 
 
-
-
-save(int4,file="int.rda")
-
-
-int<-int_2
-INT<-
+int<-
   read_csv(
     "IN.csv",
     col_names = TRUE,
@@ -109,7 +104,7 @@ colnames(int) <- tolower(colnames(int))
 save(int,file="int.rda")
 
 ###set date pull
-date_pull<-as_date("2021-04-07") 
+date_pull<-as_date("2021-05-24") 
 
 ###calling data import functions
 
@@ -123,63 +118,24 @@ save(imp_mb, file = "imp_mb.rda")
 imp_rp <- process.pregnancy.data(rp, dtplyr.step = FALSE)
 save(imp_rp, file = "imp_rp.rda")
 
-load("int.rda")
-int4<-int
-save(int, file = "int.rda")
-in_FIO2<-int4%>%filter(intrt%like%"FIO2")
+
 #incl_studyid<-unique(as.character(int$studyid))  
 
   
+load("int.rda")
 
-int<-int4%>%
-  filter(studyid=="CVZXZMV")
-imp_int_CVZXZMV<-process.treatment.data(int, dtplyr.step = FALSE)
-
-int<-int4%>%
-  filter(studyid=="CVCCPUK")
-imp_int_CVCCPUK<-process.treatment.data(int, dtplyr.step = FALSE)
-
-
-int<-int4%>%
-  filter(studyid!="CVCCPUK")%>%
-  filter(studyid!="CVZXZMV")
-imp_int_rest<-process.treatment.data(int, dtplyr.step = FALSE)
-
-
-imp_int<-imp_int_rest%>%
-    rbind(imp_int_CVCCPUK)%>%
-    rbind(imp_int_CVZXZMV)
-
-tab_CVZXZMV_int<-int%>%tabyl(inevintx)
-tab_CVZXZMV<-imp_int_CVZXZMV%>%tabyl(treatment)
-tab<-imp_int%>%tabyl(treatment)
-
-
+imp_int<-process.treatment.data(int, dtplyr.step = FALSE)
 save(imp_int, file = "imp_int.rda")
 
-load(file="imp_int.rda")
-
-tab<-int%>%
-  filter(inevintx=="00:00-24:00 ON DAY OF ASSESSMENT")
-  mutate(indy=as.numeric(indy))%>%
-  mutate(inevintx=as.character(inevintx))%>%
-  mutate(inevintx=case_when(inevintx=="WHILE HOSPITALIZED OR AT DISCHARGE"~"WHILE HOSPITALISED OR AT DISCHARGE",
-                            inevintx%like%"WITHIN 14 DAYS OF"~"WITHIN 14 DAYS OF ADMISSION",
-                            TRUE~inevintx))%>%
-         filter(inpresp =="Y")%>%filter(inevintx!="BEFORE HOSPITAL ADMISSION")%>%tabyl(indy,inevintx)
-tab<-int%>%filter(inpresp =="Y")%>%filter(inevintx!="BEFORE HOSPITAL ADMISSION")%>%tabyl(indy,inevintx)
-INEVINTX
-
-
 imp_treat<-process.common.treatment.data(imp_int, minimum=10, dtplyr.step = FALSE)
-var<-as.data.frame(colnames(imp_treat))
+#var<-as.data.frame(colnames(imp_treat))
 save(imp_treat, file = "imp_treat.rda")
 
 imp_icu<- process.ICU.data(ho, dtplyr.step = FALSE)
 save(imp_icu, file = "imp_icu.rda")
 
-imp_treat_icu<-process.treatment.icu.data(imp_int, imp_icu,imp_dm, minimum=100,dtplyr.step = FALSE)
-save(imp_treat_icu, file = "imp_treat_icu2.rda")
+imp_treat_icu<-process.treatment.icu.data(imp_int, imp_icu,imp_dm, minimum=10,dtplyr.step = FALSE)
+save(imp_treat_icu, file = "imp_treat_icu.rda")
 
 imp_vs<- process.vital.sign.data(vs, dtplyr.step = FALSE)
 save(imp_vs, file = "imp_vs.rda")
@@ -189,45 +145,19 @@ save(imp_lb, file = "imp_lb.rda")
 
 imp_ds <-process.outcome.data(ds, dtplyr.step = FALSE)
 save(imp_ds, file = "imp_ds.rda")
-tab<-tabyl(imp_ds$usubjid)
+tab<-tabyl(imp_ds$outcome)
 
 
 
 load("sa.rda")
-sab<-sa
-
-sa<-sab%>%
-  filter(studyid=="CVZXZMV")
-imp_sa_CVZXZMV<-import.symptom.and.comorbidity.data(sa, dtplyr.step = FALSE)
-
-
-sa<-sab%>%
-  filter(studyid=="CVCCPUK")
-imp_sa_CVCCPUK<-import.symptom.and.comorbidity.data(sa, dtplyr.step = FALSE)
-
-
-sa<-sab%>%
-  filter(studyid!="CVCCPUK"&studyid!="CVZXZMV")
-imp_sa_rest<-import.symptom.and.comorbidity.data(sa, dtplyr.step = FALSE)
-
-imp_sa<-imp_sa_rest%>%
-  rbind(imp_sa_CVCCPUK)%>%
-  rbind(imp_sa_CVZXZMV)
-
-imp_sa_com<-imp_sa
-save(imp_sa_com, file = "imp_sa_com.rda")
-
-
 
 imp_sa<-import.symptom.and.comorbidity.data(sa, dtplyr.step = FALSE)
-tabyl(imp_sa$saterm)
 save(imp_sa, file = "imp_sa.rda")
 
-load(file="imp_sa_com.rda")
-imp_comorb<-process.comorbidity.data(imp_sa_com, minimum=100, dtplyr.step = FALSE)
+imp_comorb<-process.comorbidity.data(imp_sa, minimum=100, dtplyr.step = FALSE)
 save(imp_comorb, file = "imp_comorb.rda")
 
-imp_symptom<-process.symptom.data(imp_sa_sa, minimum=100, dtplyr.step = FALSE)
+imp_symptom<-process.symptom.data(imp_sa, minimum=100, dtplyr.step = FALSE)
 save(imp_symptom, file = "imp_symptom.rda")
 
 
