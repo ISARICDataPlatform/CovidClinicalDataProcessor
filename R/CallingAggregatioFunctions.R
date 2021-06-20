@@ -17,10 +17,6 @@ backup<-input.tbl
 
 #####cleaning dataset for the report/dashboard
 
-input.tbl<-input.tbl%>%
-  select(-c(comorbid_pregnant_women_with_significant_heart_disease))
-
-
 ####
 folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor/Data/2021-02-15/aggregated"
 setwd(folder)
@@ -205,7 +201,9 @@ age.pyramid.input <- age.pyramid.prep(input.tbl)
 save(age.pyramid.input, file ="age_pyramid_input.rda")
 
 
-
+#Map
+data_map <- patient.by.country.map.prep(input.tbl)
+save(data_map, file ="data_map.rda")
 
 
 
