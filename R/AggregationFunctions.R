@@ -154,7 +154,7 @@ age.pyramid.prep <- function(input.tbl){
 #' @export outcome.admission.date.prep
 outcome.admission.date.prep <- function(input.tbl){
   
-  epiweek.order <- glue("{c(rep(2019,4), rep(2020,max(input.tbl$epiweek.admit[which(input.tbl$year.admit == 2020)], na.rm = T)))}-{c(49:52, 1:max(input.tbl$epiweek.admit[which(input.tbl$year.admit == 2020)], na.rm = T))}")
+  epiweek.order <- glue("{c(rep(2019,4), rep(2020, 53), rep(2021,max(input.tbl$epiweek.admit[which(input.tbl$year.admit == 2021 & input.tbl$epiweek.admit!=53)], na.rm = T)))}-{c(49:52, 1:53, 1:max(input.tbl$epiweek.admit[which(input.tbl$year.admit == 2021 & input.tbl$epiweek.admit!=53)], na.rm = T))}")
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
