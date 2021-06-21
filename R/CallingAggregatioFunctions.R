@@ -207,7 +207,9 @@ save(age.pyramid.input, file ="age_pyramid_input.rda")
 
 
 
-
+#Map
+data_map <- patient.by.country.map.prep(input.tbl)
+save(data_map, file ="data_map.rda")
 
 
 

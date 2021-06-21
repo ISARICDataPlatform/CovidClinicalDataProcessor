@@ -1958,7 +1958,18 @@ patient.by.country.prep <- function(input.tbl){
     as_tibble() 
 }
 
-
+#'Map data
+patient.by.country.map.prep <- function(input.tbl){
+  input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
+    select(slider_country) %>%
+    filter(!is.na(slider_country)) %>% 
+    mutate(Freq = 1) %>%
+    group_by(slider_country)%>%
+    mutate(Freq = sum(Freq))%>%
+    distinct()%>%
+    as_tibble() 
+}
 
 
 
