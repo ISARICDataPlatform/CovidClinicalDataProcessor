@@ -237,10 +237,10 @@ symptom.prevalence.prep <- function(input.tbl){
 #' @export symptom.upset.prep
 symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
   
-  
+
   
   data2 <- input.tbl %>%
-    select(usubjid, starts_with("symp"))
+    select(usubjid, starts_with("symptoms"))
   
   n.symp <- ncol(data2) - 1 #changed here
   
@@ -274,7 +274,14 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
                                     TRUE ~ nice.symptom))
   
   
-  top.n.conditions.tbl <- input.tbl %>%
+  
+  patients_symp<-input.tbl %>%
+    select(usubjid, starts_with("symptoms"))%>%
+    pivot_longer(2:(n.symp+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
+    filter(!is.na(Present))%>%
+    distinct(usubjid, .keep_all =T)%>%select(usubjid)
+    
+  top.n.conditions.tbl <- patients_symp%>%left_join(input.tbl)%>%
     dplyr::select(usubjid, matches(most.common)) %>%
     pivot_longer(2:(length(most.common)+1), names_to = "Condition", values_to = "Present") %>%
     left_join(nice.symptom.mapper, by=c("Condition" = "symptom")) %>%
@@ -293,11 +300,12 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
   top.n.conditions.tbl <- top.n.conditions.tbl %>% left_join(slider.join)
   
   symptom.upset.input <- top.n.conditions.tbl %>% 
+    #mutate(studyid=substr(usubjid,1, 7))%>%#added
     mutate(condstring = map_chr(conditions.present, function(cp){
       paste(sort(cp), collapse = "-")
     })) %>%
     select(-conditions.present) %>%
-    group_by(condstring, 
+    group_by(condstring,
              slider_sex, 
              slider_country,
              slider_icu_ever,
@@ -305,7 +313,8 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
              slider_monthyear,
              slider_agegp10,
              lower.age.bound,
-             upper.age.bound) %>% 
+             upper.age.bound
+             ) %>% 
     summarise(count = n()) %>%
     ungroup() %>%
     mutate(which.present = map(condstring, function(x){
@@ -451,8 +460,13 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
     mutate(nice.comorbidity = case_when(comorbidity=="Aids hiv" ~ "HIV/AIDS",
                                         TRUE ~ nice.comorbidity))
   
+  patients_symp<-input.tbl %>%
+    select(usubjid, starts_with("comorb"))%>%
+    pivot_longer(2:(n.symp+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
+    filter(!is.na(Present))%>%
+    distinct(usubjid, .keep_all =T)%>%select(usubjid)
   
-  top.n.conditions.tbl <- input.tbl %>%
+  top.n.conditions.tbl <- patients_symp%>%left_join(input.tbl)%>%
     dplyr::select(usubjid, matches(most.common)) %>%
     pivot_longer(2:(length(most.common)+1), names_to = "Condition", values_to = "Present") %>%
     left_join(nice.comorbidity.mapper, by=c("Condition" = "comorbidity")) %>%
@@ -573,8 +587,14 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
       temp2
     }))
   
+  patients<-input.tbl %>%
+    select(usubjid, starts_with("treat"))%>%
+    pivot_longer(2:(n.symp+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
+    filter(!is.na(Present))%>%
+    distinct(usubjid, .keep_all =T)%>%select(usubjid)
   
-  top.n.treatments.tbl <- input.tbl %>%
+
+  top.n.treatments.tbl <- patients%>%left_join(input.tbl)%>%
     dplyr::select(usubjid,starts_with("treat"))%>%
     dplyr::select(usubjid, matches(most.common)) %>%
     pivot_longer(2:(length(most.common)+1), names_to = "Treatment", values_to = "Present") %>%
@@ -701,8 +721,14 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
     mutate(nice.treatment = case_when(treatment=='icu_treat_inotropes_vasopressors' ~ 'Inotropes/vasopressors',
                                       TRUE ~ nice.treatment))
   
+  patients<-input.tbl %>%
+    select(usubjid, starts_with("icu_treat"))%>%
+    pivot_longer(2:(n.symp+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
+    filter(!is.na(Present))%>%
+    distinct(usubjid, .keep_all =T)%>%select(usubjid)
   
-  top.n.treatments.tbl <- input.tbl %>%
+  
+  top.n.treatments.tbl <- patients%>%left_join(input.tbl)%>%
     dplyr::select(usubjid,starts_with("icu_treat"))%>%
     dplyr::select(usubjid, matches(most.common)) %>%
     pivot_longer(2:(length(most.common)+1), names_to = "Treatment", values_to = "Present") %>%
@@ -763,8 +789,10 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
 length.of.stay.sex.prep <- function(input.tbl){
   
   input.tbl %>%
+    mutate(dur_ho=case_when(dur_ho>89~NA,
+                            TRUE~dur_ho))%>%
     lazy_dt(immutable = TRUE) %>%
-    filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
+    #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     mutate(length.of.stay=dur_ho) %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, length.of.stay) %>%
     mutate(sex=slider_sex) %>% 
@@ -784,8 +812,10 @@ length.of.stay.sex.prep <- function(input.tbl){
 length.of.stay.age.prep <- function(input.tbl){
   
   input.tbl %>%
+    mutate(dur_ho=case_when(dur_ho>89~NA,
+                            TRUE~dur_ho))%>%
     lazy_dt(immutable = TRUE) %>%
-    filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
+    #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     mutate(length.of.stay=dur_ho) %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, length.of.stay) %>%
     mutate(agegp10=as.character(slider_agegp10)) %>% 
@@ -804,6 +834,8 @@ length.of.stay.age.prep <- function(input.tbl){
 admission.to.icu.prep <- function(input.tbl){
   
   input.tbl %>%
+    mutate(t_ad_icu=case_when(t_ad_icu>89~NA,
+                            TRUE~t_ad_icu))%>%
     lazy_dt(immutable = TRUE) %>%
     filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     mutate(admission.to.icu=t_ad_icu) %>% 
