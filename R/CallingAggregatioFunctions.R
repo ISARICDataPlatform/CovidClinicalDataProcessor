@@ -3,20 +3,29 @@
 folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor"
 setwd(folder)
 
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-02-15"
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-04-07/aggregated"
 setwd(folder)
 
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-02-15/random"
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-04-07"
 setwd(folder)
 
-load("ISVARIC_dash_db_prepr_completeness_24_march.rda")
+load("prepr.tbl.rda")
 input.tbl<-prepr.tbl
 
 input.tbl<-random.prepr.tbl
+
+input.tbl<-prepr.tbl
 backup<-input.tbl
 
-#####cleaning dataset for the report/dashboard
 
+<<<<<<< HEAD
+=======
+#####cleaning dataset for the report/dashboard
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-04-07/aggregated"
+setwd(folder)
+
+
+>>>>>>> 0b387254df5bb6644c0900b5a3acdb0a37eb4059
 ####
 folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor/Data/2021-02-15/aggregated"
 setwd(folder)
@@ -123,8 +132,7 @@ save(data_plot_vs_sysbp, file ="data_plot_vs_sysbp.rda")
 save(data_plot_vs_oxysat, file ="data_plot_vs_oxysat.rda")
 
 #Lab data
-data_plot_lab_crp <- func_plot_lab_crp(input.tbl)  %>%
-  rename(value = lab_crp)
+data_plot_lab_crp <- func_plot_lab_crp(input.tbl)  
 data_plot_lab_lym <- func_plot_lab_lym(input.tbl)
 data_plot_lab_neut <- func_plot_lab_neut(input.tbl)
 data_plot_lab_wbc <- func_plot_lab_crp(input.tbl)
@@ -201,10 +209,17 @@ age.pyramid.input <- age.pyramid.prep(input.tbl)
 save(age.pyramid.input, file ="age_pyramid_input.rda")
 
 
+<<<<<<< HEAD
 #Map
 data_map <- patient.by.country.map.prep(input.tbl)
 save(data_map, file ="data_map.rda")
 
+=======
+
+#Map
+data_map <- patient.by.country.map.prep(input.tbl)
+save(data_map, file ="data_map.rda")
+>>>>>>> 0b387254df5bb6644c0900b5a3acdb0a37eb4059
 
 
 
