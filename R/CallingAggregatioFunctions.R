@@ -211,7 +211,7 @@ save(data_map, file ="data_map.rda")
 
 #case defnitions table
 case.def.input <- patient.by.case.def.prep(input.tbl)
-save(case.def.input, file ="data_case_def_input_rda")
+save(case.def.input, file ="data_case_def_input.rda")
 
 
 
