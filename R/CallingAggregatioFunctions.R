@@ -18,17 +18,11 @@ input.tbl<-prepr.tbl
 backup<-input.tbl
 
 
-<<<<<<< HEAD
-=======
 #####cleaning dataset for the report/dashboard
 folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-04-07/aggregated"
 setwd(folder)
 
 
->>>>>>> 0b387254df5bb6644c0900b5a3acdb0a37eb4059
-####
-folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor/Data/2021-02-15/aggregated"
-setwd(folder)
 
 
 
@@ -209,22 +203,15 @@ age.pyramid.input <- age.pyramid.prep(input.tbl)
 save(age.pyramid.input, file ="age_pyramid_input.rda")
 
 
-<<<<<<< HEAD
 #Map
 data_map <- patient.by.country.map.prep(input.tbl)
 save(data_map, file ="data_map.rda")
 
-=======
-
-#Map
-data_map <- patient.by.country.map.prep(input.tbl)
-save(data_map, file ="data_map.rda")
->>>>>>> 0b387254df5bb6644c0900b5a3acdb0a37eb4059
 
 
-
-
-
+#case defnitions table
+case.def.input <- patient.by.case.def.prep(input.tbl)
+save(case.def.input, file ="data_case_def_input_rda")
 
 
 
