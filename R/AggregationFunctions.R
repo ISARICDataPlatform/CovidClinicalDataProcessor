@@ -1975,3 +1975,77 @@ patient.by.country.map.prep <- function(input.tbl){
 }
 
 
+
+
+#'Case definitions data
+#'From christiana's paper
+patient.by.case.def.prep <- function(input.tbl){
+
+  input.tbl$symptoms_WHO <- NA
+  input.tbl[which(input.tbl$symptoms_history_of_fever == TRUE & input.tbl$symptoms_cough == TRUE),]$symptoms_WHO <- TRUE
+  input.tbl[which(apply(input.tbl[,c("symptoms_history_of_fever", "symptoms_cough", "symptoms_fatigue_malaise", 
+                         "symptoms_headache", "symptoms_muscle_aches_joint_pain", "symptoms_sore_throat",
+                         "symptoms_runny_nose", "symptoms_shortness_of_breath", "symptoms_anorexia", 
+                         "symptoms_vomiting_nausea", "symptoms_diarrhoea", "symptoms_altered_consciousness_confusion", 
+                         "symptoms_anorexia")], 1, sum, na.rm = TRUE) >= 3),]$symptoms_WHO <- TRUE
+  input.tbl$symptoms_CDC <- NA
+  input.tbl[which(apply(input.tbl[,c("symptoms_history_of_fever", # "symptoms_rigor_or_sweating",
+                         "symptoms_muscle_aches_joint_pain", "symptoms_headache", 
+                         "symptoms_sore_throat", "symptoms_lost_altered_sense_of_smell", 
+                         "symptoms_lost_altered_sense_of_taste")], 1, sum, na.rm = TRUE) >= 2),]$symptoms_CDC <- TRUE
+# chills/rigor not available
+  input.tbl[which(input.tbl$symptoms_cough == TRUE | input.tbl$symptoms_shortness_of_breath == TRUE),]$symptoms_CDC <- TRUE
+# difficulty breathing not available
+  input.tbl$symptoms_PHE <- NA
+  input.tbl[which(input.tbl$symptoms_cough == TRUE | input.tbl$symptoms_history_of_fever == TRUE | 
+                    input.tbl$symptoms_lost_altered_sense_of_smell == TRUE |
+                    input.tbl$symptoms_lost_altered_sense_of_taste == TRUE),]$symptoms_PHE <- TRUE
+  input.tbl$symptoms_ECDC <- NA
+  input.tbl[which(input.tbl$symptoms_cough == TRUE | input.tbl$symptoms_history_of_fever == TRUE |
+                    input.tbl$symptoms_shortness_of_breath == TRUE | input.tbl$symptoms_lost_altered_sense_of_smell == TRUE | 
+               input.tbl$symptoms_lost_altered_sense_of_taste == TRUE),]$symptoms_ECDC <- TRUE
+  input.tbl$age10 <- cut(input.tbl$age, c(0, seq(20, 100, by = 10), 120), right = FALSE, include.lowest = TRUE)
+  input.tbl$sars_cov2 <- as.character(input.tbl$cov_id_sarscov2 == "POSITIVE" | input.tbl$cov_det_sarscov2 == "POSITIVE")
+  input.tbl[is.na(input.tbl$sars_cov2),]$sars_cov2 <- "Unknown"
+  input.tbl$sars_cov2 <- factor(input.tbl$sars_cov2, labels = c("Positive", "Unknown"))
+symptoms_long <- input.tbl[,c("symptoms_WHO", "symptoms_CDC", "symptoms_PHE", "symptoms_ECDC", "age10", "sars_cov2")] %>% 
+  pivot_longer(cols = -c(age10, sars_cov2), names_to = "symptom", values_to = "value")
+symptoms_long$value <- factor(symptoms_long$value, levels = c("TRUE", "FALSE"), labels = c("Yes", "No"))
+# change symptom labels
+symptoms_long$symptom <- paste(toupper(substring(gsub("_", " ", gsub("symptoms_", "", symptoms_long$symptom)), 1, 1)), 
+                               substring(gsub("_", " ", gsub("symptoms_", "", symptoms_long$symptom)), 2), sep = "")
+
+
+symptoms_long <- symptoms_long %>%
+  filter(!is.na(age10)) %>%
+  select(age10,symptom,value)%>%
+  mutate(count_yes = ifelse(value=="Yes",1,NA))%>%
+  mutate(count_yes = ifelse(is.na(value), 0, value))%>%
+  mutate(count_all = 1)%>%
+  group_by(age10,symptom)%>%
+  mutate(total = sum(count_all))%>%
+  mutate(present = sum(count_yes))%>%
+  mutate(proportion = present/total)%>%
+  select(age10, symptom, proportion)%>%
+  distinct()
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
