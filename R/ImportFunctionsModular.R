@@ -10,7 +10,10 @@
 
 import.demographic.data <- function(file.name, dtplyr.step = FALSE){
   
-  country.lookup <- ISOcodes::ISO_3166_1 %>% as_tibble %>% select(Alpha_3, Name)
+  country.lookup <- ISOcodes::ISO_3166_1 %>% as_tibble%>%
+    mutate(Name=case_when(!is.na(Common_name)~Common_name,
+                          Name=="Lao People's Democratic Republic"~"Lao PDR",
+                          TRUE~Name))%>%select(Alpha_3, Name)
   #regexp <- "[[:digit:]]+"  # process string
   
   out <- dm %>%
@@ -63,6 +66,8 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     distinct(siteid_final, .keep_all =T)%>% 
     mutate(country=ifelse(siteid_final=="321cub_erasme__bru","Belgium",country))%>% 
     mutate(country=ifelse(siteid_final=="00580netcare_unita","Italy",country))%>%
+    mutate(country=ifelse(siteid_final=="00835consortium_im","Poland",country))%>%
+    mutate(country=ifelse(siteid_final=="00831nicvd_dhaka","Bangladesh",country))%>%
     select(siteid_final, 'country_2'=country)
   
   out<-out%>% 

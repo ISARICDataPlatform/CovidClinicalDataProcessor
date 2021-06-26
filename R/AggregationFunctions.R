@@ -523,6 +523,9 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
 #' @export treatment.use.proportion.prep
 treatment.use.proportion.prep <- function(input.tbl){
   
+  input.tbl<-input.tbl%>%select(-c(treat_pacing, treat_mechanical_support, treat_immunostimulants, treat_antiinflammatory,
+                                   treat_other_interventions, treat_agents_acting_on_the_renin_angiotensin_system, 
+                                   treat_antimalarial_agents))
   treatment.use.proportion.input <- input.tbl %>%
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("treat")), lower.age.bound, upper.age.bound) %>%
     as.data.table() %>%
@@ -558,7 +561,9 @@ treatment.use.proportion.prep <- function(input.tbl){
 #' @export treatment.upset.prep
 treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   
-  
+  input.tbl<-input.tbl%>%select(-c(treat_pacing, treat_mechanical_support, treat_immunostimulants, treat_antiinflammatory,
+                                   treat_other_interventions, treat_agents_acting_on_the_renin_angiotensin_system, 
+                                   treat_antimalarial_agents)) 
   data2 <- input.tbl %>%
     select(usubjid, starts_with("treat"))
   
@@ -1315,6 +1320,9 @@ comorbidity.prep <- function(input.tbl){
 #' 
 treatments.prep <- function(input.tbl){
   
+  input.tbl<-input.tbl%>%select(-c(treat_pacing, treat_mechanical_support, treat_immunostimulants, treat_antiinflammatory,
+                                   treat_other_interventions, treat_agents_acting_on_the_renin_angiotensin_system, 
+                                   treat_antimalarial_agents))
   tot=nrow(input.tbl)
   
   data<-select(input.tbl, c(starts_with("treat_"))) %>%

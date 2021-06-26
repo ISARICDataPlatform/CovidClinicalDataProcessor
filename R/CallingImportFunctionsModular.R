@@ -1,5 +1,6 @@
 #libraries
-
+install.packages('WDI_data')
+library(WDI_data)
 library("ff")
 library(stringr)
 library(plyr)
@@ -27,6 +28,12 @@ folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24"
 
 setwd(folder)
 
+
+missing_c<-dm%>%filter(country=="")%>%select(studyid,siteid_final,usubjid)
+View(missing_c)
+write.table(missing_c, "missing_c.csv", sep=",", row.names=F, na="")
+
+
 #'Importing csv files
 dm<-read.csv("DM.csv")
 colnames(dm) <- tolower(colnames(dm))
@@ -36,7 +43,7 @@ ho<-read.csv("HO.csv")
 colnames(ho) <- tolower(colnames(ho))
 mb<-read.csv("MB.csv")
 colnames(mb) <- tolower(colnames(mb))
-vs<-read.csv("VS.csv")
+vs<-read.csv("Internal_VS_2021-05-24_v2.csv")
 colnames(vs) <- tolower(colnames(vs))
 save(vs,file="vs.rda")
 lb<-read.csv("LB.csv")
@@ -110,6 +117,8 @@ date_pull<-as_date("2021-05-24")
 
 imp_dm <- import.demographic.data(dm, dtplyr.step = FALSE)
 save(imp_dm, file = "imp_dm.rda")
+country<-imp_dm%>%tabyl(country)
+write.table(country, "country.csv", sep=",", row.names=F, na="")
 
 
 imp_mb <- import.microb.data(mb, dtplyr.step = FALSE)
@@ -160,7 +169,8 @@ save(imp_comorb, file = "imp_comorb.rda")
 imp_symptom<-process.symptom.data(imp_sa, minimum=100, dtplyr.step = FALSE)
 save(imp_symptom, file = "imp_symptom.rda")
 
-
+missing_c<-imp_dm%>%filter(is.na(country))%>%select(studyid,siteid_final,usubjid)
+write.table(missing_c, "missing_c.csv", sep=",", row.names=F, na="")
 
 load(file="imp_dm.rda")
 load(file="imp_mb.rda")
@@ -185,12 +195,7 @@ import.tbl<-imp_dm%>%
   left_join(imp_treat_icu, by = c("usubjid"))%>%
   left_join(imp_lb, by = c("usubjid"))%>%
   left_join(imp_vs, by = c("usubjid"))%>%
-  left_join(imp_ds, by = c("usubjid"))%>%
-  group_by(usubjid) %>% 
-  mutate(count=1)%>% 
-  mutate(n = sum(count)) %>%
-  filter(n == 1) %>%
-  ungroup()
+  left_join(imp_ds, by = c("usubjid"))
 
 
 save(import.tbl, file = "import.tbl.rda")
@@ -205,7 +210,10 @@ save(prepr.tbl, file = "prepr.tbl.all.rda")
 
 rmv<-exclud.sympt.comorb.tret(import.tbl)
 prepr.tbl<-prepr.tbl%>%select(-c(all_of(rmv)))
+list_2<-as.data.frame(colnames(prepr.tbl))
 save(prepr.tbl, file = "prepr.tbl.rda")
+
+exclusion<-prepr.tbl%>%tabyl(cov_det_id,embargo_length)
 #########if needed launching randomization function on the imported data and then preprocess the data
 
 random.import.tbl<-randomization(import.tbl)

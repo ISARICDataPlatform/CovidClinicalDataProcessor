@@ -39,11 +39,17 @@ save(summary_input_overall, file = "summary_input_overall.rda")
 patient.by.country.input <- patient.by.country.prep(input.tbl)
 save(patient.by.country.input, file="patient_by_country_input.rda")
 
+data_map <- patient.by.country.map.prep(input.tbl)
+save(data_map, file ="data_map.rda")
+
+
+
 
 ###################tables after inclusion criteria
 
 input.tbl<-input.tbl%>%
   filter((embargo_length==FALSE | is.na(embargo_length)) & cov_det_id=="POSITIVE")
+
 
 summary_input<-summary.input.prep(input.tbl)
 save(summary_input, file = "summary_input.rda") 
@@ -205,10 +211,6 @@ age.pyramid.input <- age.pyramid.prep(input.tbl)
 save(age.pyramid.input, file ="age_pyramid_input.rda")
 
 
-
-#Map
-data_map <- patient.by.country.map.prep(input.tbl)
-save(data_map, file ="data_map.rda")
 
 
 
