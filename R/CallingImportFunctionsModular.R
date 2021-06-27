@@ -1,6 +1,6 @@
 #libraries
-install.packages('WDI_data')
-library(WDI_data)
+#install.packages('WDI')
+library(WDI)
 library("ff")
 library(stringr)
 library(plyr)
@@ -32,6 +32,8 @@ setwd(folder)
 missing_c<-dm%>%filter(country=="")%>%select(studyid,siteid_final,usubjid)
 View(missing_c)
 write.table(missing_c, "missing_c.csv", sep=",", row.names=F, na="")
+
+
 
 
 #'Importing csv files
@@ -211,6 +213,11 @@ save(prepr.tbl, file = "prepr.tbl.all.rda")
 rmv<-exclud.sympt.comorb.tret(import.tbl)
 prepr.tbl<-prepr.tbl%>%select(-c(all_of(rmv)))
 list_2<-as.data.frame(colnames(prepr.tbl))
+
+
+
+#income<-imp_dm%>%select(usubjid,income)
+#prepr.tbl<-prepr.tbl%>%left_join(income)
 save(prepr.tbl, file = "prepr.tbl.rda")
 
 exclusion<-prepr.tbl%>%tabyl(cov_det_id,embargo_length)
