@@ -13,7 +13,6 @@ library(DescTools)
 library(vcd)
 library(rcompanion)
 library(ggplot2)
-#library(MASS)
 library(sgr)
 library(tidyverse)
 library(dplyr)
@@ -89,6 +88,9 @@ summary.input.prep<- function(input.tbl){
          treat_antiviral_agents,
          treat_corticosteroids,
          vs_oxysat,
+         vs_oxysat_oxygen_therapy,
+         vs_oxysat_room_air,
+         vs_oxysat_unknown,
          icu_treat_antibiotic_agents,
          icu_treat_antiviral_agents,
          icu_treat_non_invasive_ventilation,
@@ -98,7 +100,8 @@ summary.input.prep<- function(input.tbl){
          t_ad_niv,
          t_ad_imv,
          dur_niv,
-         dur_imv,oxygen_therapy,icu_oxygen_therapy)
+         dur_imv,oxygen_therapy,icu_oxygen_therapy,
+         income)
 }
 #' Data for the report summary
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -112,7 +115,8 @@ summary.input.overall.prep<- function(input.tbl){
     select(c(siteid_final,
              starts_with("slider_"),
              cov_det_id,
-             embargo_length
+             embargo_length,
+             income
     ))
     
 }
@@ -460,13 +464,13 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
     mutate(nice.comorbidity = case_when(comorbidity=="Aids hiv" ~ "HIV/AIDS",
                                         TRUE ~ nice.comorbidity))
   
-  patients_symp<-input.tbl %>%
+  patients<-input.tbl %>%
     select(usubjid, starts_with("comorb"))%>%
-    pivot_longer(2:(n.symp+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
+    pivot_longer(2:( n.comorb+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
     filter(!is.na(Present))%>%
     distinct(usubjid, .keep_all =T)%>%select(usubjid)
   
-  top.n.conditions.tbl <- patients_symp%>%left_join(input.tbl)%>%
+  top.n.conditions.tbl <- patients%>%left_join(input.tbl)%>%
     dplyr::select(usubjid, matches(most.common)) %>%
     pivot_longer(2:(length(most.common)+1), names_to = "Condition", values_to = "Present") %>%
     left_join(nice.comorbidity.mapper, by=c("Condition" = "comorbidity")) %>%
@@ -525,7 +529,7 @@ treatment.use.proportion.prep <- function(input.tbl){
   
   input.tbl<-input.tbl%>%select(-c(treat_pacing, treat_mechanical_support, treat_immunostimulants, treat_antiinflammatory,
                                    treat_other_interventions, treat_agents_acting_on_the_renin_angiotensin_system, 
-                                   treat_antimalarial_agents))
+                                   treat_antimalarial_agents,treat_colchicine))
   treatment.use.proportion.input <- input.tbl %>%
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("treat")), lower.age.bound, upper.age.bound) %>%
     as.data.table() %>%
@@ -563,7 +567,7 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   
   input.tbl<-input.tbl%>%select(-c(treat_pacing, treat_mechanical_support, treat_immunostimulants, treat_antiinflammatory,
                                    treat_other_interventions, treat_agents_acting_on_the_renin_angiotensin_system, 
-                                   treat_antimalarial_agents)) 
+                                   treat_antimalarial_agents, treat_colchicine)) 
   data2 <- input.tbl %>%
     select(usubjid, starts_with("treat"))
   
@@ -594,7 +598,7 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   
   patients<-input.tbl %>%
     select(usubjid, starts_with("treat"))%>%
-    pivot_longer(2:(n.symp+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
+    pivot_longer(2:(n.treat+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
     filter(!is.na(Present))%>%
     distinct(usubjid, .keep_all =T)%>%select(usubjid)
   
@@ -728,7 +732,7 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
   
   patients<-input.tbl %>%
     select(usubjid, starts_with("icu_treat"))%>%
-    pivot_longer(2:(n.symp+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
+    pivot_longer(2:(n.treat+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
     filter(!is.na(Present))%>%
     distinct(usubjid, .keep_all =T)%>%select(usubjid)
   
@@ -794,7 +798,8 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
 length.of.stay.sex.prep <- function(input.tbl){
   
   input.tbl %>%
-    mutate(dur_ho=case_when(dur_ho>89~NA,
+    mutate(dur_ho=as.numeric(dur_ho))%>%
+    mutate(dur_ho=case_when(dur_ho>89~NA_real_,
                             TRUE~dur_ho))%>%
     lazy_dt(immutable = TRUE) %>%
     #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
@@ -817,7 +822,8 @@ length.of.stay.sex.prep <- function(input.tbl){
 length.of.stay.age.prep <- function(input.tbl){
   
   input.tbl %>%
-    mutate(dur_ho=case_when(dur_ho>89~NA,
+    mutate(dur_ho=as.numeric(dur_ho))%>%
+    mutate(dur_ho=case_when(dur_ho>89~NA_real_,
                             TRUE~dur_ho))%>%
     lazy_dt(immutable = TRUE) %>%
     #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
@@ -839,7 +845,8 @@ length.of.stay.age.prep <- function(input.tbl){
 admission.to.icu.prep <- function(input.tbl){
   
   input.tbl %>%
-    mutate(t_ad_icu=case_when(t_ad_icu>89~NA,
+    mutate(t_ad_icu=as.numeric(t_ad_icu))%>%
+    mutate(t_ad_icu=case_when(t_ad_icu>89~NA_real_,
                             TRUE~t_ad_icu))%>%
     lazy_dt(immutable = TRUE) %>%
     filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
@@ -1005,19 +1012,19 @@ patient.characteristic.prep <- function(input.tbl){
   
   by_outcome<-input.tbl%>%
     mutate(Description=slider_outcome)%>%
-    mutate(Description=replace(Description,is.na(Description),"Unknown"))%>%
+    #mutate(Description=replace(Description,is.na(Description),"Unknown"))%>%
     mutate(count=1)%>%
     group_by(Description)%>%
     summarise(n = sum(count, na.rm=T)) %>%
     mutate(value=round(n/tot,digit=2))%>%
     mutate(value=paste0(n," (",value, ")"))%>%
-    select(Description,value)%>%
+    select(Description,value)#%>%
     #full_join(Description)%>%
     #mutate(value=replace(value,is.na(value),"0 (0)"))%>%
-  arrange(Description, levels=c('Death',
-                                'Discharge',
-                                #'Ongoing care',
-                                'LTFU'))
+  #arrange(Description, levels=c('Death',
+   #                             'Discharge',
+    #                            #'Ongoing care',
+     #                           'LTFU'))
   
   
   Description<-c(
@@ -1117,10 +1124,11 @@ outcome.age.sex.prep <- function(input.tbl){
   
   
   sex<-input.tbl %>%
+    select(slider_sex,slider_outcome)%>%
     mutate(Variable=slider_sex)%>%
     filter(!(is.na(Variable)| Variable=="")) %>%
     mutate(count=1)%>%
-    group_by(slider_outcome)%>%
+    group_by(slider_sex)%>%
     mutate(tot = sum(count)) %>%
     ungroup()%>%
     group_by(Variable,slider_outcome, tot)%>%
@@ -1136,6 +1144,24 @@ outcome.age.sex.prep <- function(input.tbl){
     #select('Death', 'Discharge','Ongoing care', 'LTFU')%>%
     select('Death', 'Discharge', 'LTFU')%>%
     ungroup()
+  
+  sex_cfr <- input.tbl %>%
+    select(slider_sex,slider_outcome)%>%
+    mutate(Variable=slider_sex)%>%
+    filter(!is.na(Variable))%>%
+    filter(Variable!="")%>%
+    filter(slider_outcome!='LTFU')%>%
+    mutate(count=1)%>%
+    group_by(Variable)%>%
+    mutate(tot = sum(count)) %>%
+    ungroup()%>%
+    filter(slider_outcome=='Death')%>%
+    group_by(Variable,slider_outcome, tot)%>%
+    summarise(n = sum(count, na.rm=T)) %>%
+    ungroup()%>%
+    mutate("case fatality ratio (CFR)"=round(n/tot,digit=2))%>%
+    select(Variable,"case fatality ratio (CFR)")
+  sex<-sex%>%left_join(sex_cfr)
     sex<-replace(sex,is.na(sex),as.character("0 (0)"))
  
   
@@ -1160,7 +1186,7 @@ outcome.age.sex.prep <- function(input.tbl){
     filter(!is.na(Variable))%>%
     filter(Variable!="")%>%
     mutate(count=1)%>%
-    group_by(slider_outcome)%>%
+    group_by(Variable)%>%
     mutate(tot = sum(count)) %>%
     ungroup()%>%
     group_by(Variable,slider_outcome, tot)%>%
@@ -1182,6 +1208,30 @@ outcome.age.sex.prep <- function(input.tbl){
     #select('Death', 'Discharge','Ongoing care', 'LTFU')%>%
     select('Death', 'Discharge', 'LTFU')%>%
     ungroup()
+  
+  
+  "case fatality ratio (CFR)" 
+  age_cfr <- input.tbl %>%
+    select(slider_agegp10,slider_outcome)%>%
+    mutate(slider_agegp10=as.character(slider_agegp10))%>%
+    mutate(Variable=case_when(slider_agegp10=="90+" |
+                                slider_agegp10=="80-89" |
+                                slider_agegp10=="70-79" ~ "70+",
+                              TRUE~slider_agegp10))%>%
+    filter(!is.na(Variable))%>%
+    filter(Variable!="")%>%
+    filter(slider_outcome!='LTFU')%>%
+    mutate(count=1)%>%
+    group_by(Variable)%>%
+    mutate(tot = sum(count)) %>%
+    ungroup()%>%
+    filter(slider_outcome=='Death')%>%
+    group_by(Variable,slider_outcome, tot)%>%
+    summarise(n = sum(count, na.rm=T)) %>%
+    ungroup()%>%
+    mutate("case fatality ratio (CFR)"=round(n/tot,digit=2))%>%
+    select(Variable,"case fatality ratio (CFR)")
+  age<-age%>%left_join(age_cfr)
   age<-replace(age,is.na(age),as.character("0 (0)"))
   
   out<-rbind(c('Age','','','',''),age,
@@ -1322,7 +1372,7 @@ treatments.prep <- function(input.tbl){
   
   input.tbl<-input.tbl%>%select(-c(treat_pacing, treat_mechanical_support, treat_immunostimulants, treat_antiinflammatory,
                                    treat_other_interventions, treat_agents_acting_on_the_renin_angiotensin_system, 
-                                   treat_antimalarial_agents))
+                                   treat_antimalarial_agents, treat_colchicine))
   tot=nrow(input.tbl)
   
   data<-select(input.tbl, c(starts_with("treat_"))) %>%
@@ -1480,7 +1530,7 @@ func_plots_vs_sysbp <- function(input.tbl){
 }
 #vs_oxysat
 func_plots_vs_oxysat <- function(input.tbl){
-  data_plot_vs_oxysat <- select(input.tbl, c(starts_with("slider"),vs_oxysat, upper.age.bound, lower.age.bound)) %>%
+  data_plot_vs_oxysat <- select(input.tbl, c(starts_with("slider"),vs_oxysat_room_air, upper.age.bound, lower.age.bound)) %>%
     pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1949,16 +1999,22 @@ symptom.heatmap <- function(data, admission.symptoms, asterisks = vector(), ...)
 length.of.stay.icu.prep <- function(input.tbl){
   
   tb1 <- input.tbl %>%
+    mutate(dur_ho=as.numeric(dur_ho))%>%
+    mutate(dur_ho=case_when(dur_ho>89~NA_real_,
+                            TRUE~dur_ho))%>%
     lazy_dt(immutable = TRUE) %>%
-    filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
+    #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever,dur_ho) %>% 
     filter(dur_ho>0) %>% 
     rename(dur=dur_ho) %>% 
     mutate(type=1) %>% 
     as_tibble() 
   tb2 <- input.tbl %>%
+    mutate(dur_icu=as.numeric(dur_icu))%>%
+    mutate(dur_icu=case_when(dur_icu>89~NA_real_,
+                            TRUE~dur_icu))%>%
     lazy_dt(immutable = TRUE) %>%
-    filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
+    #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever,dur_icu) %>% 
     filter(dur_icu>0) %>% 
     rename(dur=dur_icu) %>% 
@@ -2003,7 +2059,56 @@ patient.by.country.map.prep <- function(input.tbl){
 
 
 
-
+#'Case definitions data
+#'From christiana's paper
+patient.by.case.def.prep <- function(input.tbl){
+  input.tbl$symptoms_WHO <- NA
+  input.tbl[which(input.tbl$symptoms_history_of_fever == TRUE & input.tbl$symptoms_cough == TRUE),]$symptoms_WHO <- TRUE
+  input.tbl[which(apply(input.tbl[,c("symptoms_history_of_fever", "symptoms_cough", "symptoms_fatigue_malaise", 
+                                     "symptoms_headache", "symptoms_muscle_aches_joint_pain", "symptoms_sore_throat",
+                                     "symptoms_runny_nose", "symptoms_shortness_of_breath",
+                                     #"symptoms_anorexia", 
+                                     "symptoms_vomiting_nausea", "symptoms_diarrhoea", "symptoms_altered_consciousness_confusion")], 1, sum, na.rm = TRUE) >= 3),]$symptoms_WHO <- TRUE
+  # anorexia not available
+  input.tbl$symptoms_CDC <- NA
+  input.tbl[which(apply(input.tbl[,c("symptoms_history_of_fever", # "symptoms_rigor_or_sweating",
+                                     "symptoms_muscle_aches_joint_pain", "symptoms_headache", 
+                                     "symptoms_sore_throat", "symptoms_lost_altered_sense_of_smell", 
+                                     "symptoms_lost_altered_sense_of_taste")], 1, sum, na.rm = TRUE) >= 2),]$symptoms_CDC <- TRUE
+  # chills/rigor not available
+  input.tbl[which(input.tbl$symptoms_cough == TRUE | input.tbl$symptoms_shortness_of_breath == TRUE),]$symptoms_CDC <- TRUE
+  # difficulty breathing not available
+  input.tbl$symptoms_PHE <- NA
+  input.tbl[which(input.tbl$symptoms_cough == TRUE | input.tbl$symptoms_history_of_fever == TRUE | 
+                    input.tbl$symptoms_lost_altered_sense_of_smell == TRUE |
+                    input.tbl$symptoms_lost_altered_sense_of_taste == TRUE),]$symptoms_PHE <- TRUE
+  input.tbl$symptoms_ECDC <- NA
+  input.tbl[which(input.tbl$symptoms_cough == TRUE | input.tbl$symptoms_history_of_fever == TRUE |
+                    input.tbl$symptoms_shortness_of_breath == TRUE | input.tbl$symptoms_lost_altered_sense_of_smell == TRUE | 
+                    input.tbl$symptoms_lost_altered_sense_of_taste == TRUE),]$symptoms_ECDC <- TRUE
+  input.tbl$age10 <- cut(input.tbl$age, c(0, seq(20, 100, by = 10), 120), right = FALSE, include.lowest = TRUE)
+  input.tbl$sars_cov2 <- as.character(input.tbl$cov_id_sarscov2 == "POSITIVE" | input.tbl$cov_det_sarscov2 == "POSITIVE")
+  input.tbl[is.na(input.tbl$sars_cov2),]$sars_cov2 <- "Unknown"
+  input.tbl$sars_cov2 <- factor(input.tbl$sars_cov2, labels = c("Positive", "Unknown"))
+  symptoms_long <- input.tbl[,c("symptoms_WHO", "symptoms_CDC", "symptoms_PHE", "symptoms_ECDC", "age10", "sars_cov2")] %>% 
+    pivot_longer(cols = -c(age10, sars_cov2), names_to = "symptom", values_to = "value")
+  symptoms_long$value <- factor(symptoms_long$value, levels = c("TRUE", "FALSE"), labels = c("Yes", "No"))
+  # change symptom labels
+  symptoms_long$symptom <- paste(toupper(substring(gsub("_", " ", gsub("symptoms_", "", symptoms_long$symptom)), 1, 1)), 
+                                 substring(gsub("_", " ", gsub("symptoms_", "", symptoms_long$symptom)), 2), sep = "")
+  symptoms_long <- symptoms_long %>%
+    filter(!is.na(age10)) %>%
+    select(age10,symptom,value)%>%
+    mutate(count_yes = ifelse(value=="Yes",1,NA))%>%
+    mutate(count_yes = ifelse(is.na(value), 0, value))%>%
+    mutate(count_all = 1)%>%
+    group_by(age10,symptom)%>%
+    mutate(total = sum(count_all))%>%
+    mutate(present = sum(count_yes))%>%
+    mutate(proportion = present/total)%>%
+    select(age10, symptom, proportion)%>%
+    distinct()
+}
 
 
 

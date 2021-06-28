@@ -50,6 +50,8 @@ save(data_map, file ="data_map.rda")
 input.tbl<-input.tbl%>%
   filter((embargo_length==FALSE | is.na(embargo_length)) & cov_det_id=="POSITIVE")
 
+patient.by.case.def<-patient.by.case.def.prep(input.tbl)
+save(patient.by.case.def, file = "spatient.by.case.def.rda")
 
 summary_input<-summary.input.prep(input.tbl)
 save(summary_input, file = "summary_input.rda") 
