@@ -6,7 +6,7 @@ setwd(folder)
 folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-04-07/aggregated"
 setwd(folder)
 
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-04-07"
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24"
 setwd(folder)
 
 load("prepr.tbl.rda")
@@ -19,9 +19,9 @@ backup<-input.tbl
 
 
 #####cleaning dataset for the report/dashboard
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-04-07/aggregated"
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24/aggregated"
 setwd(folder)
-
+memory.limit(size=120000)
 
 
 
@@ -36,11 +36,19 @@ save(summary_input_overall, file = "summary_input_overall.rda")
 patient.by.country.input <- patient.by.country.prep(input.tbl)
 save(patient.by.country.input, file="patient_by_country_input.rda")
 
+data_map <- patient.by.country.map.prep(input.tbl)
+save(data_map, file ="data_map.rda")
+
+
+
 
 ###################tables after inclusion criteria
 
 input.tbl<-input.tbl%>%
   filter((embargo_length==FALSE | is.na(embargo_length)) & cov_det_id=="POSITIVE")
+
+patient.by.case.def<-patient.by.case.def.prep(input.tbl)
+save(patient.by.case.def, file = "spatient.by.case.def.rda")
 
 summary_input<-summary.input.prep(input.tbl)
 save(summary_input, file = "summary_input.rda") 
@@ -71,7 +79,6 @@ symptom.prevalence.input<-symptom.prevalence.prep(input.tbl)
 save(symptom.prevalence.input, file = "symptom_prevalence_input.rda")
 
 symptom.upset.input<-symptom.upset.prep(input.tbl)
-#
 save(symptom.upset.input, file = "symptom_upset_input.rda")
 
 patient.characteristic.table<-patient.characteristic.prep(input.tbl)
@@ -212,8 +219,6 @@ save(data_map, file ="data_map.rda")
 #case defnitions table
 case.def.input <- patient.by.case.def.prep(input.tbl)
 save(case.def.input, file ="data_case_def_input.rda")
-
-
 
 
 
