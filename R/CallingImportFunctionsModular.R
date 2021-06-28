@@ -164,6 +164,7 @@ load("sa.rda")
 
 imp_sa<-import.symptom.and.comorbidity.data(sa, dtplyr.step = FALSE)
 save(imp_sa, file = "imp_sa.rda")
+load("imp_sa.rda")
 
 imp_comorb<-process.comorbidity.data(imp_sa, minimum=100, dtplyr.step = FALSE)
 save(imp_comorb, file = "imp_comorb.rda")
