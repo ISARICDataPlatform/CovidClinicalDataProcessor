@@ -29,13 +29,6 @@ folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24"
 setwd(folder)
 
 
-missing_c<-dm%>%filter(country=="")%>%select(studyid,siteid_final,usubjid)
-View(missing_c)
-write.table(missing_c, "missing_c.csv", sep=",", row.names=F, na="")
-
-
-
-
 #'Importing csv files
 dm<-read.csv("DM.csv")
 colnames(dm) <- tolower(colnames(dm))
@@ -134,7 +127,6 @@ save(imp_rp, file = "imp_rp.rda")
 
   
 load("int.rda")
-
 imp_int<-process.treatment.data(int, dtplyr.step = FALSE)
 save(imp_int, file = "imp_int.rda")
 
@@ -145,7 +137,7 @@ save(imp_treat, file = "imp_treat.rda")
 imp_icu<- process.ICU.data(ho, dtplyr.step = FALSE)
 save(imp_icu, file = "imp_icu.rda")
 
-imp_treat_icu<-process.treatment.icu.data(imp_int, imp_icu,imp_dm, minimum=10,dtplyr.step = FALSE)
+imp_treat_icu<-process.treatment.icu.data(imp_int, imp_icu,imp_dm,imp_ds, minimum=10,dtplyr.step = FALSE)
 save(imp_treat_icu, file = "imp_treat_icu.rda")
 
 imp_vs<- process.vital.sign.data(vs, dtplyr.step = FALSE)
@@ -221,7 +213,10 @@ list_2<-as.data.frame(colnames(prepr.tbl))
 #prepr.tbl<-prepr.tbl%>%left_join(income)
 save(prepr.tbl, file = "prepr.tbl.rda")
 
-exclusion<-prepr.tbl%>%tabyl(cov_det_id,embargo_length)
+
+
+exclusion<-import.tbl%>%tabyl(cov_det_id,clin_diag_covid_19)
+write.table(exclusion, "exclusion.csv", sep=",", row.names=F, na="")
 #########if needed launching randomization function on the imported data and then preprocess the data
 
 random.import.tbl<-randomization(import.tbl)
