@@ -1,7 +1,7 @@
 
 #load packages (some of these are not being used but we can delete them later)
 library(RColorBrewer)
-library(incidence)
+#library(incidence)
 library(shiny)
 library(shinydashboard)
 library(magrittr)
@@ -49,22 +49,22 @@ summary.input.prep<- function(input.tbl){
     mutate(oxygen_therapy=NA)%>%
     mutate(oxygen_therapy=case_when(
       treat_high_flow_nasal_cannula==FALSE|
-        treat_nasal_mask_oxygen_therapy==FALSE|
+        treat_nasal_or_mask_oxygen_therapy==FALSE|
         treat_non_invasive_ventilation==FALSE|
         treat_invasive_ventilation==FALSE~FALSE,
       treat_high_flow_nasal_cannula==TRUE|
-        treat_nasal_mask_oxygen_therapy==TRUE|
+        treat_nasal_or_mask_oxygen_therapy==TRUE|
         treat_non_invasive_ventilation==TRUE|
         treat_invasive_ventilation==TRUE~TRUE,
       TRUE~oxygen_therapy))%>%
     mutate(icu_oxygen_therapy=NA)%>%
     mutate(icu_oxygen_therapy=case_when(
       icu_treat_high_flow_nasal_cannula==FALSE|
-        icu_treat_nasal_mask_oxygen_therapy==FALSE|
+        icu_treat_nasal_or_mask_oxygen_therapy==FALSE|
         icu_treat_non_invasive_ventilation==FALSE|
         icu_treat_invasive_ventilation==FALSE~FALSE,
       icu_treat_high_flow_nasal_cannula==TRUE|
-        icu_treat_nasal_mask_oxygen_therapy==TRUE|
+        icu_treat_nasal_or_mask_oxygen_therapy==TRUE|
         icu_treat_non_invasive_ventilation==TRUE|
         icu_treat_invasive_ventilation==TRUE~TRUE,
       TRUE~icu_oxygen_therapy))%>%
@@ -81,7 +81,7 @@ summary.input.prep<- function(input.tbl){
          #slider_outcome,
          #slider_icu_ever,
          treat_high_flow_nasal_cannula,
-         treat_nasal_mask_oxygen_therapy,
+         treat_nasal_or_mask_oxygen_therapy,
          treat_non_invasive_ventilation,
          treat_invasive_ventilation,
          treat_antibiotic_agents,
@@ -95,13 +95,14 @@ summary.input.prep<- function(input.tbl){
          icu_treat_antiviral_agents,
          icu_treat_non_invasive_ventilation,
          icu_treat_invasive_ventilation,
-         icu_treat_nasal_mask_oxygen_therapy,
+         icu_treat_nasal_or_mask_oxygen_therapy,
          icu_treat_high_flow_nasal_cannula,
          t_ad_niv,
          t_ad_imv,
          dur_niv,
          dur_imv,oxygen_therapy,icu_oxygen_therapy,
-         income)
+         income,
+         clin_diag_covid_19)
 }
 #' Data for the report summary
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -115,8 +116,8 @@ summary.input.overall.prep<- function(input.tbl){
     select(c(siteid_final,
              starts_with("slider_"),
              cov_det_id,
-             embargo_length,
-             income
+             income,
+             clin_diag_covid_19
     ))
     
 }
@@ -224,6 +225,8 @@ symptom.prevalence.prep <- function(input.tbl){
     mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
                                     nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
                                     nice.symptom=="Vomiting nausea"~ "Vomiting/nausea",
+                                    nice.symptom=="Lost altered sense of smell"~ "Lost/altered sense of smell",
+                                    nice.symptom=="Lost altered sense of taste"~ "Lost/altered sense of taste",
                                     TRUE ~ nice.symptom))
   
   symptom.prevalence.input %>%
@@ -275,10 +278,9 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
     mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
                                     nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
                                     nice.symptom=="Vomiting nausea"~ "Vomiting/nausea",
+                                    nice.symptom=="Lost altered sense of smell"~ "Lost/altered sense of smell",
+                                    nice.symptom=="Lost altered sense of taste"~ "Lost/altered sense of taste",
                                     TRUE ~ nice.symptom))
-  
-  
-  
   patients_symp<-input.tbl %>%
     select(usubjid, starts_with("symptoms"))%>%
     pivot_longer(2:(n.symp+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
@@ -527,9 +529,7 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
 #' @export treatment.use.proportion.prep
 treatment.use.proportion.prep <- function(input.tbl){
   
-  input.tbl<-input.tbl%>%select(-c(treat_pacing, treat_mechanical_support, treat_immunostimulants, treat_antiinflammatory,
-                                   treat_other_interventions, treat_agents_acting_on_the_renin_angiotensin_system, 
-                                   treat_antimalarial_agents,treat_colchicine))
+  input.tbl<-input.tbl%>%select(-c(treat_agents_acting_on_the_renin_angiotensin_system))
   treatment.use.proportion.input <- input.tbl %>%
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("treat")), lower.age.bound, upper.age.bound) %>%
     as.data.table() %>%
@@ -565,9 +565,7 @@ treatment.use.proportion.prep <- function(input.tbl){
 #' @export treatment.upset.prep
 treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   
-  input.tbl<-input.tbl%>%select(-c(treat_pacing, treat_mechanical_support, treat_immunostimulants, treat_antiinflammatory,
-                                   treat_other_interventions, treat_agents_acting_on_the_renin_angiotensin_system, 
-                                   treat_antimalarial_agents, treat_colchicine)) 
+  input.tbl<-input.tbl%>%select(-c(treat_agents_acting_on_the_renin_angiotensin_system))
   data2 <- input.tbl %>%
     select(usubjid, starts_with("treat"))
   
@@ -849,7 +847,6 @@ admission.to.icu.prep <- function(input.tbl){
     mutate(t_ad_icu=case_when(t_ad_icu>89~NA_real_,
                             TRUE~t_ad_icu))%>%
     lazy_dt(immutable = TRUE) %>%
-    filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     mutate(admission.to.icu=t_ad_icu) %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, admission.to.icu) %>%
     filter(!is.na(admission.to.icu)) %>% 
@@ -866,7 +863,6 @@ admission.to.icu.prep <- function(input.tbl){
 status.by.time.after.admission.prep <- function(input.tbl){
   
   timings.wrangle <- input.tbl %>% 
-    filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     filter(!is.na(date_start)) %>% 
     select(usubjid, date_start, icu_in, icu_out, dur_icu, dur_ho, t_ad_icu, date_outcome, date_last, slider_outcome) %>% 
     mutate(subjid=usubjid,
@@ -1159,8 +1155,8 @@ outcome.age.sex.prep <- function(input.tbl){
     group_by(Variable,slider_outcome, tot)%>%
     summarise(n = sum(count, na.rm=T)) %>%
     ungroup()%>%
-    mutate("case fatality ratio (CFR)"=round(n/tot,digit=2))%>%
-    select(Variable,"case fatality ratio (CFR)")
+    mutate("Case fatality ratio"=round(n/tot,digit=2))%>%
+    select(Variable,"Case fatality ratio")
   sex<-sex%>%left_join(sex_cfr)
     sex<-replace(sex,is.na(sex),as.character("0 (0)"))
  
@@ -1209,8 +1205,6 @@ outcome.age.sex.prep <- function(input.tbl){
     select('Death', 'Discharge', 'LTFU')%>%
     ungroup()
   
-  
-  "case fatality ratio (CFR)" 
   age_cfr <- input.tbl %>%
     select(slider_agegp10,slider_outcome)%>%
     mutate(slider_agegp10=as.character(slider_agegp10))%>%
@@ -1229,13 +1223,13 @@ outcome.age.sex.prep <- function(input.tbl){
     group_by(Variable,slider_outcome, tot)%>%
     summarise(n = sum(count, na.rm=T)) %>%
     ungroup()%>%
-    mutate("case fatality ratio (CFR)"=round(n/tot,digit=2))%>%
-    select(Variable,"case fatality ratio (CFR)")
+    mutate("Case fatality ratio"=round(n/tot,digit=2))%>%
+    select(Variable,"Case fatality ratio")
   age<-age%>%left_join(age_cfr)
   age<-replace(age,is.na(age),as.character("0 (0)"))
   
-  out<-rbind(c('Age','','','',''),age,
-             c('Sex','','','',''),sex)  
+  out<-rbind(c('Age','','','','',''),age,
+             c('Sex','','','','',''),sex)  
   
 }
 
@@ -1286,6 +1280,8 @@ symptoms.prep <- function(input.tbl){
     mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
                                     nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
                                     nice.symptom=="Vomiting nausea"~ "Vomiting/nausea",
+                                    nice.symptom=="Lost altered sense of smell"~ "Lost/altered sense of smell",
+                                    nice.symptom=="Lost altered sense of taste"~ "Lost/altered sense of taste",
                                     TRUE ~ nice.symptom))%>%
     left_join(data)
   
@@ -1370,9 +1366,7 @@ comorbidity.prep <- function(input.tbl){
 #' 
 treatments.prep <- function(input.tbl){
   
-  input.tbl<-input.tbl%>%select(-c(treat_pacing, treat_mechanical_support, treat_immunostimulants, treat_antiinflammatory,
-                                   treat_other_interventions, treat_agents_acting_on_the_renin_angiotensin_system, 
-                                   treat_antimalarial_agents, treat_colchicine))
+  input.tbl<-input.tbl%>%select(-c(treat_agents_acting_on_the_renin_angiotensin_system))
   tot=nrow(input.tbl)
   
   data<-select(input.tbl, c(starts_with("treat_"))) %>%
@@ -1405,6 +1399,8 @@ treatments.prep <- function(input.tbl){
       temp2
     }))%>%
     mutate(nice.treatment = case_when(treatment=='treat_inotropes_vasopressors' ~ 'Inotropes/vasopressors',
+                                      treatment=='treat_off_label_compassionate_use_medications' ~ 'Off label/compassionate use medications',
+                                      
                                       TRUE ~ nice.treatment))%>%
     left_join(data)
   
