@@ -194,10 +194,11 @@ import.tbl<-imp_dm%>%
 
 
 save(import.tbl, file = "import.tbl.rda")
-load("import.tbl.rda")
+
 
 #########calling preprocessing function
 
+load("import.tbl.rda")
 prepr.tbl<-data.preprocessing(import.tbl)
 
 list_2<-as.data.frame(colnames(prepr.tbl))
