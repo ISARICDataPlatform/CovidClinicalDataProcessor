@@ -10,13 +10,12 @@ folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24"
 setwd(folder)
 
 load("prepr.tbl.rda")
-input.tbl<-prepr.tbl
+input.tbl<-test
 
 input.tbl<-random.prepr.tbl
 
 input.tbl<-prepr.tbl
 backup<-input.tbl
-
 
 #####cleaning dataset for the report/dashboard
 folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24/aggregated"
@@ -43,7 +42,6 @@ save(data_map, file ="data_map.rda")
 
 
 ###################tables after inclusion criteria
-
 input.tbl<-input.tbl%>%
   filter((clin_diag_covid_19==TRUE & is.na(cov_det_id)) | cov_det_id=="POSITIVE")
 

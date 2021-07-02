@@ -36,7 +36,7 @@ rp<-read.csv("RP.csv")
 colnames(rp) <- tolower(colnames(rp))
 ho<-read.csv("HO.csv")
 colnames(ho) <- tolower(colnames(ho))
-mb<-read.csv("MB.csv")
+mb<-read.csv("Internal_MB_2021-05-24_v2.csv")
 colnames(mb) <- tolower(colnames(mb))
 vs<-read.csv("Internal_VS_2021-05-24_v2.csv")
 colnames(vs) <- tolower(colnames(vs))
@@ -215,6 +215,17 @@ list_2<-as.data.frame(colnames(prepr.tbl))
 save(prepr.tbl, file = "prepr.tbl.rda")
 
 
+load("prepr.tbl.rda")
+test<-prepr.tbl%>%select(-c(cov_det_cronavir,
+                            cov_det_sarscov2,
+                            cov_id_cronavir,
+                            cov_id_sarscov2,
+                            cov_det_id,
+                            clin_diag_covid_19))%>%
+                left_join(imp_mb)%>%
+                left_join(covid_clinic_diagn)
+
+prepr.tbl<-test
 
 exclusion<-import.tbl%>%tabyl(cov_det_id,clin_diag_covid_19)
 write.table(exclusion, "exclusion.csv", sep=",", row.names=F, na="")
