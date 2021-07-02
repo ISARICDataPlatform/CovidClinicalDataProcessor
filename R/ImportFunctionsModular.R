@@ -366,7 +366,6 @@ process.comorbidity.data <- function(input,  minimum=100, dtplyr.step = FALSE){
 process.symptom.data <- function(input,  minimum=100, dtplyr.step = FALSE){
   
   
-  imp_sa<-imp_sa
   symptom_w <- imp_sa%>%mutate(studyid=substr(usubjid,1, 7))%>%filter(studyid!="CVZXZMV")%>%
     filter(sacat=="SIGNS AND SYMPTOMS AT HOSPITAL ADMISSION") %>%
     filter(saterm!="covid-19_symptoms")%>%

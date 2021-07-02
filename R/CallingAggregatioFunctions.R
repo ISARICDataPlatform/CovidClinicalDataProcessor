@@ -10,7 +10,7 @@ folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24"
 setwd(folder)
 
 load("prepr.tbl.rda")
-input.tbl<-test
+input.tbl<-prepr.tbl
 
 input.tbl<-random.prepr.tbl
 
