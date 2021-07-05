@@ -2017,12 +2017,12 @@ patient.by.case.def.prep <- function(input.tbl){
   input.tbl[which(input.tbl$symptoms_cough == TRUE | input.tbl$symptoms_history_of_fever == TRUE |
                     input.tbl$symptoms_shortness_of_breath == TRUE | input.tbl$symptoms_lost_altered_sense_of_smell == TRUE | 
                input.tbl$symptoms_lost_altered_sense_of_taste == TRUE),]$symptoms_ECDC <- TRUE
-  input.tbl$age10 <- cut(input.tbl$age, c(0, seq(20, 100, by = 10), 120), right = FALSE, include.lowest = TRUE)
+  input.tbl$slider_agegp10 <- cut(input.tbl$age, c(0, seq(20, 100, by = 10), 120), right = FALSE, include.lowest = TRUE)
   input.tbl$sars_cov2 <- as.character(input.tbl$cov_id_sarscov2 == "POSITIVE" | input.tbl$cov_det_sarscov2 == "POSITIVE")
   input.tbl[is.na(input.tbl$sars_cov2),]$sars_cov2 <- "Unknown"
   input.tbl$sars_cov2 <- factor(input.tbl$sars_cov2, labels = c("Positive", "Unknown"))
-symptoms_long <- input.tbl[,c("symptoms_WHO", "symptoms_CDC", "symptoms_PHE", "symptoms_ECDC", "age10", "sars_cov2")] %>% 
-  pivot_longer(cols = -c(age10, sars_cov2), names_to = "symptom", values_to = "value")
+symptoms_long <- input.tbl[,c("symptoms_WHO", "symptoms_CDC", "symptoms_PHE", "symptoms_ECDC", "slider_agegp10", "sars_cov2")] %>% 
+  pivot_longer(cols = -c(slider_agegp10, sars_cov2), names_to = "symptom", values_to = "value")
 symptoms_long$value <- factor(symptoms_long$value, levels = c("TRUE", "FALSE"), labels = c("Yes", "No"))
 # change symptom labels
 symptoms_long$symptom <- paste(toupper(substring(gsub("_", " ", gsub("symptoms_", "", symptoms_long$symptom)), 1, 1)), 
@@ -2030,16 +2030,16 @@ symptoms_long$symptom <- paste(toupper(substring(gsub("_", " ", gsub("symptoms_"
 
 
 symptoms_long <- symptoms_long %>%
-  filter(!is.na(age10)) %>%
-  select(age10,symptom,value)%>%
+  filter(!is.na(slider_agegp10)) %>%
+  select(slider_agegp10,symptom,value)%>%
   mutate(count_yes = ifelse(value=="Yes",1,NA))%>%
   mutate(count_yes = ifelse(is.na(value), 0, value))%>%
   mutate(count_all = 1)%>%
-  group_by(age10,symptom)%>%
+  group_by(slider_agegp10,symptom)%>%
   mutate(total = sum(count_all))%>%
   mutate(present = sum(count_yes))%>%
   mutate(proportion = present/total)%>%
-  select(age10, symptom, proportion)%>%
+  select(slider_agegp10, symptom, proportion)%>%
   distinct()
 
 
