@@ -174,8 +174,8 @@ summary.input.prep<- function(input.tbl){
              t_son_ad,
              outcome,
              slider_icu_ever,
-             #treat_high_flow_nasal_cannula,
-             treat_nasal_mask_oxygen_therapy,
+             treat_high_flow_nasal_cannula,
+             treat_nasal_or_mask_oxygen_therapy,
              treat_non_invasive_ventilation,
              treat_invasive_ventilation,
              treat_antibiotic_agents,
@@ -186,15 +186,16 @@ summary.input.prep<- function(input.tbl){
              icu_treat_antiviral_agents,
              icu_treat_non_invasive_ventilation,
              icu_treat_invasive_ventilation,
-             icu_treat_nasal_mask_oxygen_therapy,
-             #icu_treat_high_flow_nasal_cannula,
+             icu_treat_nasal_or_mask_oxygen_therapy,
+             icu_treat_high_flow_nasal_cannula,
              t_ad_niv,
              t_ad_imv,
              dur_niv,
              dur_imv,
            oxygen_therapy,
            icu_oxygen_therapy,
-             embargo_length))
+           income,
+           clin_diag_covid_19))
 }
 
 #' Aggregate data for symptom prevalence plot

@@ -30,7 +30,8 @@ memory.limit(size=120000)
 #####################tables pre inclusion criteria
 
 summary_input_overall<-summary.input.overall.prep(input.tbl)
-save(summary_input_overall, file = "summary_input_overall.rda") 
+save(summary_input_overall, file = "summary_input_overall.rda")
+
 
 patient.by.country.input <- patient.by.country.prep(input.tbl)
 save(patient.by.country.input, file="patient_by_country_input.rda")
