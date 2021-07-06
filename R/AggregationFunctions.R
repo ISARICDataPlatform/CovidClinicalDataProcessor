@@ -2082,7 +2082,7 @@ patient.by.case.def.prep <- function(input.tbl){
   input.tbl[which(input.tbl$symptoms_cough == TRUE | input.tbl$symptoms_history_of_fever == TRUE |
                     input.tbl$symptoms_shortness_of_breath == TRUE | input.tbl$symptoms_lost_altered_sense_of_smell == TRUE | 
                input.tbl$symptoms_lost_altered_sense_of_taste == TRUE),]$symptoms_ECDC <- TRUE
-  input.tbl$slider_agegp10 <- cut(input.tbl$age, c(0, seq(20, 100, by = 10), 120), right = FALSE, include.lowest = TRUE)
+  #input.tbl$slider_agegp10 <- cut(input.tbl$age, c(0, seq(20, 100, by = 10), 120), right = FALSE, include.lowest = TRUE)
   input.tbl$sars_cov2 <- as.character(input.tbl$cov_id_sarscov2 == "POSITIVE" | input.tbl$cov_det_sarscov2 == "POSITIVE")
   input.tbl[is.na(input.tbl$sars_cov2),]$sars_cov2 <- "Unknown"
   input.tbl$sars_cov2 <- factor(input.tbl$sars_cov2, labels = c("Positive", "Unknown"))
