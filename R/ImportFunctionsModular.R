@@ -533,7 +533,7 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
 process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
   
    
-  int<-int%>%filter(studyid!="CVZXZMV")
+  #int<-int%>%filter(studyid!="CVZXZMV")
   treatment<-int%>%
     filter(inpresp =="Y") %>%
     filter(inevintx!="BEFORE HOSPITAL ADMISSION")%>%
@@ -542,6 +542,7 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                                TRUE ~ NA))%>%
     filter(!is.na(inoccur))%>%
     filter(incat!="MEDICAL HISTORY" | is.na (incat))%>%
+    mutate(intrt_original=intrt)%>%
     mutate(intrt=toupper(intrt))%>%
     mutate(intrt=as.character(intrt))%>%
     mutate(inmodify=as.character(inmodify))%>%
@@ -568,13 +569,16 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
     mutate(intrt=case_when(intrt%like%'ECMO'~'EXTRACORPOREAL',
                            intrt=='EXTRA CORPOREAL LIFE SUPPORT'~'EXTRACORPOREAL',
                            intrt=='EXTRACORPOREAL SUPPORT'~'EXTRACORPOREAL',
+                           intrt=='PRONE POSITIONING WITH UNKNOWN VENTILATION'~'PRONE POSITION VENTILATION',
+                           intrt=='PRONE VENTILATION'~'PRONE POSITION VENTILATION',
+                           
                            
                            intrt=='CONTINUOUS RENAL REPLACEMENT THERAPIES (CRRT)'~'RENAL REPLACEMENT THERAPIES',
                            intrt%like%'RENAL REPLACEMENT THERAPY' |
                              intrt%like% 'DIALYSIS'~ 'RENAL REPLACEMENT THERAPIES',
                            intrt%like% 'HEMOFILTRATION'~ 'RENAL REPLACEMENT THERAPIES',
                            intrt=='ERP CVVH'~ 'RENAL REPLACEMENT THERAPIES',
-                           intrt=="VENTILATED"~'INVASIVE VENTILATION',
+                           ###IMV
                            intrt=='INVASIVE MECHANICAL LUNG VENTILATION'~'INVASIVE VENTILATION',
                            intrt=='INVASIVE MECHANICAL VENTILATION'~'INVASIVE VENTILATION',
                            intrt=='MECHANICAL VENTILATION'~'INVASIVE VENTILATION',
@@ -583,9 +587,10 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                            intrt%like%'APRV'~'INVASIVE VENTILATION',
                            intrt=='INTUBATION AND MECHANICAL VENTILATION'~'INVASIVE VENTILATION',
                            intrt=='MECHANICAL SUPPORT'~'INVASIVE VENTILATION',
+                           intrt%like%'EXTUBATION'~'INVASIVE VENTILATION',
+                           intrt=="VENTILATED"~'INVASIVE VENTILATION',
                            
-                           intrt%like% 'SEDATION'|intrt%like% 'EXTUBATION'|intrt%like% 'FENTANYL'
-                           |intrt%like% 'MIDAZOLAM'|intrt%like% 'PROPOFOL'~'INVASIVE VENTILATION',
+                           ###NIV
                            intrt%like%'CPAP'~'NON-INVASIVE VENTILATION',
                            intrt%like%'BIPAP'~'NON-INVASIVE VENTILATION',
                            intrt%like%'NON-INVASIVE MECHANICAL VENTILATION (BIPAP, CPAP, OCNAF (OPTIFLOW) ...)'~'NON-INVASIVE VENTILATION',
@@ -594,7 +599,7 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                            intrt=='NON-INVASIVE POSITIVE PRESSURE VENTILATION'~'NON-INVASIVE VENTILATION',
                            intrt=='NON-INVASIVE RESPIRATORY SUPPORT'~'NON-INVASIVE VENTILATION',
                            TRUE ~ intrt))%>%
-              mutate(intrt=case_when(intrt%like%'OTHER INTERVENTION'~'OTHER INTERVENTIONS',
+    mutate(intrt=case_when(intrt%like%'OTHER INTERVENTION'~'OTHER INTERVENTIONS',
                            intrt%like%'CHEMOTHERAPY'| intrt%like%'ANTI-DIABETIC MEDICATIONS'|intrt%like%'BRONCHOSCOPY'|
                              intrt%like%'PROTON PUMP INHIBITORS'|intrt%like%'STATINS'|intrt%like%'MORPHINE'|
                              intrt%like%'HALOPERIDOL'|intrt%like%'OLANZAPINE'~'OTHER INTERVENTIONS',
@@ -604,15 +609,25 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                            intrt%like%"NON-STEROIDAL"~"NON-STEROIDAL ANTI-INFLAMMATORY",
                            intrt%like%"NON STEROIDAL"~"NON-STEROIDAL ANTI-INFLAMMATORY",                           
                            TRUE ~ intrt))%>%
-                    mutate(intrt=case_when(intrt=='OXYGEN THERAPY'~'NASAL OR MASK OXYGEN THERAPY',
-                           intrt=='NASAL CANULA'|intrt=='NASAL CANNULA'~'NASAL OR MASK OXYGEN THERAPY',
+    
+    mutate(intrt=case_when(intrt=='NASAL CANULA'|intrt=='NASAL CANNULA'~'NASAL OXYGEN THERAPY',
                            intrt%like%'SURGICAL FEEDING TUBE'~'TOTAL PARENTERAL NUTRITION',
+                           
+                           intrt=='FACE MASK'~'MASK OXYGEN THERAPY',
+                           
+                           ####HFNC
                            intrt=='OXYGEN THERAPY WITH HIGH FLOW NASAL CANULA'~'HIGH-FLOW NASAL CANULA OXYGEN THERAPY',
                            intrt=='HIGH-FLOW NASAL CANNULA OXYGEN THERAPY'~'HIGH-FLOW NASAL CANULA OXYGEN THERAPY',
+                           
+                           ###Prone positioning
                            intrt%like%'PRONACI'~'PRONE POSITIONING',
                            intrt=='PRONE POSITIONING'~'PRONE POSITIONING',
+                           
+                           
                            intrt%like%'TRACHEOSTOMY'~'TRACHEOSTOMY',
                            intrt%like%'NITRIC OXIDE'~'INHALED NITRIC OXIDE',
+                           
+                           ###Corticosteroids
                            intrt=="CORTICOSTEROID"~ "CORTICOSTEROIDS",
                            intrt=="DEXAMETHASONE"~ "CORTICOSTEROIDS",
                            intrt=="BETAMETHASONE"~ "CORTICOSTEROIDS",
@@ -621,6 +636,7 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                            intrt=="STEROIDS"~ "CORTICOSTEROIDS",
                            intrt=="STEROIDS"~ "convalescent_plasma",
                            intrt%like%"HYDROCORTISONE"~ "CORTICOSTEROIDS",
+                           
                            intrt%like%"BLOOD TRANSFUSION OR BLOOD PRODUCT"~ "BLOOD TRANSFUSION OR BLOOD PRODUCT",
                            TRUE ~ intrt))%>%
     mutate(intrt=case_when(intrt%like%"ANTIVIRAL" ~ "ANTIVIRAL AGENTS",
@@ -680,7 +696,7 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                            
                            intrt%like%"NITROUS OXIDE" ~ "inhaled_nitric_oxide",
                            intrt=="CPR" ~ "Cardiopulmonary resuscitation",
-                            
+                           
                            intrt%like%"EXPERIMENTAL AGENT" ~ "EXPERIMENTAL AGENTS",
                            intrt%like%"SARILUMAB" ~ "EXPERIMENTAL AGENTS",
                            intrt%like%"IV FLUID" ~ "INTRAVENOUS FLUIDS",
@@ -688,7 +704,8 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
                            intrt %like% "ANGIOTENSIN" | intrt %like% "ACE"~ "AGENTS ACTING ON THE RENIN-ANGIOTENSIN SYSTEM",
                            intrt%like%"ANTIINFLAMMATORY" ~ "ANTIINFLAMMATORY",
                            TRUE ~ intrt))%>%    as.data.frame()%>%
-    select(usubjid,'treatment'=intrt,inoccur,indy,indur, indtc,instdtc,inendtc, inevintx)%>%
+    select(studyid,usubjid,'treatment'=intrt,inoccur,intrt_original,inmodify,incat, inevintx, 
+           indur,indtc,instdtc,inendtc,indy)%>%
     mutate(treatment = iconv(treatment, to ="ASCII//TRANSLIT") %>% tolower()) %>%
     mutate(treatment = str_remove_all(treatment, "\\s*\\([^)]*\\)")) %>%
     mutate(treatment = str_replace_all(treatment, " - ", "_")) %>%
@@ -723,28 +740,54 @@ process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = F
     mutate(date_in_last=substr(indtc,1, 10))%>%
     mutate(date_in_last=as_date(date_in_last))%>%
     filter(date_in_last >= "2020-01-01"| date_in_last<date_pull)%>%
-    arrange(desc(date_in_last))%>%
+    arrange(desc(inoccur))%>%
     distinct(usubjid, .keep_all =T)%>%
     select(usubjid, date_in_last )
   
-  treatment <- imp_int %>%
+  treatment <- imp_int%>%
     #filter(!is.na(indtc))%>%
-    group_by(treatment) %>% 
+    group_by(treatment)%>% 
     arrange(desc(inoccur))%>%
     mutate(n = sum(!is.na(inoccur)))%>%
     filter(n >= eval(!!minimum))%>%
     ungroup()%>%
+    filter(treatment!="extracorporeal" | 
+             treatment!="inhaled_nitric_oxide" |
+          treatment!="oxygen_therapy" |
+           treatment!="prone_position_ventilation" |
+            treatment!="prone_ventilation" |
+           treatment!="respiratory_support" |
+            treatment!="tracheostomy" |
+           treatment!="prone_positioning")%>%
     #mutate(treatment=replace(treatment,treatment=="cpr","cardiopulmonary_resuscitation"))%>%
     filter(treatment!="covid_19_vaccination")%>%
     filter(treatment!="supplemental_oxygen_fio2")%>%
     arrange(desc(inoccur))%>%
     distinct(usubjid, treatment, .keep_all =T)%>% 
     #mutate(treatment = paste0("treat_",treatment)) %>%
-    mutate(treatment = glue("treat_{treatment}", treatment = treatment)) %>%
-    as.data.table() %>%
+    mutate(treatment = glue("treat_{treatment}", treatment = treatment))%>%
+    as.data.table()%>%
     dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur)%>%
     as.data.frame()%>%
     full_join(date_in_last)
+  
+  ####calculating oxygen therapy overall
+  treat_oxy <- imp_int%>%
+    mutate(treatment=case_when(treatment=="extracorporeal" | 
+             treatment=="inhaled_nitric_oxide" |
+             treatment=="prone_position_ventilation" |
+             treatment=="respiratory_support" |
+             treatment=="tracheostomy" |
+               treatment=="high_flow_nasal_cannula" |
+               treatment=="invasive_ventilation" |
+               treatment=="mask_oxygen_therapy" |
+               treatment=="nasal_oxygen_therapy" |
+               treatment=="non_invasive_ventilation"~"treat_oxygen_therapy",
+             TRUE~treatment))%>%
+    filter(treatment=="treat_oxygen_therapy")%>%
+    arrange(desc(inoccur))%>%
+    distinct(usubjid, treatment, .keep_all =T)%>%select(usubjid,"treat_oxygen_therapy"=inoccur)
+  
   
   ###adding duration for inasive_ventilation and non_invasive_ventilation
   
@@ -803,6 +846,7 @@ process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = F
   #  as_tibble()
 
     treatment <-treatment%>%
+    full_join(treat_oxy)%>%
     full_join(indur)%>%
     full_join(vent_st_instdtc)%>%
     full_join(vent_st_indtc)%>%
