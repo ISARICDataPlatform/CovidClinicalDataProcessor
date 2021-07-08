@@ -71,8 +71,6 @@ sa <- read.csv.ffdf(file="SA.csv", header=TRUE, VERBOSE=TRUE, quote = ,
 sa<-as.data.frame(sa)
 colnames(sa) <- tolower(colnames(sa))
 save(sa,file="sa.rda")
-load("sa.rda")
-
 
 
 
@@ -122,36 +120,6 @@ save(imp_mb, file = "imp_mb.rda")
 imp_rp <- process.pregnancy.data(rp, dtplyr.step = FALSE)
 save(imp_rp, file = "imp_rp.rda")
 
-
-#incl_studyid<-unique(as.character(int$studyid))  
-
-  
-load("int.rda")
-imp_int<-process.treatment.data(int, dtplyr.step = FALSE)
-save(imp_int, file = "imp_int.rda")
-
-imp_treat<-process.common.treatment.data(imp_int, minimum=10, dtplyr.step = FALSE)
-#var<-as.data.frame(colnames(imp_treat))
-save(imp_treat, file = "imp_treat.rda")
-
-imp_icu<- process.ICU.data(ho, dtplyr.step = FALSE)
-save(imp_icu, file = "imp_icu.rda")
-
-imp_treat_icu<-process.treatment.icu.data(imp_int, imp_icu,imp_dm,imp_ds, minimum=10,dtplyr.step = FALSE)
-save(imp_treat_icu, file = "imp_treat_icu.rda")
-
-imp_vs<- process.vital.sign.data(vs, dtplyr.step = FALSE)
-save(imp_vs, file = "imp_vs.rda")
-
-imp_lb <- process.laboratory.data(lb, dtplyr.step = FALSE)
-save(imp_lb, file = "imp_lb.rda")
-
-imp_ds <-process.outcome.data(ds, dtplyr.step = FALSE)
-save(imp_ds, file = "imp_ds.rda")
-tab<-tabyl(imp_ds$outcome)
-
-
-
 load("sa.rda")
 
 imp_sa<-import.symptom.and.comorbidity.data(sa, dtplyr.step = FALSE)
@@ -164,8 +132,32 @@ save(imp_comorb, file = "imp_comorb.rda")
 imp_symptom<-process.symptom.data(imp_sa, minimum=100, dtplyr.step = FALSE)
 save(imp_symptom, file = "imp_symptom.rda")
 
-missing_c<-imp_dm%>%filter(is.na(country))%>%select(studyid,siteid_final,usubjid)
-write.table(missing_c, "missing_c.csv", sep=",", row.names=F, na="")
+
+load("int.rda")
+imp_int<-process.treatment.data(int, dtplyr.step = FALSE)
+save(imp_int, file = "imp_int.rda")
+
+imp_treat<-process.common.treatment.data(imp_int, minimum=10, dtplyr.step = FALSE)
+save(imp_treat, file = "imp_treat.rda")
+
+imp_icu<- process.ICU.data(ho, dtplyr.step = FALSE)
+save(imp_icu, file = "imp_icu.rda")
+
+imp_vs<- process.vital.sign.data(vs, dtplyr.step = FALSE)
+save(imp_vs, file = "imp_vs.rda")
+
+imp_lb <- process.laboratory.data(lb, dtplyr.step = FALSE)
+save(imp_lb, file = "imp_lb.rda")
+
+imp_ds <-process.outcome.data(ds, dtplyr.step = FALSE)
+save(imp_ds, file = "imp_ds.rda")
+tab<-tabyl(imp_ds$outcome)
+
+imp_treat_icu<-process.treatment.icu.data(imp_int, imp_icu,imp_dm,imp_ds, minimum=10,dtplyr.step = FALSE)
+save(imp_treat_icu, file = "imp_treat_icu.rda")
+
+
+
 
 load(file="imp_dm.rda")
 load(file="imp_mb.rda")
