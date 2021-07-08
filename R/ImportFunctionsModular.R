@@ -751,13 +751,13 @@ process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = F
     mutate(n = sum(!is.na(inoccur)))%>%
     filter(n >= eval(!!minimum))%>%
     ungroup()%>%
-    filter(treatment!="extracorporeal" | 
-             treatment!="inhaled_nitric_oxide" |
-          treatment!="oxygen_therapy" |
-           treatment!="prone_position_ventilation" |
-            treatment!="prone_ventilation" |
-           treatment!="respiratory_support" |
-            treatment!="tracheostomy" |
+    filter(treatment!="extracorporeal" & 
+             treatment!="inhaled_nitric_oxide" &
+          treatment!="oxygen_therapy" &
+           treatment!="prone_position_ventilation" &
+            treatment!="prone_ventilation" &
+           treatment!="respiratory_support" &
+            treatment!="tracheostomy" &
            treatment!="prone_positioning")%>%
     #mutate(treatment=replace(treatment,treatment=="cpr","cardiopulmonary_resuscitation"))%>%
     filter(treatment!="covid_19_vaccination")%>%
@@ -833,17 +833,7 @@ process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = F
     dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = indtc)%>%
     as_tibble()
     
-  
-  #vent_at_adm<-imp_int%>%
-   # filter(inevintx=="AT HOSPITAL ADMISSION")%>%
-  #  filter(treatment=="invasive_ventilation"|treatment=="non_invasive_ventilation")%>%
-  #  mutate(treatment=case_when(treatment=='non_invasive_ventilation'~'niv_at_adm',
-  #                             treatment=='invasive_ventilation'~'imv_at_adm',
-  #                             TRUE~treatment))%>%
-  #  filter(inoccur==TRUE)%>%
-  #  distinct(usubjid,treatment, .keep_all =T)%>%
-  #  dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur)%>%
-  #  as_tibble()
+
 
     treatment <-treatment%>%
     full_join(treat_oxy)%>%
@@ -902,6 +892,30 @@ process.treatment.icu.data <- function(file.name,imp_icu,imp_dm,imp_ds, minimum=
     #filter(!is.na(hoendy)& hoendy>-1 &!is.na(hostdy)& hostdy>-1)%>%
     #filter(!is.na(hoendy) & !is.na(hostdy))%>%
     #left_join(imp_int)%>%
+  treat_oxy <- imp_int%>%
+    mutate(treatment=case_when(treatment=="extracorporeal" | 
+                                 treatment=="inhaled_nitric_oxide" |
+                                 treatment=="prone_position_ventilation" |
+                                 treatment=="respiratory_support" |
+                                 treatment=="tracheostomy" |
+                                 treatment=="high_flow_nasal_cannula" |
+                                 treatment=="invasive_ventilation" |
+                                 treatment=="mask_oxygen_therapy" |
+                                 treatment=="nasal_oxygen_therapy" |
+                                 treatment=="non_invasive_ventilation"~"treat_oxygen_therapy",
+                               TRUE~treatment))%>%
+    filter(treatment=="treat_oxygen_therapy")%>%
+    arrange(desc(inoccur))%>%
+    left_join(icu_ever,by = c("usubjid"))%>%
+    mutate(indy=as.numeric(indy))%>%
+    mutate(hostdy=as.numeric(hostdy))%>%
+    mutate(hoendy=as.numeric(hoendy))%>%
+    mutate(int_icu=case_when((indy>=hostdy)~ TRUE, 
+                             TRUE ~ FALSE))%>%
+    filter(int_icu==TRUE)%>%
+    arrange(desc(inoccur))%>%
+    distinct(usubjid, treatment, .keep_all =T)%>%
+    select(usubjid,"icu_treat_oxygen_therapy"=inoccur)
   
     
   imp_treat_icu<-imp_int%>%
@@ -914,6 +928,14 @@ process.treatment.icu.data <- function(file.name,imp_icu,imp_dm,imp_ds, minimum=
     mutate(treatment=replace(treatment,treatment=="cpr","cardiopulmonary_resuscitation"))%>%
     filter(treatment!="covid_19_vaccination")%>%
     filter(treatment!="supplemental_oxygen_fio2")%>%
+    filter(treatment!="extracorporeal" & 
+             treatment!="inhaled_nitric_oxide" &
+             treatment!="oxygen_therapy" &
+             treatment!="prone_position_ventilation" &
+             treatment!="prone_ventilation" &
+             treatment!="respiratory_support" &
+             treatment!="tracheostomy" &
+             treatment!="prone_positioning")%>%
     arrange(desc(inoccur))%>%
     #mutate(indtc=as.Date(indtc))%>%
     #filter(indtc>= "2020-01-01"|indtc<date_pull)%>%
@@ -931,15 +953,12 @@ process.treatment.icu.data <- function(file.name,imp_icu,imp_dm,imp_ds, minimum=
     filter(int_icu==TRUE)%>%
     arrange(desc(inoccur))%>%
     distinct(usubjid, treatment, .keep_all =T)%>%
-    group_by(treatment) %>% 
-    arrange(desc(inoccur))%>%
-    #mutate(n = sum(!is.na(inoccur))) %>%
-    #filter(n >= eval(10)) %>%
-    #ungroup()%>%
     mutate(treatment = glue("icu_treat_{treatment}", treatment = treatment)) %>%
     as.data.table() %>%
-    dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur)
+    dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = inoccur)%>%
+    full_join(treat_oxy)
 
+    
   
   
   if(dtplyr.step){

@@ -46,28 +46,6 @@ library(gridExtra)
 #' 
 summary.input.prep<- function(input.tbl){
   input.tbl%>%
-    mutate(oxygen_therapy=NA)%>%
-    mutate(oxygen_therapy=case_when(
-      treat_high_flow_nasal_cannula==FALSE|
-        treat_nasal_or_mask_oxygen_therapy==FALSE|
-        treat_non_invasive_ventilation==FALSE|
-        treat_invasive_ventilation==FALSE~FALSE,
-      treat_high_flow_nasal_cannula==TRUE|
-        treat_nasal_or_mask_oxygen_therapy==TRUE|
-        treat_non_invasive_ventilation==TRUE|
-        treat_invasive_ventilation==TRUE~TRUE,
-      TRUE~oxygen_therapy))%>%
-    mutate(icu_oxygen_therapy=NA)%>%
-    mutate(icu_oxygen_therapy=case_when(
-      icu_treat_high_flow_nasal_cannula==FALSE|
-        icu_treat_nasal_or_mask_oxygen_therapy==FALSE|
-        icu_treat_non_invasive_ventilation==FALSE|
-        icu_treat_invasive_ventilation==FALSE~FALSE,
-      icu_treat_high_flow_nasal_cannula==TRUE|
-        icu_treat_nasal_or_mask_oxygen_therapy==TRUE|
-        icu_treat_non_invasive_ventilation==TRUE|
-        icu_treat_invasive_ventilation==TRUE~TRUE,
-      TRUE~icu_oxygen_therapy))%>%
     select(siteid_final,
          starts_with("slider_"),
          age,
@@ -80,8 +58,9 @@ summary.input.prep<- function(input.tbl){
          outcome,
          #slider_outcome,
          #slider_icu_ever,
+         oxygen_therapy,
+         icu_oxygen_therapy,
          treat_high_flow_nasal_cannula,
-         treat_nasal_or_mask_oxygen_therapy,
          treat_non_invasive_ventilation,
          treat_invasive_ventilation,
          treat_antibiotic_agents,
@@ -95,12 +74,11 @@ summary.input.prep<- function(input.tbl){
          icu_treat_antiviral_agents,
          icu_treat_non_invasive_ventilation,
          icu_treat_invasive_ventilation,
-         icu_treat_nasal_or_mask_oxygen_therapy,
          icu_treat_high_flow_nasal_cannula,
          t_ad_niv,
          t_ad_imv,
          dur_niv,
-         dur_imv,oxygen_therapy,icu_oxygen_therapy,
+         dur_imv,
          income,
          clin_diag_covid_19)
 }
@@ -161,42 +139,6 @@ outcome.admission.date.prep <- function(input.tbl){
 
 #' @return A \code{tibble} containing the input data for the symptoms upset plot
 #' @export summary.input.prep
-summary.input.prep<- function(input.tbl){
-  input.tbl%>%   
-  select(c(siteid_final,
-             starts_with("slider_"),
-             age,
-             date_admit,
-             cov_det_id,
-             dur_ho,
-             dur_icu,
-             t_ad_icu,
-             t_son_ad,
-             outcome,
-             slider_icu_ever,
-             treat_high_flow_nasal_cannula,
-             treat_nasal_or_mask_oxygen_therapy,
-             treat_non_invasive_ventilation,
-             treat_invasive_ventilation,
-             treat_antibiotic_agents,
-             treat_antiviral_agents,
-             treat_corticosteroids,
-             vs_oxysat,
-             icu_treat_antibiotic_agents,
-             icu_treat_antiviral_agents,
-             icu_treat_non_invasive_ventilation,
-             icu_treat_invasive_ventilation,
-             icu_treat_nasal_or_mask_oxygen_therapy,
-             icu_treat_high_flow_nasal_cannula,
-             t_ad_niv,
-             t_ad_imv,
-             dur_niv,
-             dur_imv,
-           oxygen_therapy,
-           icu_oxygen_therapy,
-           income,
-           clin_diag_covid_19))
-}
 
 #' Aggregate data for symptom prevalence plot
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -530,7 +472,14 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
 #' @export treatment.use.proportion.prep
 treatment.use.proportion.prep <- function(input.tbl){
   
-  input.tbl<-input.tbl%>%select(-c(treat_agents_acting_on_the_renin_angiotensin_system))
+  input.tbl<-input.tbl%>%select(-c(treat_pacing, 
+                                   #treat_mechanical_support, 
+                                   treat_immunostimulants, 
+                                   treat_antiinflammatory, 
+                                   treat_other_interventions,
+                                   treat_antimalarial_agents,
+                                   treat_agents_acting_on_the_renin_angiotensin_system))
+  
   treatment.use.proportion.input <- input.tbl %>%
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("treat")), lower.age.bound, upper.age.bound) %>%
     as.data.table() %>%
@@ -566,7 +515,13 @@ treatment.use.proportion.prep <- function(input.tbl){
 #' @export treatment.upset.prep
 treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   
-  input.tbl<-input.tbl%>%select(-c(treat_agents_acting_on_the_renin_angiotensin_system))
+ input.tbl<-input.tbl%>%select(-c(treat_pacing, 
+                                                                    #treat_mechanical_support, 
+                                                                    treat_immunostimulants, 
+                                                                    treat_antiinflammatory, 
+                                                                    treat_other_interventions,
+                                                                    treat_antimalarial_agents,
+                                                                    treat_agents_acting_on_the_renin_angiotensin_system))
   data2 <- input.tbl %>%
     select(usubjid, starts_with("treat"))
   
@@ -1367,7 +1322,14 @@ comorbidity.prep <- function(input.tbl){
 #' 
 treatments.prep <- function(input.tbl){
   
-  input.tbl<-input.tbl%>%select(-c(treat_agents_acting_on_the_renin_angiotensin_system))
+  input.tbl<-input.tbl%>%select(-c(treat_pacing, 
+                                   #treat_mechanical_support, 
+                                   treat_immunostimulants, 
+                                   treat_antiinflammatory, 
+                                   treat_other_interventions,
+                                   treat_antimalarial_agents,
+                                   treat_agents_acting_on_the_renin_angiotensin_system))
+  
   tot=nrow(input.tbl)
   
   data<-select(input.tbl, c(starts_with("treat_"))) %>%
