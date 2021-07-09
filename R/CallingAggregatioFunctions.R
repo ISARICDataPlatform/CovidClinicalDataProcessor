@@ -85,19 +85,34 @@ save(data_map, file ="data_map.rda")
 
 
 
-###################tables after inclusion criteria
+###################inclusion criteria
 input.tbl<-input.tbl%>%
   filter((clin_diag_covid_19==TRUE & is.na(cov_det_id)) | cov_det_id=="POSITIVE")
+
+patient.site.time.map.input<-patient.site.time.map.prep(input.tbl)
+save(patient.site.time.map.input, file = "patient_site_time_map_input.rda")
+
+#################after inclusion criteria
 
 patient.by.case.def<-patient.by.case.def.prep(input.tbl)
 save(patient.by.case.def, file = "spatient.by.case.def.rda")
 
+case.def.input <- patient.by.case.def.prep(input.tbl)
+save(case.def.input, file ="data_case_def_input.rda")
+
 summary_input<-summary.input.prep(input.tbl)
 save(summary_input, file = "summary_input.rda") 
 
+age.pyramid.input <- age.pyramid.prep(input.tbl)
+save(age.pyramid.input, file ="age_pyramid_input.rda")
 
-patient.site.time.map.input<-patient.site.time.map.prep(input.tbl)
-save(patient.site.time.map.input, file = "patient_site_time_map_input.rda")
+symptom.prevalence.input<-symptom.prevalence.prep(input.tbl)
+save(symptom.prevalence.input, file = "symptom_prevalence_input.rda")
+
+symptom.upset.input<-symptom.upset.prep(input.tbl)
+save(symptom.upset.input, file = "symptom_upset_input.rda")
+
+
 
 comorbidity.prevalence.input<-comorbidity.prevalence.prep(input.tbl)
 save(comorbidity.prevalence.input, file = "comorbidity_prevalence_input.rda")
@@ -117,11 +132,6 @@ save(icu.treatment.use.proportion.input, file = "icu_treatment_use_proportion_in
 icu.treatment.upset.input<-treatment.icu.upset.prep(input.tbl)
 save(icu.treatment.upset.input, file = "icu_treatment_upset_input.rda")
 
-symptom.prevalence.input<-symptom.prevalence.prep(input.tbl)
-save(symptom.prevalence.input, file = "symptom_prevalence_input.rda")
-
-symptom.upset.input<-symptom.upset.prep(input.tbl)
-save(symptom.upset.input, file = "symptom_upset_input.rda")
 
 patient.characteristic.table<-patient.characteristic.prep(input.tbl)
 save(patient.characteristic.table, file = "patient_characteristic_table.rda")
@@ -247,20 +257,7 @@ data_plot_heatmap <- symptom.heatmap(data = input.tbl, admission.symptoms = admi
 save(data_plot_heatmap, file ="data_plot_heatmap.rda")
 
 
-#age_pyramid_table
-age.pyramid.input <- age.pyramid.prep(input.tbl)
-save(age.pyramid.input, file ="age_pyramid_input.rda")
 
-
-#Map
-data_map <- patient.by.country.map.prep(input.tbl)
-save(data_map, file ="data_map.rda")
-
-
-
-#case defnitions table
-case.def.input <- patient.by.case.def.prep(input.tbl)
-save(case.def.input, file ="data_case_def_input.rda")
 
 
 

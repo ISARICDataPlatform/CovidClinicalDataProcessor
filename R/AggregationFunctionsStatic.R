@@ -1,4 +1,21 @@
-#load packages (some of these are not being used but we can delete them later)
+#' @keywords internal
+#' @export extract.age.boundaries.2
+extract.age.boundaries.2 <- function(agestring, lower = TRUE){
+  agestring <- as.character(agestring)
+  if(is.na(agestring)){
+    NA
+  } else if(agestring == "90+"){
+    if(lower){
+      90
+    } else {
+      119
+    }
+  } else if(lower){
+    as.numeric(str_split_fixed(agestring, "-", Inf)[1])
+  } else {
+    as.numeric(str_split_fixed(agestring, "-", Inf)[2]) - 1
+  }
+}
 
 #' Aggregate data for the summary and flowchart
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -63,6 +80,27 @@ summary.input.overall.prep<- function(input.tbl){
   
 }
 
+#' Aggregate data for case enrolment over time by site
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr janitor
+#' @importFrom glue glue
+#' @importFrom data.table as.data.table
+#' @return A \code{tibble} containing the input data for the moving map
+#' @export patient.enrolment.site.time.map.prep
+
+
+patient.site.time.map.prep <- function(input.tbl){
+  
+  patient.site.time.map.input   <- input.tbl %>%
+    filter(!is.na(date_start) & !is.na(siteid_final))%>%
+    mutate(count=1)%>%
+    group_by(siteid_final,date_start)%>%
+    summarise(n_patients=sum(count,na.rm=T))
+  
+  
+}
+
+
 
 #' Data for the report summary
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -74,8 +112,8 @@ age.pyramid.prep <- function(input.tbl){
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    dplyr::select(slider_sex, slider_agegp10, calendar.year.admit, calendar.month.admit,  slider_outcome, lower.age.bound, upper.age.bound) %>%
-    group_by(slider_sex, slider_outcome, calendar.year.admit, calendar.month.admit,  slider_agegp10, lower.age.bound, upper.age.bound) %>%
+    dplyr::select(slider_sex, slider_agegp10, slider_outcome) %>%
+    group_by(slider_sex, slider_outcome, slider_agegp10) %>%
     summarise(count = n()) %>%
     as_tibble() 
 }
@@ -95,7 +133,7 @@ outcome.admission.date.prep <- function(input.tbl){
     mutate(year.epiweek.admit = factor(year.epiweek.admit, levels = epiweek.order)) %>%
     filter(!is.na(year.epiweek.admit) & !is.na(slider_outcome)) %>%
     select(calendar.year.admit, calendar.month.admit, year.epiweek.admit) %>%
-    group_by(slider_sex, slider_outcome, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, year.epiweek.admit, slider_agegp10, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    group_by(slider_outcome) %>%
     summarise(count = n()) %>%
     as_tibble() 
 }
@@ -114,11 +152,11 @@ symptom.prevalence.prep <- function(input.tbl){
   
   symptom.prevalence.input <- input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
+    select(slider_agegp10, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
     as.data.table() %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptom", values_to = "present") %>%
     lazy_dt(immutable = TRUE) %>%
-    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, symptom, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    group_by(slider_agegp10, symptom, lower.age.bound, upper.age.bound) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
     as_tibble()
   
@@ -217,15 +255,7 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
       paste(sort(cp), collapse = "-")
     })) %>%
     select(-conditions.present) %>%
-    group_by(condstring,
-             slider_sex, 
-             slider_country,
-             slider_icu_ever,
-             slider_outcome,
-             slider_monthyear,
-             slider_agegp10,
-             lower.age.bound,
-             upper.age.bound
+    group_by(condstring
     ) %>% 
     summarise(count = n()) %>%
     ungroup() %>%
@@ -243,26 +273,6 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
   
 }
 
-
-#' Aggregate data for case enrolment over time by site
-#' @param input.tbl Input tibble (output of \code{data.preprocessing})
-#' @import dtplyr dplyr janitor
-#' @importFrom glue glue
-#' @importFrom data.table as.data.table
-#' @return A \code{tibble} containing the input data for the moving map
-#' @export patient.enrolment.site.time.map.prep
-
-
-patient.site.time.map.prep <- function(input.tbl){
-  
-  patient.site.time.map.input   <- input.tbl %>%
-    filter(!is.na(date_start) & !is.na(siteid_final))%>%
-    mutate(count=1)%>%
-    group_by(siteid_final,date_start)%>%
-    summarise(n_patients=sum(count,na.rm=T))
-  
-  
-}
 
 
 #' Aggregate data for comorbidity prevalence plot
@@ -282,7 +292,7 @@ comorbidity.prevalence.prep <- function(input.tbl){
     as.data.table() %>%
     pivot_longer(any_of(starts_with("comorb")), names_to = "comorbidity", values_to = "present") %>%
     lazy_dt(immutable = TRUE) %>%
-    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, comorbidity, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    group_by(slider_agegp10, comorbidity, lower.age.bound, upper.age.bound) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)))%>%
     filter(comorbidity!="comorbid_other_comorbidities")%>%
     as.data.frame()
@@ -305,28 +315,6 @@ comorbidity.prevalence.prep <- function(input.tbl){
     as_tibble()
   
 }
-
-#' @keywords internal
-#' @export extract.age.boundaries.2
-extract.age.boundaries.2 <- function(agestring, lower = TRUE){
-  agestring <- as.character(agestring)
-  if(is.na(agestring)){
-    NA
-  } else if(agestring == "90+"){
-    if(lower){
-      90
-    } else {
-      119
-    }
-  } else if(lower){
-    as.numeric(str_split_fixed(agestring, "-", Inf)[1])
-  } else {
-    as.numeric(str_split_fixed(agestring, "-", Inf)[2]) - 1
-  }
-}
-
-
-
 
 
 #' Aggregate data for comorbidities upset plot
@@ -400,15 +388,7 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
       paste(sort(cp), collapse = "-")
     })) %>%
     select(-conditions.present) %>%
-    group_by(condstring, 
-             slider_sex, 
-             slider_country,
-             slider_icu_ever,
-             slider_outcome,
-             slider_monthyear,
-             slider_agegp10,
-             lower.age.bound,
-             upper.age.bound) %>% 
+    group_by(condstring) %>% 
     summarise(count = n()) %>%
     ungroup() %>%
     mutate(which.present = map(condstring, function(x){
@@ -444,11 +424,11 @@ treatment.use.proportion.prep <- function(input.tbl){
                                    treat_agents_acting_on_the_renin_angiotensin_system))
   
   treatment.use.proportion.input <- input.tbl %>%
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("treat")), lower.age.bound, upper.age.bound) %>%
+    select(any_of(starts_with("treat"))) %>%
     as.data.table() %>%
     pivot_longer(any_of(starts_with("treat")), names_to = "treatment", values_to = "present") %>%
     lazy_dt(immutable = TRUE) %>%
-    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, treatment, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    group_by(treatment) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
     as_tibble()
   
@@ -543,15 +523,7 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
       paste(sort(cp), collapse = "-")
     })) %>%
     select(-treatments.present) %>%
-    group_by(condstring, 
-             slider_sex, 
-             slider_country,
-             slider_icu_ever,
-             slider_outcome,
-             slider_monthyear,
-             slider_agegp10,
-             lower.age.bound,
-             upper.age.bound) %>% 
+    group_by(condstring) %>% 
     summarise(count = n()) %>%
     ungroup() %>%
     mutate(which.present = map(condstring, function(x){
@@ -586,7 +558,7 @@ icu.treatment.use.proportion.prep <- function(input.tbl){
     as.data.table() %>%
     pivot_longer(any_of(starts_with("icu_treat")), names_to = "treatment", values_to = "present") %>%
     lazy_dt(immutable = TRUE) %>%
-    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, treatment, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    group_by(treatment) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
     as_tibble()
   
@@ -677,15 +649,7 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
       paste(sort(cp), collapse = "-")
     })) %>%
     select(-treatments.present) %>%
-    group_by(condstring, 
-             slider_sex, 
-             slider_country,
-             slider_icu_ever,
-             slider_outcome,
-             slider_monthyear,
-             slider_agegp10,
-             lower.age.bound,
-             upper.age.bound) %>% 
+    group_by(condstring) %>% 
     summarise(count = n()) %>%
     ungroup() %>%
     mutate(which.present = map(condstring, function(x){
@@ -840,8 +804,6 @@ patient.characteristic.prep <- function(input.tbl){
 }
 
 
-
-
 #' Prepare Table2. Outcome by age and sex
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
@@ -975,9 +937,6 @@ outcome.age.sex.prep <- function(input.tbl){
   
 }
 
-
-
-
 #' Prepare Table3. symptoms
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
@@ -1037,8 +996,6 @@ symptoms.prep <- function(input.tbl){
   
 }
 
-
-
 #' Prepare Table4. comorbidities
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
@@ -1095,10 +1052,6 @@ comorbidity.prep <- function(input.tbl){
     as_tibble() 
   
 }
-
-
-
-
 
 #' Prepare Table5. Prevalence of treatments
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -1162,9 +1115,6 @@ treatments.prep <- function(input.tbl){
     as_tibble() 
   
 }
-
-
-
 
 #' Prepare Table6. key times variable
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -1233,14 +1183,13 @@ key.times.prep <- function(input.tbl){
   
 }
 
-
 #' vital signs
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @return A \code{tibble} containing the input data for the vital sign tables plot
 
 #vs_resp
 func_plots_vs_resp <- function(input.tbl){
-  data_plot_vs_resp <- select(input.tbl, c(starts_with("slider"),vs_resp, upper.age.bound, lower.age.bound)) %>%
+  data_plot_vs_resp <- select(input.tbl, c(vs_resp, slider_agegp10,upper.age.bound, lower.age.bound)) %>%
     pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1249,7 +1198,7 @@ func_plots_vs_resp <- function(input.tbl){
 
 #vs_hr
 func_plots_vs_hr <- function(input.tbl){
-  data_plot_vs_hr <- select(input.tbl, c(starts_with("slider"),vs_hr, upper.age.bound, lower.age.bound)) %>%
+  data_plot_vs_hr <- select(input.tbl, c(vs_hr, slider_agegp10,)) %>%
     pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1258,7 +1207,7 @@ func_plots_vs_hr <- function(input.tbl){
 
 #vs_temp
 func_plots_vs_temp <- function(input.tbl){
-  data_plot_vs_temp <- select(input.tbl, c(starts_with("slider"),vs_temp, upper.age.bound, lower.age.bound)) %>%
+  data_plot_vs_temp <- select(input.tbl, c(vs_temp, slider_agegp10, upper.age.bound, lower.age.bound)) %>%
     pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1267,7 +1216,7 @@ func_plots_vs_temp <- function(input.tbl){
 
 #vs_sysbp
 func_plots_vs_sysbp <- function(input.tbl){
-  data_plot_vs_sysbp <- select(input.tbl, c(starts_with("slider"),vs_sysbp, upper.age.bound, lower.age.bound)) %>%
+  data_plot_vs_sysbp <- select(input.tbl, c(vs_sysbp, slider_agegp10,upper.age.bound, lower.age.bound)) %>%
     pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1275,7 +1224,7 @@ func_plots_vs_sysbp <- function(input.tbl){
 }
 #vs_oxysat
 func_plots_vs_oxysat <- function(input.tbl){
-  data_plot_vs_oxysat <- select(input.tbl, c(starts_with("slider"),vs_oxysat_room_air, upper.age.bound, lower.age.bound)) %>%
+  data_plot_vs_oxysat <- select(input.tbl, c(vs_oxysat_room_air, slider_agegp10,upper.age.bound, lower.age.bound)) %>%
     pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
