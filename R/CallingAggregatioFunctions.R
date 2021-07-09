@@ -1,4 +1,47 @@
 
+#load packages (some of these are not being used but we can delete them later)
+library(RColorBrewer)
+#library(incidence)
+library(shiny)
+library(shinydashboard)
+library(magrittr)
+library(lattice)
+library(stringr)
+library(plyr)
+library(FSA)
+library(DescTools)
+library(vcd)
+library(rcompanion)
+library(ggplot2)
+library(sgr)
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(janitor)
+library(Hmisc)
+library(RColorBrewer)
+library(dtplyr) 
+library(data.table)
+library(tidyfast)
+library(naniar)
+library(shinyWidgets)
+library(viridis)
+library(hrbrthemes)
+library(splitstackshape)
+library(glue)
+library(lubridate)
+library(grid)
+library(gtable)
+library(gridExtra)
+
+
+
+
+
+
+
+
 ####
 folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor"
 setwd(folder)
