@@ -1292,7 +1292,7 @@ func_plots_vs_oxysat <- function(input.tbl){
 
 #crp
 func_plot_lab_crp <- function(input.tbl){
-  data_plot_lab_crp <- select(input.tbl, c(starts_with("slider"),lab_crp, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_crp <- select(input.tbl, slider_agegp10,lab_crp) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1303,7 +1303,7 @@ func_plot_lab_crp <- function(input.tbl){
 
 #lab_lym
 func_plot_lab_lym <- function(input.tbl){
-  data_plot_lab_lym <- select(input.tbl, c(starts_with("slider"),lab_lym, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_lym <- select(input.tbl,slider_agegp10,lab_lym) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1312,7 +1312,7 @@ func_plot_lab_lym <- function(input.tbl){
 
 #lab_neut
 func_plot_lab_neut <- function(input.tbl){
-  data_plot_lab_neut <- select(input.tbl, c(starts_with("slider"),lab_neut, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_neut <- select(input.tbl, slider_agegp10,lab_neut) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1321,7 +1321,7 @@ func_plot_lab_neut <- function(input.tbl){
 
 #lab_wbc
 func_plot_lab_crp <- function(input.tbl){
-  data_plot_lab_wbc <- select(input.tbl, c(starts_with("slider"),lab_wbc, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_wbc <- select(input.tbl,slider_agegp10,lab_wbc) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1330,7 +1330,7 @@ func_plot_lab_crp <- function(input.tbl){
 
 #lab_urean
 func_plot_lab_urean  <- function(input.tbl){
-  data_plot_lab_urean <- select(input.tbl, c(starts_with("slider"),lab_urean, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_urean <- select(input.tbl, slider_agegp10,lab_urean) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1339,7 +1339,7 @@ func_plot_lab_urean  <- function(input.tbl){
 
 #lab_pt
 func_plot_lab_pt <- function(input.tbl){
-  data_plot_lab_pt <- select(input.tbl, c(starts_with("slider"),lab_pt, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_pt <- select(input.tbl, slider_agegp10,lab_pt) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1348,7 +1348,7 @@ func_plot_lab_pt <- function(input.tbl){
 
 #lab_alt
 func_plot_lab_alt <- function(input.tbl){
-  data_plot_lab_alt <- select(input.tbl, c(starts_with("slider"),lab_alt, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_alt <- select(input.tbl,slider_agegp10,lab_alt) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1357,7 +1357,7 @@ func_plot_lab_alt <- function(input.tbl){
 
 #lab_aptt
 func_plot_lab_aptt <- function(input.tbl){
-  data_plot_lab_aptt <- select(input.tbl, c(starts_with("slider"),lab_aptt, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_aptt <- select(input.tbl, slider_agegp10,lab_aptt) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1367,7 +1367,7 @@ func_plot_lab_aptt <- function(input.tbl){
 
 #lab_bili
 func_plot_lab_bili <- function(input.tbl){
-  data_plot_lab_bili <- select(input.tbl, c(starts_with("slider"),lab_bili, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_bili <- select(input.tbl, slider_agegp10,lab_bili) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1376,7 +1376,7 @@ func_plot_lab_bili <- function(input.tbl){
 
 #lab_ast
 func_plot_lab_ast <- function(input.tbl){
-  data_plot_lab_ast <- select(input.tbl, c(starts_with("slider"),lab_ast, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_ast <- select(input.tbl, slider_agegp10,lab_ast) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1391,7 +1391,7 @@ func_plot_lab_ast <- function(input.tbl){
 
 #comorbid_asthma
 func_plot_comorbid_asthma <- function(input.tbl){
-  data_plot_comorbid_asthma <- select(input.tbl, c(starts_with("slider"),comorbid_asthma, upper.age.bound, lower.age.bound)) %>%
+  data_plot_comorbid_asthma <- select(input.tbl, slider_agegp10,comorbid_asthma) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("comorbid"), names_to = "comorbid", values_to = "value") %>%
     as.data.frame()  
@@ -1400,7 +1400,7 @@ func_plot_comorbid_asthma <- function(input.tbl){
 
 #comorbid_malignant_neoplasm
 func_plot_comorbid_malignant_neoplasm <- function(input.tbl){
-  data_plot_comorbid_malignant_neoplasm <- select(input.tbl, c(starts_with("slider"),comorbid_malignant_neoplasm, upper.age.bound, lower.age.bound)) %>%
+  data_plot_comorbid_malignant_neoplasm <- select(input.tbl,slider_agegp10,comorbid_malignant_neoplasm) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("comorbid"), names_to = "comorbid", values_to = "value")  %>%
     as.data.frame() 
@@ -1409,7 +1409,7 @@ func_plot_comorbid_malignant_neoplasm <- function(input.tbl){
 
 #comorbid_obesity
 func_plot_comorbid_obesity <- function(input.tbl){
-  data_plot_comorbid_obesity <- select(input.tbl, c(starts_with("slider"),comorbid_obesity, upper.age.bound, lower.age.bound)) %>%
+  data_plot_comorbid_obesity <- select(input.tbl, slider_agegp10,comorbid_obesity) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("comorbid"), names_to = "comorbid", values_to = "value")  %>%
     as.data.frame() 
@@ -1418,7 +1418,7 @@ func_plot_comorbid_obesity <- function(input.tbl){
 
 #comorbid_diabetes
 func_plot_comorbid_diabetes <- function(input.tbl){
-  data_plot_comorbid_diabetes <- select(input.tbl, c(starts_with("slider"),comorbid_diabetes, upper.age.bound, lower.age.bound)) %>%
+  data_plot_comorbid_diabetes <- select(input.tbl, slider_agegp10,comorbid_diabetes) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("comorbid"), names_to = "comorbid", values_to = "value")  %>%
     as.data.frame() 
@@ -1427,7 +1427,7 @@ func_plot_comorbid_diabetes <- function(input.tbl){
 
 #comorbid_dementia
 func_plot_comorbid_dementia <- function(input.tbl){
-  data_plot_comorbid_dementia <- select(input.tbl, c(starts_with("slider"),comorbid_dementia, upper.age.bound, lower.age.bound)) %>%
+  data_plot_comorbid_dementia <- select(input.tbl, slider_agegp10,comorbid_dementia) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("comorbid"), names_to = "comorbid", values_to = "value")  %>%
     as.data.frame() 
@@ -1435,7 +1435,7 @@ func_plot_comorbid_dementia <- function(input.tbl){
 
 #comorbid_smoking
 func_plot_comorbid_smoking <- function(input.tbl){
-  data_plot_comorbid_smoking <- select(input.tbl, c(starts_with("slider"),comorbid_smoking, upper.age.bound, lower.age.bound)) %>%
+  data_plot_comorbid_smoking <- select(input.tbl, slider_agegp10, comorbid_smoking) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("comorbid"), names_to = "comorbid", values_to = "value")  %>%
     as.data.frame() 
@@ -1444,7 +1444,7 @@ func_plot_comorbid_smoking <- function(input.tbl){
 
 #comorbid_hypertension
 func_plot_comorbid_hypertension <- function(input.tbl){
-  data_plot_comorbid_hypertension <- select(input.tbl, c(starts_with("slider"),comorbid_hypertension, upper.age.bound, lower.age.bound)) %>%
+  data_plot_comorbid_hypertension <- select(input.tbl, slider_agegp10,comorbid_hypertension) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("comorbid"), names_to = "comorbid", values_to = "value") %>%
     as.data.frame()  
@@ -1458,7 +1458,7 @@ func_plot_comorbid_hypertension <- function(input.tbl){
 
 #symptoms_history_of_fever
 func_plot_symptoms_history_of_fever <- function(input.tbl){
-  data_plot_symptoms_history_of_fever <- select(input.tbl, c(starts_with("slider"),symptoms_history_of_fever, upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_history_of_fever <- select(input.tbl, slider_agegp10,symptoms_history_of_fever) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptoms", values_to = "value") %>%
     as.data.frame()   
@@ -1467,7 +1467,7 @@ func_plot_symptoms_history_of_fever <- function(input.tbl){
 
 #symptoms_cough
 func_plot_symptoms_cough <- function(input.tbl){
-  data_plot_symptoms_cough <- select(input.tbl, c(starts_with("slider"),symptoms_cough, upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_cough <- select(input.tbl, slider_agegp10,symptoms_cough) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptoms", values_to = "value")  %>%
     as.data.frame()  
@@ -1476,8 +1476,7 @@ func_plot_symptoms_cough <- function(input.tbl){
 
 #symptoms_cough_fever
 func_plot_symptoms_cough_fever <- function(input.tbl){
-  data_plot_symptoms_cough_fever <- select(input.tbl, c(starts_with("slider"),symptoms_history_of_fever,symptoms_cough,
-                                                        upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_cough_fever <- select(input.tbl, slider_agegp10,symptoms_history_of_fever) %>%
     filter(!is.na(slider_agegp10)) %>%
     unite(col = "symptoms_cough_fever",c(symptoms_history_of_fever,symptoms_cough),sep = "_",remove = FALSE,na.rm = FALSE) %>%
     filter(symptoms_cough_fever != "NA_NA") %>%
@@ -1490,7 +1489,7 @@ func_plot_symptoms_cough_fever <- function(input.tbl){
 
 #symptoms_shortness_of_breath
 func_plot_symptoms_shortness_of_breath <- function(input.tbl){
-  data_plot_symptoms_shortness_of_breath <- select(input.tbl, c(starts_with("slider"),symptoms_shortness_of_breath, upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_shortness_of_breath <- select(input.tbl, slider_agegp10,symptoms_shortness_of_breath) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptoms", values_to = "value")  %>%
     as.data.frame()  
@@ -1500,8 +1499,8 @@ func_plot_symptoms_shortness_of_breath <- function(input.tbl){
 #symptoms_cought_fever_shortness_of_breath
 func_plot_symptoms_cought_fever_shortness_of_breath <- function(input.tbl){
   data_plot_symptoms_cought_fever_shortness_of_breath <- select(input.tbl, 
-                                                                c(starts_with("slider"),symptoms_cough,symptoms_history_of_fever,
-                                                                  symptoms_shortness_of_breath,upper.age.bound, lower.age.bound)) %>%
+                                                                slider_agegp10,symptoms_cough,symptoms_history_of_fever,
+                                                                  symptoms_shortness_of_breath) %>%
     filter(!is.na(slider_agegp10)) %>%
     unite(col = "symptoms_cough_fever_sob",c(symptoms_history_of_fever,symptoms_cough,symptoms_shortness_of_breath),
           sep = "_",remove = FALSE,na.rm = FALSE) %>%
@@ -1519,9 +1518,8 @@ func_plot_symptoms_cought_fever_shortness_of_breath <- function(input.tbl){
 
 #symptoms_upper_respiratory_tract_symptoms 
 func_plot_symptoms_upper_respiratory_tract_symptoms <- function(input.tbl){
-  data_plot_symptoms_upper_respiratory_tract_symptoms <- select(input.tbl, c(starts_with("slider"),
-                                                                             symptoms_sore_throat,symptoms_runny_nose,symptoms_ear_pain,
-                                                                             upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_upper_respiratory_tract_symptoms <- select(input.tbl,slider_agegp10,
+                                                                             symptoms_sore_throat,symptoms_runny_nose,symptoms_ear_pain) %>%
     filter(!is.na(slider_agegp10)) %>%
     unite(col = "symptoms_upper_respiratory_tract_symptoms",c(symptoms_sore_throat,symptoms_runny_nose,symptoms_ear_pain),
           sep = "_",remove = FALSE,na.rm = FALSE) %>%
@@ -1539,7 +1537,7 @@ func_plot_symptoms_upper_respiratory_tract_symptoms <- function(input.tbl){
 
 #symptoms_altered_consciousness_confusion
 func_plot_symptoms_altered_consciousness_confusion <- function(input.tbl){
-  data_plot_symptoms_altered_consciousness_confusion <- select(input.tbl, c(starts_with("slider"),symptoms_altered_consciousness_confusion, upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_altered_consciousness_confusion <- select(input.tbl,slider_agegp10,symptoms_altered_consciousness_confusion) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptoms", values_to = "value")  %>%
     as.data.frame()  
@@ -1548,8 +1546,8 @@ func_plot_symptoms_altered_consciousness_confusion <- function(input.tbl){
 
 #symptoms_constitutional
 func_plot_symptoms_constitutional <- function(input.tbl){
-  data_plot_symptoms_constitutional <- select(input.tbl,c(starts_with("slider"),symptoms_muscle_aches_joint_pain,symptoms_fatigue_malaise,
-                                                          symptoms_headache,upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_constitutional <- select(input.tbl,slider_agegp10,symptoms_muscle_aches_joint_pain,symptoms_fatigue_malaise,
+                                                          symptoms_headache) %>%
     filter(!is.na(slider_agegp10)) %>%
     unite(col = "symptoms_constitutional",c(symptoms_muscle_aches_joint_pain,symptoms_fatigue_malaise,symptoms_headache),
           sep = "_",remove = FALSE,na.rm = FALSE) %>%
@@ -1567,7 +1565,7 @@ func_plot_symptoms_constitutional <- function(input.tbl){
 
 #symptoms_vomiting_nausea
 func_plot_symptoms_vomiting_nausea <- function(input.tbl){
-  data_plot_symptoms_vomiting_nausea <- select(input.tbl, c(starts_with("slider"),symptoms_vomiting_nausea, upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_vomiting_nausea <- select(input.tbl, slider_agegp10,symptoms_vomiting_nausea) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptoms", values_to = "value") %>%
     as.data.frame()   
@@ -1576,7 +1574,7 @@ func_plot_symptoms_vomiting_nausea <- function(input.tbl){
 
 #symptoms_diarrhoea
 func_plot_symptoms_diarrhoea <- function(input.tbl){
-  data_plot_symptoms_diarrhoea <- select(input.tbl, c(starts_with("slider"),symptoms_diarrhoea, upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_diarrhoea <- select(input.tbl,slider_agegp10,symptoms_diarrhoea) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptoms", values_to = "value")  %>%
     as.data.frame()  
@@ -1585,7 +1583,7 @@ func_plot_symptoms_diarrhoea <- function(input.tbl){
 
 #symptoms_abdominal_pain
 func_plot_symptoms_abdominal_pain <- function(input.tbl){
-  data_plot_symptoms_abdominal_pain <- select(input.tbl, c(starts_with("slider"),symptoms_abdominal_pain, upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_abdominal_pain <- select(input.tbl, slider_agegp10,symptoms_abdominal_pain) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptoms", values_to = "value")  %>%
     as.data.frame()  
@@ -1749,7 +1747,7 @@ length.of.stay.icu.prep <- function(input.tbl){
                             TRUE~dur_ho))%>%
     lazy_dt(immutable = TRUE) %>%
     #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever,dur_ho) %>% 
+    select(slider_icu_ever,dur_ho) %>% 
     filter(dur_ho>0) %>% 
     rename(dur=dur_ho) %>% 
     mutate(type=1) %>% 
@@ -1760,7 +1758,7 @@ length.of.stay.icu.prep <- function(input.tbl){
                              TRUE~dur_icu))%>%
     lazy_dt(immutable = TRUE) %>%
     #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever,dur_icu) %>% 
+    select(slider_icu_ever,dur_icu) %>% 
     filter(dur_icu>0) %>% 
     rename(dur=dur_icu) %>% 
     mutate(type=2) %>% 
@@ -1784,7 +1782,7 @@ patient.by.country.prep <- function(input.tbl){
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    select(slider_country) %>%
     filter(!is.na(slider_country)) %>% 
     as_tibble() 
 }
@@ -1878,7 +1876,7 @@ length.of.stay.sex.prep <- function(input.tbl){
     lazy_dt(immutable = TRUE) %>%
     #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     mutate(length.of.stay=dur_ho) %>% 
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, length.of.stay) %>%
+    select(slider_sex,length.of.stay) %>%
     mutate(sex=slider_sex) %>% 
     mutate(sex=factor(sex,levels = c("Male", "Female")))  %>%  
     filter(!is.na(length.of.stay)) %>% 
@@ -1902,7 +1900,7 @@ length.of.stay.age.prep <- function(input.tbl){
     lazy_dt(immutable = TRUE) %>%
     #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
     mutate(length.of.stay=dur_ho) %>% 
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, length.of.stay) %>%
+    select(slider_agegp10,length.of.stay) %>%
     mutate(agegp10=as.character(slider_agegp10)) %>% 
     mutate(agegp10=ifelse(agegp10 %in% c("70-79","80-89","90+"), "70+", agegp10)) %>% 
     filter(!is.na(length.of.stay)) %>% 
@@ -1924,7 +1922,7 @@ admission.to.icu.prep <- function(input.tbl){
                               TRUE~t_ad_icu))%>%
     lazy_dt(immutable = TRUE) %>%
     mutate(admission.to.icu=t_ad_icu) %>% 
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, admission.to.icu) %>%
+    select( admission.to.icu) %>%
     filter(!is.na(admission.to.icu)) %>% 
     filter(admission.to.icu >= 0) %>% 
     as_tibble() 
@@ -2013,24 +2011,10 @@ status.by.time.after.admission.prep <- function(input.tbl){
     dplyr::mutate(status = factor(status, levels = c("Discharge", "unknown", "Ward", "ICU", "Death"))) %>%
     ungroup() 
   
-  #adding slider variables
-  slider <-  input.tbl %>%
-    select(usubjid, slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
-    mutate(subjid=usubjid) %>% 
-    select(-usubjid)
   
   final_dt <- complete.timeline.2 %>% 
-    left_join(slider, by="subjid") %>% 
     group_by(day,
-             status,
-             slider_sex,
-             slider_agegp10,
-             slider_country,
-             slider_monthyear,
-             slider_outcome,
-             slider_icu_ever,
-             lower.age.bound, 
-             upper.age.bound) %>%
+             status) %>%
     summarise(count = n()) %>%
     as_tibble()
   
