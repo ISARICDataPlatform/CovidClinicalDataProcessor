@@ -67,7 +67,8 @@ memory.limit(size=120000)
 
 
 
-
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24/aggregated/static"
+setwd(folder)
 
 
 #####################tables pre inclusion criteria
