@@ -1231,7 +1231,15 @@ func_plots_vs_oxysat <- function(input.tbl){
     as.data.frame()
   
 }
-
+#vs_oxysat_therapy
+func_plots_vs_oxysat_therapy <- function(input.tbl){
+  data_plot_vs_oxysat_therapy <- select(input.tbl, c(vs_oxysat_oxygen_therapy, slider_agegp10,upper.age.bound, lower.age.bound)) %>%
+    pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
+    filter(!is.na(value))  %>%
+    filter(!is.na(slider_agegp10)) %>%
+    as.data.frame()
+  
+}
 
 #######For Jia
 

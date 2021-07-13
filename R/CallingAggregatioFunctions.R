@@ -177,13 +177,14 @@ data_plot_vs_resp <- func_plots_vs_resp(input.tbl)
 data_plot_vs_hr <- func_plots_vs_hr(input.tbl)
 data_plot_vs_temp <- func_plots_vs_temp(input.tbl)
 data_plot_vs_sysbp <- func_plots_vs_sysbp(input.tbl)
-data_plot_vs_oxysat <- func_plots_vs_oxysat(input.tbl)
+data_plot_vs_oxysat_therapy <- func_plots_vs_oxysat_therapy(input.tbl)
 
 save(data_plot_vs_resp, file ="data_plot_vs_resp.rda")
 save(data_plot_vs_hr, file ="data_plot_vs_hr.rda")
 save(data_plot_vs_temp, file ="data_plot_vs_temp.rda")
 save(data_plot_vs_sysbp, file ="data_plot_vs_sysbp.rda")
 save(data_plot_vs_oxysat, file ="data_plot_vs_oxysat.rda")
+save(data_plot_vs_oxysat_therapy, file ="data_plot_vs_oxysat_therapy.rda")
 
 #Lab data
 data_plot_lab_crp <- func_plot_lab_crp(input.tbl)  
