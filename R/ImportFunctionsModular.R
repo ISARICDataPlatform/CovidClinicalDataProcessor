@@ -532,6 +532,7 @@ process.ICU.data <- function(file.name, dtplyr.step = FALSE){
 #' @export process.treatment.data
 process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
   
+  
    
   #int<-int%>%filter(studyid!="CVZXZMV")
   treatment<-int%>%
@@ -735,6 +736,27 @@ process.treatment.data <- function(file.name,  dtplyr.step = FALSE){
 
 process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = FALSE){
   
+  oxy_within_d1<-imp_int%>%
+    mutate(treatment=case_when(treatment=="extracorporeal" | 
+                                 treatment=="inhaled_nitric_oxide" |
+                                 treatment=="prone_position_ventilation" |
+                                 treatment=="respiratory_support" |
+                                 treatment=="tracheostomy" |
+                                 treatment=="high_flow_nasal_cannula" |
+                                 treatment=="invasive_ventilation" |
+                                 treatment=="mask_oxygen_therapy" |
+                                 treatment=="nasal_oxygen_therapy" |
+                                 treatment=="non_invasive_ventilation"~"oxygen_therapy",
+                               TRUE~treatment))%>%
+    filter(treatment=="oxygen_therapy")%>%
+    filter(inevintx=="AT HOSPITAL ADMISSION"|indy==1)%>%
+    mutate(oxytreat_when=case_when(inevintx=="AT HOSPITAL ADMISSION"~"at_admi",
+                                   indy==1~"within_24h"))%>%
+    arrange(desc(inoccur))%>%
+    distinct(usubjid,treatment, .keep_all =T)%>%
+    select(usubjid,"d1_oxygen_therapy"=inoccur)
+  
+  
   date_in_last <- imp_int %>% 
     filter(inoccur==TRUE)%>% 
     mutate(date_in_last=substr(indtc,1, 10))%>%
@@ -837,6 +859,7 @@ process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = F
 
     treatment <-treatment%>%
     full_join(treat_oxy)%>%
+    full_join(oxy_within_d1)%>%
     full_join(indur)%>%
     full_join(vent_st_instdtc)%>%
     full_join(vent_st_indtc)%>%
