@@ -44,7 +44,7 @@ save(data_map, file ="data_map.rda")
 
 ###################tables after inclusion criteria
 
-input.tbl<-input.tbl%>%
+input.tbl <- input.tbl%>%
   filter((embargo_length==FALSE | is.na(embargo_length)) & cov_det_id=="POSITIVE")
 
 patient.by.case.def<-patient.by.case.def.prep(input.tbl)
