@@ -6,10 +6,16 @@
 \usage{
 process.all.data(
   demog.file.name,
+  microb.file.name = NA,
   symptoms.file.name = NA,
+  pregnancy.file.name = NA,
   ICU.file.name = NA,
   treatment.file.name = NA,
+  vit_sign.file.name = NA,
   outcome.file.name = NA,
+  laboratory.file.name = NA,
+  minimum.comorb = 100,
+  minimum.sympt = 100,
   minimum.treatments = 1000,
   dtplyr.step = FALSE
 )
@@ -17,13 +23,21 @@ process.all.data(
 \arguments{
 \item{demog.file.name}{Path of the demographics data file (CDISC format)}
 
+\item{microb.file.name}{Path of the demographics data file (CDISC format)}
+
 \item{symptoms.file.name}{Path of the symptoms data file (CDISC format, optional)}
+
+\item{pregnancy.file.name}{Path of the RP data file (CDISC format, optional)}
 
 \item{ICU.file.name}{Path of the healthcare encounters data file (CDISC format, optional)}
 
 \item{treatment.file.name}{Path of the intervention data file (CDISC format, optional)}
 
+\item{vit_sign.file.name}{Path of the VS data file (CDISC format, optional)}
+
 \item{outcome.file.name}{Path of the dispositions data file (CDISC format, optional)}
+
+\item{laboratory.file.name}{Path of the LB data file (CDISC format, optional)}
 
 \item{minimum.treatments}{The minimum number of instances of a treatment required for inclusion as a column}
 

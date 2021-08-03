@@ -99,9 +99,8 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
 #' @param dtplyr.step Return the output as \code{dtplyr_step} to avoid unnecessary future calls to \code{as_tibble} or \code{as.data.table}
 #' @import dplyr tibble 
 #' @return Formatted demographic data as a tibble or \code{dtplyr_step}
-#' @export import.microbio.data
+#' @export import.microb.data
 
-date_pull<-as_date("2020-11-30")
 import.microb.data <- function(file.name, dtplyr.step = FALSE){
   
   mb<-shared.data.import(file.name, dtplyr.step = TRUE)

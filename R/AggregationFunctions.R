@@ -42,7 +42,7 @@ library(gridExtra)
 #' @import dtplyr dplyr tibble purrr
 #' @importFrom glue glue
 #' @return A \code{tibble} containing the input data for the summary and flowchart
-#' @export summary.prep
+#' @export summary.input.prep
 #' 
 summary.input.prep<- function(input.tbl){
   input.tbl%>%
@@ -342,7 +342,7 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
 #' @importFrom glue glue
 #' @importFrom data.table as.data.table
 #' @return A \code{tibble} containing the input data for the moving map
-#' @export patient.enrolment.site.time.map.prep
+#' @export patient.site.time.map.prep
 
 
 patient.site.time.map.prep <- function(input.tbl){
@@ -841,7 +841,7 @@ length.of.stay.age.prep <- function(input.tbl){
 #' @import dtplyr dplyr tibble purrr
 #' @importFrom glue glue
 #' @return A \code{tibble} containing the input data for the hospital admission to ICU plot
-#' @export admission.to.icu
+#' @export admission.to.icu.prep
 admission.to.icu.prep <- function(input.tbl){
   
   input.tbl %>%
@@ -862,7 +862,7 @@ admission.to.icu.prep <- function(input.tbl){
 #' @import dtplyr dplyr tibble purrr
 #' @importFrom glue glue
 #' @return A \code{tibble} containing the input data for the timeline plot
-#' @export status.by.time.after.admission
+#' @export status.by.time.after.admission.prep
 status.by.time.after.admission.prep <- function(input.tbl){
   
   timings.wrangle <- input.tbl %>% 
@@ -970,8 +970,9 @@ status.by.time.after.admission.prep <- function(input.tbl){
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
-#' @export patient.characteristic.table
-#' 
+#' @export patient.characteristic.prep
+#' #' 
+
 patient.characteristic.prep <- function(input.tbl){
   
   tot=nrow(input.tbl)  
@@ -1108,7 +1109,7 @@ patient.characteristic.prep <- function(input.tbl){
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
-#' @export outcome.age.sex.table
+#' @export outcome.age.sex.prep
 #' 
 outcome.age.sex.prep <- function(input.tbl){
 
@@ -1246,7 +1247,7 @@ outcome.age.sex.prep <- function(input.tbl){
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
-#' @export outcome.age.sex.table
+#' @export symptoms.prep
 #' 
 #' 
 #' 
@@ -1305,7 +1306,7 @@ symptoms.prep <- function(input.tbl){
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
-#' @export comorbidity.table
+#' @export comorbidity.prep
 #' 
 comorbidity.prep <- function(input.tbl){
   
@@ -1366,7 +1367,7 @@ comorbidity.prep <- function(input.tbl){
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
-#' @export treatments.table
+#' @export treatments.prep
 #' 
 treatments.prep <- function(input.tbl){
   
@@ -1425,7 +1426,7 @@ treatments.prep <- function(input.tbl){
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
-#' @export key.times.table
+#' @export key.times.prep
 #' 
 key.times.prep <- function(input.tbl){
   

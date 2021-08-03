@@ -7,7 +7,7 @@
 #' @param var_identifier Vector of names of variables that are identifying variables (default = "usubjid")
 #' @return data.frame with values synthesised based on the original dataset
 #' @import tidyverse lubridate tidyselect
-#' @importFrom  stats runif sample
+#' @importFrom  stats runif
 #' @export
 
 
