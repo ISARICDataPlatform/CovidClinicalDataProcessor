@@ -885,7 +885,7 @@ process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = F
 #' @importFrom data.table as.data.table
 #' @importFrom glue glue
 #' @return Formatted common treatment data (wide format) as a tibble or \code{dtplyr_step}
-#' @export process.common.treatment.data
+#' @export process.treatment.icu.data
 
 process.treatment.icu.data <- function(file.name,imp_icu,imp_dm,imp_ds, minimum=10, dtplyr.step = FALSE){
   
