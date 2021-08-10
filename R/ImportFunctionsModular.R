@@ -804,11 +804,13 @@ process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = F
                treatment=="invasive_ventilation" |
                treatment=="mask_oxygen_therapy" |
                treatment=="nasal_oxygen_therapy" |
+               treatment=="oxygen_therapy"|
                treatment=="non_invasive_ventilation"~"treat_oxygen_therapy",
              TRUE~treatment))%>%
     filter(treatment=="treat_oxygen_therapy")%>%
     arrange(desc(inoccur))%>%
-    distinct(usubjid, treatment, .keep_all =T)%>%select(usubjid,"treat_oxygen_therapy"=inoccur)
+    distinct(usubjid, .keep_all =T)%>%
+    select(usubjid,"treat_oxygen_therapy"=inoccur)
   
   
   ###adding duration for inasive_ventilation and non_invasive_ventilation
@@ -925,6 +927,7 @@ process.treatment.icu.data <- function(file.name,imp_icu,imp_dm,imp_ds, minimum=
                                  treatment=="invasive_ventilation" |
                                  treatment=="mask_oxygen_therapy" |
                                  treatment=="nasal_oxygen_therapy" |
+                                 treatment=="oxygen_therapy"|
                                  treatment=="non_invasive_ventilation"~"treat_oxygen_therapy",
                                TRUE~treatment))%>%
     filter(treatment=="treat_oxygen_therapy")%>%
