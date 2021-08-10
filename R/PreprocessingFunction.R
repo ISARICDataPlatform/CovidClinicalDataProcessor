@@ -47,43 +47,9 @@ data.preprocessing <- function(input.tbl){
         symptoms_runny_nose==TRUE|
         symptoms_ear_pain==TRUE~TRUE,
       TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
-    #create loss_of_taste_smell combining several symptoms
-    mutate(symptrcd_loss_of_taste_smell=NA)%>%
-    mutate(symptrcd_loss_of_taste_smell=case_when(
-      symptoms_loss_of_smell==FALSE|
-        #symptoms_loss_of_smell_taste==FALSE|
-        symptoms_loss_of_taste==FALSE~FALSE,
-      TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
-    mutate(symptrcd_loss_of_taste_smell=case_when(
-      symptoms_loss_of_smell==TRUE|
-        #symptoms_loss_of_smell_taste==TRUE|
-        symptoms_loss_of_taste==TRUE~TRUE,
-      TRUE~symptrcd_upper_respiratory_tract_symptoms))%>%
-    mutate(oxygen_therapy=FALSE)%>%
-    mutate(oxygen_therapy=case_when(
-      treat_high_flow_nasal_cannula==TRUE|
-        treat_nasal_mask_oxygen_therapy==TRUE|
-        treat_non_invasive_ventilation==TRUE|
-        treat_invasive_ventilation==TRUE
-      ~TRUE,
-      is.na(treat_high_flow_nasal_cannula) &
-        is.na(treat_nasal_mask_oxygen_therapy) &
-        is.na (treat_non_invasive_ventilation) &
-        is.na(treat_invasive_ventilation) ~
-        NA,
-      TRUE~oxygen_therapy))%>%
-    mutate(icu_oxygen_therapy=FALSE)%>%
-    mutate(icu_oxygen_therapy=case_when(
-      icu_treat_high_flow_nasal_cannula==TRUE|
-        icu_treat_nasal_mask_oxygen_therapy==TRUE|
-        icu_treat_non_invasive_ventilation==TRUE|
-        icu_treat_invasive_ventilation==TRUE~TRUE,
-      is.na(icu_treat_high_flow_nasal_cannula)&
-        is.na(icu_treat_nasal_mask_oxygen_therapy)&
-        is.na(icu_treat_non_invasive_ventilation)&
-        is.na(icu_treat_invasive_ventilation)~NA,
-      TRUE~icu_oxygen_therapy))%>%
-    #Removing variables with records UNK >95% (function: exclud.sympt.comorb.tret)#perhaps to be removed from here and to be added when preparing the aggregated table
+    mutate(oxygen_therapy=treat_oxygen_therapy)%>%
+    mutate(icu_oxygen_therapy=icu_treat_oxygen_therapy)%>%
+        #Removing variables with records UNK >95% (function: exclud.sympt.comorb.tret)#perhaps to be removed from here and to be added when preparing the aggregated table
     #select(-c(all_of(rmv)))%>%
     #Setting_up dates as date
     mutate_at(vars(all_of(var_date)), function(x){as_date(x)})%>%
@@ -145,9 +111,6 @@ data.preprocessing <- function(input.tbl){
                               TRUE~ NA_real_))%>%
     ##completing t_ad_imv 
     mutate(t_ad_imv=as.numeric(t_ad_imv))%>%
-    mutate(imv_at_adm=as.numeric(imv_at_adm))%>%
-    mutate(t_ad_imv=case_when(is.na(t_ad_imv)~imv_at_adm,
-                              TRUE~t_ad_imv))%>%
     #deleting implausible respiratory rates based on age
     mutate(vs_resp=case_when(vs_resp<= 3 ~ NA_real_,
                              vs_resp<=5 & age < 10 ~ NA_real_ ,

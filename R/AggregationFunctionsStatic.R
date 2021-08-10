@@ -1,49 +1,66 @@
-
+#' @keywords internal
+#' @export extract.age.boundaries.2
+extract.age.boundaries.2 <- function(agestring, lower = TRUE){
+  agestring <- as.character(agestring)
+  if(is.na(agestring)){
+    NA
+  } else if(agestring == "90+"){
+    if(lower){
+      90
+    } else {
+      119
+    }
+  } else if(lower){
+    as.numeric(str_split_fixed(agestring, "-", Inf)[1])
+  } else {
+    as.numeric(str_split_fixed(agestring, "-", Inf)[2]) - 1
+  }
+}
 
 #' Aggregate data for the summary and flowchart
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dtplyr dplyr tibble purrr
 #' @importFrom glue glue
 #' @return A \code{tibble} containing the input data for the summary and flowchart
-#' @export summary.input.prep
+#' @export summary.prep
 #' 
 summary.input.prep<- function(input.tbl){
   input.tbl%>%
     select(siteid_final,
-         starts_with("slider_"),
-         age,
-         date_admit,
-         cov_det_id,
-         dur_ho,
-         dur_icu,
-         t_ad_icu,
-         t_son_ad,
-         outcome,
-         #slider_outcome,
-         #slider_icu_ever,
-         oxygen_therapy,
-         icu_oxygen_therapy,
-         treat_high_flow_nasal_cannula,
-         treat_non_invasive_ventilation,
-         treat_invasive_ventilation,
-         treat_antibiotic_agents,
-         treat_antiviral_agents,
-         treat_corticosteroids,
-         vs_oxysat,
-         vs_oxysat_oxygen_therapy,
-         vs_oxysat_room_air,
-         vs_oxysat_unknown,
-         icu_treat_antibiotic_agents,
-         icu_treat_antiviral_agents,
-         icu_treat_non_invasive_ventilation,
-         icu_treat_invasive_ventilation,
-         icu_treat_high_flow_nasal_cannula,
-         t_ad_niv,
-         t_ad_imv,
-         dur_niv,
-         dur_imv,
-         income,
-         clin_diag_covid_19)
+           starts_with("slider_"),
+           age,
+           date_admit,
+           cov_det_id,
+           dur_ho,
+           dur_icu,
+           t_ad_icu,
+           t_son_ad,
+           outcome,
+           #slider_outcome,
+           #slider_icu_ever,
+           oxygen_therapy,
+           icu_oxygen_therapy,
+           treat_high_flow_nasal_cannula,
+           treat_non_invasive_ventilation,
+           treat_invasive_ventilation,
+           treat_antibiotic_agents,
+           treat_antiviral_agents,
+           treat_corticosteroids,
+           vs_oxysat,
+           vs_oxysat_oxygen_therapy,
+           vs_oxysat_room_air,
+           vs_oxysat_unknown,
+           icu_treat_antibiotic_agents,
+           icu_treat_antiviral_agents,
+           icu_treat_non_invasive_ventilation,
+           icu_treat_invasive_ventilation,
+           icu_treat_high_flow_nasal_cannula,
+           t_ad_niv,
+           t_ad_imv,
+           dur_niv,
+           dur_imv,
+           income,
+           clin_diag_covid_19)
 }
 #' Data for the report summary
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -60,8 +77,29 @@ summary.input.overall.prep<- function(input.tbl){
              income,
              clin_diag_covid_19
     ))
-    
+  
 }
+
+#' Aggregate data for case enrolment over time by site
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr janitor
+#' @importFrom glue glue
+#' @importFrom data.table as.data.table
+#' @return A \code{tibble} containing the input data for the moving map
+#' @export patient.enrolment.site.time.map.prep
+
+
+patient.site.time.map.prep <- function(input.tbl){
+  
+  patient.site.time.map.input   <- input.tbl %>%
+    filter(!is.na(date_start) & !is.na(siteid_final))%>%
+    mutate(count=1)%>%
+    group_by(siteid_final,date_start)%>%
+    summarise(n_patients=sum(count,na.rm=T))
+  
+  
+}
+
 
 
 #' Data for the report summary
@@ -74,8 +112,8 @@ age.pyramid.prep <- function(input.tbl){
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    dplyr::select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
-    group_by(slider_sex, slider_outcome, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_agegp10, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    dplyr::select(slider_sex, slider_agegp10, slider_outcome) %>%
+    group_by(slider_sex, slider_outcome, slider_agegp10) %>%
     summarise(count = n()) %>%
     as_tibble() 
 }
@@ -94,8 +132,8 @@ outcome.admission.date.prep <- function(input.tbl){
     lazy_dt(immutable = TRUE) %>%
     mutate(year.epiweek.admit = factor(year.epiweek.admit, levels = epiweek.order)) %>%
     filter(!is.na(year.epiweek.admit) & !is.na(slider_outcome)) %>%
-    select(slider_sex, slider_agegp10, lower.age.bound, upper.age.bound, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, year.epiweek.admit, slider_outcome, slider_icu_ever) %>%
-    group_by(slider_sex, slider_outcome, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, year.epiweek.admit, slider_agegp10, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    select(calendar.year.admit, calendar.month.admit, year.epiweek.admit) %>%
+    group_by(slider_outcome) %>%
     summarise(count = n()) %>%
     as_tibble() 
 }
@@ -114,11 +152,11 @@ symptom.prevalence.prep <- function(input.tbl){
   
   symptom.prevalence.input <- input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
+    select(slider_agegp10, any_of(starts_with("symptoms")), lower.age.bound, upper.age.bound) %>%
     as.data.table() %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptom", values_to = "present") %>%
     lazy_dt(immutable = TRUE) %>%
-    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, symptom, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    group_by(slider_agegp10, symptom, lower.age.bound, upper.age.bound) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
     as_tibble()
   
@@ -150,7 +188,7 @@ symptom.prevalence.prep <- function(input.tbl){
 #' @export symptom.upset.prep
 symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
   
-
+  
   
   data2 <- input.tbl %>%
     select(usubjid, starts_with("symptoms"))
@@ -192,7 +230,7 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
     pivot_longer(2:(n.symp+1), names_to = "Condition", values_to = "Present") %>%#changed to symp
     filter(!is.na(Present))%>%
     distinct(usubjid, .keep_all =T)%>%select(usubjid)
-    
+  
   top.n.conditions.tbl <- patients_symp%>%left_join(input.tbl)%>%
     dplyr::select(usubjid, matches(most.common)) %>%
     pivot_longer(2:(length(most.common)+1), names_to = "Condition", values_to = "Present") %>%
@@ -217,16 +255,8 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
       paste(sort(cp), collapse = "-")
     })) %>%
     select(-conditions.present) %>%
-    group_by(condstring,
-             slider_sex, 
-             slider_country,
-             slider_icu_ever,
-             slider_outcome,
-             slider_monthyear,
-             slider_agegp10,
-             lower.age.bound,
-             upper.age.bound
-             ) %>% 
+    group_by(condstring
+    ) %>% 
     summarise(count = n()) %>%
     ungroup() %>%
     mutate(which.present = map(condstring, function(x){
@@ -243,26 +273,6 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
   
 }
 
-
-#' Aggregate data for case enrolment over time by site
-#' @param input.tbl Input tibble (output of \code{data.preprocessing})
-#' @import dtplyr dplyr janitor
-#' @importFrom glue glue
-#' @importFrom data.table as.data.table
-#' @return A \code{tibble} containing the input data for the moving map
-#' @export patient.site.time.map.prep
-
-
-patient.site.time.map.prep <- function(input.tbl){
-  
-  patient.site.time.map.input   <- input.tbl %>%
-    filter(!is.na(date_start) & !is.na(siteid_final))%>%
-    mutate(count=1)%>%
-    group_by(siteid_final,date_start)%>%
-    summarise(n_patients=sum(count,na.rm=T))
-
-  
-}
 
 
 #' Aggregate data for comorbidity prevalence plot
@@ -282,7 +292,7 @@ comorbidity.prevalence.prep <- function(input.tbl){
     as.data.table() %>%
     pivot_longer(any_of(starts_with("comorb")), names_to = "comorbidity", values_to = "present") %>%
     lazy_dt(immutable = TRUE) %>%
-    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, comorbidity, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    group_by(slider_agegp10, comorbidity, lower.age.bound, upper.age.bound) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)))%>%
     filter(comorbidity!="comorbid_other_comorbidities")%>%
     as.data.frame()
@@ -305,28 +315,6 @@ comorbidity.prevalence.prep <- function(input.tbl){
     as_tibble()
   
 }
-
-#' @keywords internal
-#' @export extract.age.boundaries.2
-extract.age.boundaries.2 <- function(agestring, lower = TRUE){
-  agestring <- as.character(agestring)
-  if(is.na(agestring)){
-    NA
-  } else if(agestring == "90+"){
-    if(lower){
-      90
-    } else {
-      119
-    }
-  } else if(lower){
-    as.numeric(str_split_fixed(agestring, "-", Inf)[1])
-  } else {
-    as.numeric(str_split_fixed(agestring, "-", Inf)[2]) - 1
-  }
-}
-
-
-
 
 
 #' Aggregate data for comorbidities upset plot
@@ -400,15 +388,7 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
       paste(sort(cp), collapse = "-")
     })) %>%
     select(-conditions.present) %>%
-    group_by(condstring, 
-             slider_sex, 
-             slider_country,
-             slider_icu_ever,
-             slider_outcome,
-             slider_monthyear,
-             slider_agegp10,
-             lower.age.bound,
-             upper.age.bound) %>% 
+    group_by(condstring) %>% 
     summarise(count = n()) %>%
     ungroup() %>%
     mutate(which.present = map(condstring, function(x){
@@ -444,11 +424,11 @@ treatment.use.proportion.prep <- function(input.tbl){
                                    treat_agents_acting_on_the_renin_angiotensin_system))
   
   treatment.use.proportion.input <- input.tbl %>%
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("treat")), lower.age.bound, upper.age.bound) %>%
+    select(any_of(starts_with("treat"))) %>%
     as.data.table() %>%
     pivot_longer(any_of(starts_with("treat")), names_to = "treatment", values_to = "present") %>%
     lazy_dt(immutable = TRUE) %>%
-    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, treatment, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    group_by(treatment) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
     as_tibble()
   
@@ -478,13 +458,13 @@ treatment.use.proportion.prep <- function(input.tbl){
 #' @export treatment.upset.prep
 treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   
- input.tbl<-input.tbl%>%select(-c(treat_pacing, 
-                                                                    #treat_mechanical_support, 
-                                                                    treat_immunostimulants, 
-                                                                    treat_antiinflammatory, 
-                                                                    treat_other_interventions,
-                                                                    treat_antimalarial_agents,
-                                                                    treat_agents_acting_on_the_renin_angiotensin_system))
+  input.tbl<-input.tbl%>%select(-c(treat_pacing, 
+                                   #treat_mechanical_support, 
+                                   treat_immunostimulants, 
+                                   treat_antiinflammatory, 
+                                   treat_other_interventions,
+                                   treat_antimalarial_agents,
+                                   treat_agents_acting_on_the_renin_angiotensin_system))
   data2 <- input.tbl %>%
     select(usubjid, starts_with("treat"))
   
@@ -519,7 +499,7 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
     filter(!is.na(Present))%>%
     distinct(usubjid, .keep_all =T)%>%select(usubjid)
   
-
+  
   top.n.treatments.tbl <- patients%>%left_join(input.tbl)%>%
     dplyr::select(usubjid,starts_with("treat"))%>%
     dplyr::select(usubjid, matches(most.common)) %>%
@@ -543,15 +523,7 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
       paste(sort(cp), collapse = "-")
     })) %>%
     select(-treatments.present) %>%
-    group_by(condstring, 
-             slider_sex, 
-             slider_country,
-             slider_icu_ever,
-             slider_outcome,
-             slider_monthyear,
-             slider_agegp10,
-             lower.age.bound,
-             upper.age.bound) %>% 
+    group_by(condstring) %>% 
     summarise(count = n()) %>%
     ungroup() %>%
     mutate(which.present = map(condstring, function(x){
@@ -580,13 +552,13 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
 
 
 icu.treatment.use.proportion.prep <- function(input.tbl){
- 
+  
   icu.treatment.use.proportion.input <- input.tbl %>%
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("icu_treat")), lower.age.bound, upper.age.bound) %>%
     as.data.table() %>%
     pivot_longer(any_of(starts_with("icu_treat")), names_to = "treatment", values_to = "present") %>%
     lazy_dt(immutable = TRUE) %>%
-    group_by(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, treatment, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    group_by(treatment) %>%
     summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present))) %>%
     as_tibble()
   
@@ -677,15 +649,7 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
       paste(sort(cp), collapse = "-")
     })) %>%
     select(-treatments.present) %>%
-    group_by(condstring, 
-             slider_sex, 
-             slider_country,
-             slider_icu_ever,
-             slider_outcome,
-             slider_monthyear,
-             slider_agegp10,
-             lower.age.bound,
-             upper.age.bound) %>% 
+    group_by(condstring) %>% 
     summarise(count = n()) %>%
     ungroup() %>%
     mutate(which.present = map(condstring, function(x){
@@ -704,190 +668,12 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
 
 
 
-       
-
-#' Aggregate data for hospital stay plot by sex
-#' @param input.tbl Input tibble (output of \code{data.preprocessing})
-#' @import dtplyr dplyr tibble purrr
-#' @importFrom glue glue
-#' @return A \code{tibble} containing the input data for the hospital stay plot by sex
-#' @export length.of.stay.sex.prep
-length.of.stay.sex.prep <- function(input.tbl){
-  
-  input.tbl %>%
-    mutate(dur_ho=as.numeric(dur_ho))%>%
-    mutate(dur_ho=case_when(dur_ho>89~NA_real_,
-                            TRUE~dur_ho))%>%
-    lazy_dt(immutable = TRUE) %>%
-    #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
-    mutate(length.of.stay=dur_ho) %>% 
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, length.of.stay) %>%
-    mutate(sex=slider_sex) %>% 
-    mutate(sex=factor(sex,levels = c("Male", "Female")))  %>%  
-    filter(!is.na(length.of.stay)) %>% 
-    filter(!is.na(sex)) %>% 
-    as_tibble() 
-}
-
-
-#' Aggregate data for hospital stay plot by age 
-#' @param input.tbl Input tibble (output of \code{data.preprocessing})
-#' @import dtplyr dplyr tibble purrr
-#' @importFrom glue glue
-#' @return A \code{tibble} containing the input data for the hospital stay plot by age
-#' @export length.of.stay.age.prep
-length.of.stay.age.prep <- function(input.tbl){
-  
-  input.tbl %>%
-    mutate(dur_ho=as.numeric(dur_ho))%>%
-    mutate(dur_ho=case_when(dur_ho>89~NA_real_,
-                            TRUE~dur_ho))%>%
-    lazy_dt(immutable = TRUE) %>%
-    #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
-    mutate(length.of.stay=dur_ho) %>% 
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, length.of.stay) %>%
-    mutate(agegp10=as.character(slider_agegp10)) %>% 
-    mutate(agegp10=ifelse(agegp10 %in% c("70-79","80-89","90+"), "70+", agegp10)) %>% 
-    filter(!is.na(length.of.stay)) %>% 
-    filter(!is.na(agegp10)) %>% 
-    as_tibble() 
-}
-
-#' Aggregate data for hospital admission to ICU admission
-#' @param input.tbl Input tibble (output of \code{data.preprocessing})
-#' @import dtplyr dplyr tibble purrr
-#' @importFrom glue glue
-#' @return A \code{tibble} containing the input data for the hospital admission to ICU plot
-#' @export admission.to.icu.prep
-admission.to.icu.prep <- function(input.tbl){
-  
-  input.tbl %>%
-    mutate(t_ad_icu=as.numeric(t_ad_icu))%>%
-    mutate(t_ad_icu=case_when(t_ad_icu>89~NA_real_,
-                            TRUE~t_ad_icu))%>%
-    lazy_dt(immutable = TRUE) %>%
-    mutate(admission.to.icu=t_ad_icu) %>% 
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever, admission.to.icu) %>%
-    filter(!is.na(admission.to.icu)) %>% 
-    filter(admission.to.icu >= 0) %>% 
-    as_tibble() 
-}
-
-#' Aggregate data for timeline plot
-#' @param input.tbl Input tibble (output of \code{data.preprocessing})
-#' @import dtplyr dplyr tibble purrr
-#' @importFrom glue glue
-#' @return A \code{tibble} containing the input data for the timeline plot
-#' @export status.by.time.after.admission.prep
-status.by.time.after.admission.prep <- function(input.tbl){
-  
-  timings.wrangle <- input.tbl %>% 
-    filter(!is.na(date_start)) %>% 
-    select(usubjid, date_start, icu_in, icu_out, dur_icu, dur_ho, t_ad_icu, date_outcome, date_last, slider_outcome) %>% 
-    mutate(subjid=usubjid,
-           final.status= ifelse(slider_outcome %in% c("LTFU","Ongoing care"), "unknown", slider_outcome),
-           hospital.start = 0,
-           hospital.end=date_outcome-date_start,
-           ICU.start = icu_in-date_start,
-           ICU.end= icu_out-date_start, 
-           last_date=date_last-date_start) %>% 
-    filter(icu_in>=date_start|is.na(icu_in)) %>% 
-    filter(hospital.end >= 0 | is.na(hospital.end))  %>%
-    mutate(ever.ICU = !is.na(ICU.start)) %>%
-    # If hospital end is known but ICU end is not, impossible to resolve
-    filter(!(!is.na(hospital.end) & is.na(ICU.end) & ever.ICU)) %>%
-    mutate(last.date = pmax(hospital.end, ICU.end, last_date, na.rm = T))%>%
-    filter(last.date>=0) 
-  
-  overall.start <- 0
-  overall.end <- quantile(timings.wrangle$hospital.end, 0.975, na.rm = T)
- 
-   # this generates a table of the status of every patient on every day
-  complete.timeline <- map(1:nrow(timings.wrangle), function(pat.no){  
-    times <- map(overall.start:overall.end, function(day){
-      if(!timings.wrangle$ever.ICU[pat.no]){  #no icu
-        if(is.na(timings.wrangle$hospital.end[pat.no])){
-          # this happens with an exit code but no exit date. We don't know what happened after admission
-          "unknown"
-        } else {
-          if(day <= timings.wrangle$hospital.end[pat.no]){
-            "Ward"
-          } else {
-            as.character(timings.wrangle$final.status[pat.no])
-          }
-        }
-      } else {  #had icu
-        if(is.na(timings.wrangle$hospital.end[pat.no])){
-          # this happens with an exit code but no exit date. We don't know what happened after admission
-          if(day <= timings.wrangle$ICU.start[pat.no]){
-            "Ward"
-          } else if(!is.na(timings.wrangle$ICU.end[pat.no]) & day <= timings.wrangle$ICU.end[pat.no]){
-            "ICU"
-          } else {
-            "unknown"
-          }
-        }else {
-           if(day <= timings.wrangle$hospital.end[pat.no]){
-            if(day <= timings.wrangle$ICU.start[pat.no]) {
-              "Ward"
-            } else if(is.na(timings.wrangle$ICU.end[pat.no]) | day <= timings.wrangle$ICU.end[pat.no]) {
-              "ICU"
-            } else {
-              "Ward"
-            }
-          } else {
-            as.character(timings.wrangle$final.status[pat.no])
-          }
-          }
-        }
-    })
-    names(times) <- glue::glue("day_{overall.start:overall.end}")
-    times$subjid <- timings.wrangle$subjid[pat.no]
-    times
-  }) %>%
-    bind_rows()
-  
-  n.days <- ncol(complete.timeline) - 1
-  
-  complete.timeline.2 <- complete.timeline %>%
-    pivot_longer(all_of(1:n.days), names_to = "day", values_to = "status") %>%
-    dplyr::select(subjid, day, status) %>%
-    dplyr::mutate(day = map_dbl(day, function(x) as.numeric(str_split_fixed(x, "_", 2)[2]))) %>%     
-    dplyr::mutate(status = factor(status, levels = c("Discharge", "unknown", "Ward", "ICU", "Death"))) %>%
-    ungroup() 
-  
-  #adding slider variables
-  slider <-  input.tbl %>%
-    select(usubjid, slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
-    mutate(subjid=usubjid) %>% 
-    select(-usubjid)
-  
-  final_dt <- complete.timeline.2 %>% 
-    left_join(slider, by="subjid") %>% 
-    group_by(day,
-             status,
-             slider_sex,
-             slider_agegp10,
-             slider_country,
-             slider_monthyear,
-             slider_outcome,
-             slider_icu_ever,
-             lower.age.bound, 
-             upper.age.bound) %>%
-    summarise(count = n()) %>%
-    as_tibble()
-  
-  final_dt
-}
-
-
 #' Prepare Table1. Patient characteristics
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
-#' @export patient.characteristic.prep
-#' #' 
-
+#' @export patient.characteristic.table
+#' 
 patient.characteristic.prep <- function(input.tbl){
   
   tot=nrow(input.tbl)  
@@ -916,8 +702,8 @@ patient.characteristic.prep <- function(input.tbl){
     full_join(Description)%>%
     mutate(value=replace(value,is.na(value),"0 (0)"))%>%
     arrange(Description, levels=c('Female',
-                                        'Male',
-                                        'Unknown'))
+                                  'Male',
+                                  'Unknown'))
   
   Description<-c(
     'Death',
@@ -935,12 +721,12 @@ patient.characteristic.prep <- function(input.tbl){
     mutate(value=round(n/tot,digit=2))%>%
     mutate(value=paste0(n," (",value, ")"))%>%
     select(Description,value)#%>%
-    #full_join(Description)%>%
-    #mutate(value=replace(value,is.na(value),"0 (0)"))%>%
+  #full_join(Description)%>%
+  #mutate(value=replace(value,is.na(value),"0 (0)"))%>%
   #arrange(Description, levels=c('Death',
-   #                             'Discharge',
-    #                            #'Ongoing care',
-     #                           'LTFU'))
+  #                             'Discharge',
+  #                            #'Ongoing care',
+  #                           'LTFU'))
   
   
   Description<-c(
@@ -974,16 +760,16 @@ patient.characteristic.prep <- function(input.tbl){
     full_join(Description)%>%
     mutate(value=replace(value,is.na(value),"0 (0)"))%>%
     arrange(Description, levels=c(
-                                  #'By age',
-                                  '0-9',
-                                  '10-19',
-                                  '20-29',
-                                  '30-39',
-                                  '40-49',
-                                  '50-59',
-                                  '60-69',
-                                  '70+' ,
-                                  'Unknown'))
+      #'By age',
+      '0-9',
+      '10-19',
+      '20-29',
+      '30-39',
+      '40-49',
+      '50-59',
+      '60-69',
+      '70+' ,
+      'Unknown'))
   
   Description<-c(
     'Yes',
@@ -1006,7 +792,7 @@ patient.characteristic.prep <- function(input.tbl){
     arrange(Description, levels=c('Yes',
                                   'No',
                                   'Unknown'))
-    
+  
   
   out<-rbind(size_cohort,
              c('By sex',''),by_sex,
@@ -1018,20 +804,18 @@ patient.characteristic.prep <- function(input.tbl){
 }
 
 
-
-
 #' Prepare Table2. Outcome by age and sex
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
-#' @export outcome.age.sex.prep
+#' @export outcome.age.sex.table
 #' 
 outcome.age.sex.prep <- function(input.tbl){
-
+  
   #slider_outcome<-c('Death', 'Discharge','Ongoing care', 'LTFU')
   slider_outcome<-c('Death', 'Discharge', 'LTFU')
   slider_outcome<-data.frame(slider_outcome)
-    
+  
   Variable<-c(
     'Female',
     'Male')
@@ -1078,8 +862,8 @@ outcome.age.sex.prep <- function(input.tbl){
     mutate("Case fatality ratio"=round(n/tot,digit=2))%>%
     select(Variable,"Case fatality ratio")
   sex<-sex%>%left_join(sex_cfr)
-    sex<-replace(sex,is.na(sex),as.character("0 (0)"))
- 
+  sex<-replace(sex,is.na(sex),as.character("0 (0)"))
+  
   
   Variable<-c(
     '0-9',
@@ -1153,14 +937,11 @@ outcome.age.sex.prep <- function(input.tbl){
   
 }
 
-
-
-
 #' Prepare Table3. symptoms
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
-#' @export symptoms.prep
+#' @export outcome.age.sex.table
 #' 
 #' 
 #' 
@@ -1215,13 +996,11 @@ symptoms.prep <- function(input.tbl){
   
 }
 
-
-
 #' Prepare Table4. comorbidities
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
-#' @export comorbidity.prep
+#' @export comorbidity.table
 #' 
 comorbidity.prep <- function(input.tbl){
   
@@ -1274,15 +1053,11 @@ comorbidity.prep <- function(input.tbl){
   
 }
 
-
-
-
-
 #' Prepare Table5. Prevalence of treatments
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
-#' @export treatments.prep
+#' @export treatments.table
 #' 
 treatments.prep <- function(input.tbl){
   
@@ -1341,14 +1116,11 @@ treatments.prep <- function(input.tbl){
   
 }
 
-
-
-
 #' Prepare Table6. key times variable
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @import dplyr purrr tidyr janitor
 #' @return A \code{tibble} containing the input data for the Patient characteristics table
-#' @export key.times.prep
+#' @export key.times.table
 #' 
 key.times.prep <- function(input.tbl){
   
@@ -1411,14 +1183,13 @@ key.times.prep <- function(input.tbl){
   
 }
 
-
 #' vital signs
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
 #' @return A \code{tibble} containing the input data for the vital sign tables plot
 
 #vs_resp
 func_plots_vs_resp <- function(input.tbl){
-  data_plot_vs_resp <- select(input.tbl, c(starts_with("slider"),vs_resp, upper.age.bound, lower.age.bound)) %>%
+  data_plot_vs_resp <- select(input.tbl, c(vs_resp, slider_agegp10,upper.age.bound, lower.age.bound)) %>%
     pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1427,7 +1198,7 @@ func_plots_vs_resp <- function(input.tbl){
 
 #vs_hr
 func_plots_vs_hr <- function(input.tbl){
-  data_plot_vs_hr <- select(input.tbl, c(starts_with("slider"),vs_hr, upper.age.bound, lower.age.bound)) %>%
+  data_plot_vs_hr <- select(input.tbl, c(vs_hr, slider_agegp10,)) %>%
     pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1436,7 +1207,7 @@ func_plots_vs_hr <- function(input.tbl){
 
 #vs_temp
 func_plots_vs_temp <- function(input.tbl){
-  data_plot_vs_temp <- select(input.tbl, c(starts_with("slider"),vs_temp, upper.age.bound, lower.age.bound)) %>%
+  data_plot_vs_temp <- select(input.tbl, c(vs_temp, slider_agegp10, upper.age.bound, lower.age.bound)) %>%
     pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1445,7 +1216,7 @@ func_plots_vs_temp <- function(input.tbl){
 
 #vs_sysbp
 func_plots_vs_sysbp <- function(input.tbl){
-  data_plot_vs_sysbp <- select(input.tbl, c(starts_with("slider"),vs_sysbp, upper.age.bound, lower.age.bound)) %>%
+  data_plot_vs_sysbp <- select(input.tbl, c(vs_sysbp, slider_agegp10,upper.age.bound, lower.age.bound)) %>%
     pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1453,7 +1224,7 @@ func_plots_vs_sysbp <- function(input.tbl){
 }
 #vs_oxysat
 func_plots_vs_oxysat <- function(input.tbl){
-  data_plot_vs_oxysat <- select(input.tbl, c(starts_with("slider"),vs_oxysat_room_air, upper.age.bound, lower.age.bound)) %>%
+  data_plot_vs_oxysat <- select(input.tbl, c(vs_oxysat_room_air, slider_agegp10,upper.age.bound, lower.age.bound)) %>%
     pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1462,7 +1233,7 @@ func_plots_vs_oxysat <- function(input.tbl){
 }
 #vs_oxysat_therapy
 func_plots_vs_oxysat_therapy <- function(input.tbl){
-  data_plot_vs_oxysat_therapy <- select(input.tbl, c(starts_with("slider"),vs_oxysat_oxygen_therapy, upper.age.bound, lower.age.bound)) %>%
+  data_plot_vs_oxysat_therapy <- select(input.tbl, c(vs_oxysat_oxygen_therapy, slider_agegp10,upper.age.bound, lower.age.bound)) %>%
     pivot_longer(starts_with("vs"), names_to = "symptom", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1470,7 +1241,7 @@ func_plots_vs_oxysat_therapy <- function(input.tbl){
   
 }
 
-
+#######For Jia
 
 #' Box and whisker plots for laboratory results at hospital presentation stratified by age group.
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -1478,7 +1249,7 @@ func_plots_vs_oxysat_therapy <- function(input.tbl){
 
 #crp
 func_plot_lab_crp <- function(input.tbl){
-  data_plot_lab_crp <- select(input.tbl, c(starts_with("slider"),lab_crp, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_crp <- select(input.tbl, slider_agegp10,lab_crp) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1489,7 +1260,7 @@ func_plot_lab_crp <- function(input.tbl){
 
 #lab_lym
 func_plot_lab_lym <- function(input.tbl){
-  data_plot_lab_lym <- select(input.tbl, c(starts_with("slider"),lab_lym, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_lym <- select(input.tbl,slider_agegp10,lab_lym) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1498,7 +1269,7 @@ func_plot_lab_lym <- function(input.tbl){
 
 #lab_neut
 func_plot_lab_neut <- function(input.tbl){
-  data_plot_lab_neut <- select(input.tbl, c(starts_with("slider"),lab_neut, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_neut <- select(input.tbl, slider_agegp10,lab_neut) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1507,7 +1278,7 @@ func_plot_lab_neut <- function(input.tbl){
 
 #lab_wbc
 func_plot_lab_crp <- function(input.tbl){
-  data_plot_lab_wbc <- select(input.tbl, c(starts_with("slider"),lab_wbc, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_wbc <- select(input.tbl,slider_agegp10,lab_wbc) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value)) %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1516,7 +1287,7 @@ func_plot_lab_crp <- function(input.tbl){
 
 #lab_urean
 func_plot_lab_urean  <- function(input.tbl){
-  data_plot_lab_urean <- select(input.tbl, c(starts_with("slider"),lab_urean, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_urean <- select(input.tbl, slider_agegp10,lab_urean) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1525,7 +1296,7 @@ func_plot_lab_urean  <- function(input.tbl){
 
 #lab_pt
 func_plot_lab_pt <- function(input.tbl){
-  data_plot_lab_pt <- select(input.tbl, c(starts_with("slider"),lab_pt, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_pt <- select(input.tbl, slider_agegp10,lab_pt) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1534,7 +1305,7 @@ func_plot_lab_pt <- function(input.tbl){
 
 #lab_alt
 func_plot_lab_alt <- function(input.tbl){
-  data_plot_lab_alt <- select(input.tbl, c(starts_with("slider"),lab_alt, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_alt <- select(input.tbl,slider_agegp10,lab_alt) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1543,7 +1314,7 @@ func_plot_lab_alt <- function(input.tbl){
 
 #lab_aptt
 func_plot_lab_aptt <- function(input.tbl){
-  data_plot_lab_aptt <- select(input.tbl, c(starts_with("slider"),lab_aptt, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_aptt <- select(input.tbl, slider_agegp10,lab_aptt) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1553,7 +1324,7 @@ func_plot_lab_aptt <- function(input.tbl){
 
 #lab_bili
 func_plot_lab_bili <- function(input.tbl){
-  data_plot_lab_bili <- select(input.tbl, c(starts_with("slider"),lab_bili, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_bili <- select(input.tbl, slider_agegp10,lab_bili) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1562,7 +1333,7 @@ func_plot_lab_bili <- function(input.tbl){
 
 #lab_ast
 func_plot_lab_ast <- function(input.tbl){
-  data_plot_lab_ast <- select(input.tbl, c(starts_with("slider"),lab_ast, upper.age.bound, lower.age.bound)) %>%
+  data_plot_lab_ast <- select(input.tbl, slider_agegp10,lab_ast) %>%
     pivot_longer(starts_with("lab"), names_to = "lab", values_to = "value") %>%
     filter(!is.na(value))  %>%
     filter(!is.na(slider_agegp10)) %>%
@@ -1577,7 +1348,7 @@ func_plot_lab_ast <- function(input.tbl){
 
 #comorbid_asthma
 func_plot_comorbid_asthma <- function(input.tbl){
-  data_plot_comorbid_asthma <- select(input.tbl, c(starts_with("slider"),comorbid_asthma, upper.age.bound, lower.age.bound)) %>%
+  data_plot_comorbid_asthma <- select(input.tbl, slider_agegp10,comorbid_asthma) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("comorbid"), names_to = "comorbid", values_to = "value") %>%
     as.data.frame()  
@@ -1586,7 +1357,7 @@ func_plot_comorbid_asthma <- function(input.tbl){
 
 #comorbid_malignant_neoplasm
 func_plot_comorbid_malignant_neoplasm <- function(input.tbl){
-  data_plot_comorbid_malignant_neoplasm <- select(input.tbl, c(starts_with("slider"),comorbid_malignant_neoplasm, upper.age.bound, lower.age.bound)) %>%
+  data_plot_comorbid_malignant_neoplasm <- select(input.tbl,slider_agegp10,comorbid_malignant_neoplasm) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("comorbid"), names_to = "comorbid", values_to = "value")  %>%
     as.data.frame() 
@@ -1595,7 +1366,7 @@ func_plot_comorbid_malignant_neoplasm <- function(input.tbl){
 
 #comorbid_obesity
 func_plot_comorbid_obesity <- function(input.tbl){
-  data_plot_comorbid_obesity <- select(input.tbl, c(starts_with("slider"),comorbid_obesity, upper.age.bound, lower.age.bound)) %>%
+  data_plot_comorbid_obesity <- select(input.tbl, slider_agegp10,comorbid_obesity) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("comorbid"), names_to = "comorbid", values_to = "value")  %>%
     as.data.frame() 
@@ -1604,7 +1375,7 @@ func_plot_comorbid_obesity <- function(input.tbl){
 
 #comorbid_diabetes
 func_plot_comorbid_diabetes <- function(input.tbl){
-  data_plot_comorbid_diabetes <- select(input.tbl, c(starts_with("slider"),comorbid_diabetes, upper.age.bound, lower.age.bound)) %>%
+  data_plot_comorbid_diabetes <- select(input.tbl, slider_agegp10,comorbid_diabetes) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("comorbid"), names_to = "comorbid", values_to = "value")  %>%
     as.data.frame() 
@@ -1613,7 +1384,7 @@ func_plot_comorbid_diabetes <- function(input.tbl){
 
 #comorbid_dementia
 func_plot_comorbid_dementia <- function(input.tbl){
-  data_plot_comorbid_dementia <- select(input.tbl, c(starts_with("slider"),comorbid_dementia, upper.age.bound, lower.age.bound)) %>%
+  data_plot_comorbid_dementia <- select(input.tbl, slider_agegp10,comorbid_dementia) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("comorbid"), names_to = "comorbid", values_to = "value")  %>%
     as.data.frame() 
@@ -1621,7 +1392,7 @@ func_plot_comorbid_dementia <- function(input.tbl){
 
 #comorbid_smoking
 func_plot_comorbid_smoking <- function(input.tbl){
-  data_plot_comorbid_smoking <- select(input.tbl, c(starts_with("slider"),comorbid_smoking, upper.age.bound, lower.age.bound)) %>%
+  data_plot_comorbid_smoking <- select(input.tbl, slider_agegp10, comorbid_smoking) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("comorbid"), names_to = "comorbid", values_to = "value")  %>%
     as.data.frame() 
@@ -1630,7 +1401,7 @@ func_plot_comorbid_smoking <- function(input.tbl){
 
 #comorbid_hypertension
 func_plot_comorbid_hypertension <- function(input.tbl){
-  data_plot_comorbid_hypertension <- select(input.tbl, c(starts_with("slider"),comorbid_hypertension, upper.age.bound, lower.age.bound)) %>%
+  data_plot_comorbid_hypertension <- select(input.tbl, slider_agegp10,comorbid_hypertension) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("comorbid"), names_to = "comorbid", values_to = "value") %>%
     as.data.frame()  
@@ -1644,7 +1415,7 @@ func_plot_comorbid_hypertension <- function(input.tbl){
 
 #symptoms_history_of_fever
 func_plot_symptoms_history_of_fever <- function(input.tbl){
-  data_plot_symptoms_history_of_fever <- select(input.tbl, c(starts_with("slider"),symptoms_history_of_fever, upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_history_of_fever <- select(input.tbl, slider_agegp10,symptoms_history_of_fever) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptoms", values_to = "value") %>%
     as.data.frame()   
@@ -1653,7 +1424,7 @@ func_plot_symptoms_history_of_fever <- function(input.tbl){
 
 #symptoms_cough
 func_plot_symptoms_cough <- function(input.tbl){
-  data_plot_symptoms_cough <- select(input.tbl, c(starts_with("slider"),symptoms_cough, upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_cough <- select(input.tbl, slider_agegp10,symptoms_cough) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptoms", values_to = "value")  %>%
     as.data.frame()  
@@ -1662,8 +1433,7 @@ func_plot_symptoms_cough <- function(input.tbl){
 
 #symptoms_cough_fever
 func_plot_symptoms_cough_fever <- function(input.tbl){
-  data_plot_symptoms_cough_fever <- select(input.tbl, c(starts_with("slider"),symptoms_history_of_fever,symptoms_cough,
-                                                        upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_cough_fever <- select(input.tbl, slider_agegp10,symptoms_history_of_fever) %>%
     filter(!is.na(slider_agegp10)) %>%
     unite(col = "symptoms_cough_fever",c(symptoms_history_of_fever,symptoms_cough),sep = "_",remove = FALSE,na.rm = FALSE) %>%
     filter(symptoms_cough_fever != "NA_NA") %>%
@@ -1676,7 +1446,7 @@ func_plot_symptoms_cough_fever <- function(input.tbl){
 
 #symptoms_shortness_of_breath
 func_plot_symptoms_shortness_of_breath <- function(input.tbl){
-  data_plot_symptoms_shortness_of_breath <- select(input.tbl, c(starts_with("slider"),symptoms_shortness_of_breath, upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_shortness_of_breath <- select(input.tbl, slider_agegp10,symptoms_shortness_of_breath) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptoms", values_to = "value")  %>%
     as.data.frame()  
@@ -1686,8 +1456,8 @@ func_plot_symptoms_shortness_of_breath <- function(input.tbl){
 #symptoms_cought_fever_shortness_of_breath
 func_plot_symptoms_cought_fever_shortness_of_breath <- function(input.tbl){
   data_plot_symptoms_cought_fever_shortness_of_breath <- select(input.tbl, 
-                                                                c(starts_with("slider"),symptoms_cough,symptoms_history_of_fever,
-                                                                  symptoms_shortness_of_breath,upper.age.bound, lower.age.bound)) %>%
+                                                                slider_agegp10,symptoms_cough,symptoms_history_of_fever,
+                                                                  symptoms_shortness_of_breath) %>%
     filter(!is.na(slider_agegp10)) %>%
     unite(col = "symptoms_cough_fever_sob",c(symptoms_history_of_fever,symptoms_cough,symptoms_shortness_of_breath),
           sep = "_",remove = FALSE,na.rm = FALSE) %>%
@@ -1705,9 +1475,8 @@ func_plot_symptoms_cought_fever_shortness_of_breath <- function(input.tbl){
 
 #symptoms_upper_respiratory_tract_symptoms 
 func_plot_symptoms_upper_respiratory_tract_symptoms <- function(input.tbl){
-  data_plot_symptoms_upper_respiratory_tract_symptoms <- select(input.tbl, c(starts_with("slider"),
-                                                                             symptoms_sore_throat,symptoms_runny_nose,symptoms_ear_pain,
-                                                                             upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_upper_respiratory_tract_symptoms <- select(input.tbl,slider_agegp10,
+                                                                             symptoms_sore_throat,symptoms_runny_nose,symptoms_ear_pain) %>%
     filter(!is.na(slider_agegp10)) %>%
     unite(col = "symptoms_upper_respiratory_tract_symptoms",c(symptoms_sore_throat,symptoms_runny_nose,symptoms_ear_pain),
           sep = "_",remove = FALSE,na.rm = FALSE) %>%
@@ -1725,7 +1494,7 @@ func_plot_symptoms_upper_respiratory_tract_symptoms <- function(input.tbl){
 
 #symptoms_altered_consciousness_confusion
 func_plot_symptoms_altered_consciousness_confusion <- function(input.tbl){
-  data_plot_symptoms_altered_consciousness_confusion <- select(input.tbl, c(starts_with("slider"),symptoms_altered_consciousness_confusion, upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_altered_consciousness_confusion <- select(input.tbl,slider_agegp10,symptoms_altered_consciousness_confusion) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptoms", values_to = "value")  %>%
     as.data.frame()  
@@ -1734,8 +1503,8 @@ func_plot_symptoms_altered_consciousness_confusion <- function(input.tbl){
 
 #symptoms_constitutional
 func_plot_symptoms_constitutional <- function(input.tbl){
-  data_plot_symptoms_constitutional <- select(input.tbl,c(starts_with("slider"),symptoms_muscle_aches_joint_pain,symptoms_fatigue_malaise,
-                                                          symptoms_headache,upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_constitutional <- select(input.tbl,slider_agegp10,symptoms_muscle_aches_joint_pain,symptoms_fatigue_malaise,
+                                                          symptoms_headache) %>%
     filter(!is.na(slider_agegp10)) %>%
     unite(col = "symptoms_constitutional",c(symptoms_muscle_aches_joint_pain,symptoms_fatigue_malaise,symptoms_headache),
           sep = "_",remove = FALSE,na.rm = FALSE) %>%
@@ -1753,7 +1522,7 @@ func_plot_symptoms_constitutional <- function(input.tbl){
 
 #symptoms_vomiting_nausea
 func_plot_symptoms_vomiting_nausea <- function(input.tbl){
-  data_plot_symptoms_vomiting_nausea <- select(input.tbl, c(starts_with("slider"),symptoms_vomiting_nausea, upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_vomiting_nausea <- select(input.tbl, slider_agegp10,symptoms_vomiting_nausea) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptoms", values_to = "value") %>%
     as.data.frame()   
@@ -1762,7 +1531,7 @@ func_plot_symptoms_vomiting_nausea <- function(input.tbl){
 
 #symptoms_diarrhoea
 func_plot_symptoms_diarrhoea <- function(input.tbl){
-  data_plot_symptoms_diarrhoea <- select(input.tbl, c(starts_with("slider"),symptoms_diarrhoea, upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_diarrhoea <- select(input.tbl,slider_agegp10,symptoms_diarrhoea) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptoms", values_to = "value")  %>%
     as.data.frame()  
@@ -1771,7 +1540,7 @@ func_plot_symptoms_diarrhoea <- function(input.tbl){
 
 #symptoms_abdominal_pain
 func_plot_symptoms_abdominal_pain <- function(input.tbl){
-  data_plot_symptoms_abdominal_pain <- select(input.tbl, c(starts_with("slider"),symptoms_abdominal_pain, upper.age.bound, lower.age.bound)) %>%
+  data_plot_symptoms_abdominal_pain <- select(input.tbl, slider_agegp10,symptoms_abdominal_pain) %>%
     filter(!is.na(slider_agegp10)) %>%
     pivot_longer(starts_with("symptoms"), names_to = "symptoms", values_to = "value")  %>%
     as.data.frame()  
@@ -1935,7 +1704,7 @@ length.of.stay.icu.prep <- function(input.tbl){
                             TRUE~dur_ho))%>%
     lazy_dt(immutable = TRUE) %>%
     #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever,dur_ho) %>% 
+    select(slider_icu_ever,dur_ho) %>% 
     filter(dur_ho>0) %>% 
     rename(dur=dur_ho) %>% 
     mutate(type=1) %>% 
@@ -1943,10 +1712,10 @@ length.of.stay.icu.prep <- function(input.tbl){
   tb2 <- input.tbl %>%
     mutate(dur_icu=as.numeric(dur_icu))%>%
     mutate(dur_icu=case_when(dur_icu>89~NA_real_,
-                            TRUE~dur_icu))%>%
+                             TRUE~dur_icu))%>%
     lazy_dt(immutable = TRUE) %>%
     #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever,dur_icu) %>% 
+    select(slider_icu_ever,dur_icu) %>% 
     filter(dur_icu>0) %>% 
     rename(dur=dur_icu) %>% 
     mutate(type=2) %>% 
@@ -1970,7 +1739,7 @@ patient.by.country.prep <- function(input.tbl){
   
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
-    select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, lower.age.bound, upper.age.bound, slider_icu_ever) %>%
+    select(slider_country) %>%
     filter(!is.na(slider_country)) %>% 
     as_tibble() 
 }
@@ -2015,34 +1784,197 @@ patient.by.case.def.prep <- function(input.tbl){
   input.tbl$symptoms_ECDC <- NA
   input.tbl[which(input.tbl$symptoms_cough == TRUE | input.tbl$symptoms_history_of_fever == TRUE |
                     input.tbl$symptoms_shortness_of_breath == TRUE | input.tbl$symptoms_lost_altered_sense_of_smell == TRUE | 
-               input.tbl$symptoms_lost_altered_sense_of_taste == TRUE),]$symptoms_ECDC <- TRUE
+                    input.tbl$symptoms_lost_altered_sense_of_taste == TRUE),]$symptoms_ECDC <- TRUE
   #input.tbl$slider_agegp10 <- cut(input.tbl$age, c(0, seq(20, 100, by = 10), 120), right = FALSE, include.lowest = TRUE)
   input.tbl$sars_cov2 <- as.character(input.tbl$cov_id_sarscov2 == "POSITIVE" | input.tbl$cov_det_sarscov2 == "POSITIVE")
   input.tbl[is.na(input.tbl$sars_cov2),]$sars_cov2 <- "Unknown"
   input.tbl$sars_cov2 <- factor(input.tbl$sars_cov2, labels = c("Positive", "Unknown"))
-symptoms_long <- input.tbl[,c("symptoms_WHO", "symptoms_CDC", "symptoms_PHE", "symptoms_ECDC","date_admit", "slider_country", "slider_agegp10", "sars_cov2")] %>% 
-  pivot_longer(cols = -c(date_admit,slider_country,slider_agegp10, sars_cov2), names_to = "symptom", values_to = "value")
-symptoms_long$value <- factor(symptoms_long$value, levels = c("TRUE", "FALSE"), labels = c("Yes", "No"))
-# change symptom labels
-symptoms_long$symptom <- paste(toupper(substring(gsub("_", " ", gsub("symptoms_", "", symptoms_long$symptom)), 1, 1)), 
-                               substring(gsub("_", " ", gsub("symptoms_", "", symptoms_long$symptom)), 2), sep = "")
+  symptoms_long <- input.tbl[,c("symptoms_WHO", "symptoms_CDC", "symptoms_PHE", "symptoms_ECDC","date_admit", "slider_country", "slider_agegp10", "sars_cov2")] %>% 
+    pivot_longer(cols = -c(date_admit,slider_country,slider_agegp10, sars_cov2), names_to = "symptom", values_to = "value")
+  symptoms_long$value <- factor(symptoms_long$value, levels = c("TRUE", "FALSE"), labels = c("Yes", "No"))
+  # change symptom labels
+  symptoms_long$symptom <- paste(toupper(substring(gsub("_", " ", gsub("symptoms_", "", symptoms_long$symptom)), 1, 1)), 
+                                 substring(gsub("_", " ", gsub("symptoms_", "", symptoms_long$symptom)), 2), sep = "")
+  
+  
+  symptoms_long <- symptoms_long %>%
+    filter(!is.na(slider_agegp10)) %>%
+    mutate(delete_sa = ifelse((slider_country == "South Africa")&(date_admit > "2020-07-01"),1,0))%>%
+    filter(delete_sa ==0)%>%
+    select(slider_agegp10,symptom,value)%>%
+    mutate(count_yes = ifelse(value=="Yes",1,NA))%>%
+    mutate(count_yes = ifelse(is.na(value), 0, value))%>%
+    mutate(count_all = 1)%>%
+    group_by(slider_agegp10,symptom)%>%
+    mutate(total = sum(count_all))%>%
+    mutate(present = sum(count_yes))%>%
+    mutate(proportion = present/total)%>%
+    select(slider_agegp10, symptom, proportion)%>%
+    distinct()
+  
+  
+}
 
 
-symptoms_long <- symptoms_long %>%
-  filter(!is.na(slider_agegp10)) %>%
-  mutate(delete_sa = ifelse((slider_country == "South Africa")&(date_admit > "2020-07-01"),1,0))%>%
-  filter(delete_sa ==0)%>%
-  select(slider_agegp10,symptom,value)%>%
-  mutate(count_yes = ifelse(value=="Yes",1,NA))%>%
-  mutate(count_yes = ifelse(is.na(value), 0, value))%>%
-  mutate(count_all = 1)%>%
-  group_by(slider_agegp10,symptom)%>%
-  mutate(total = sum(count_all))%>%
-  mutate(present = sum(count_yes))%>%
-  mutate(proportion = present/total)%>%
-  select(slider_agegp10, symptom, proportion)%>%
-  distinct()
 
 
+#' Aggregate data for hospital stay plot by sex
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the hospital stay plot by sex
+#' @export length.of.stay.sex.prep
+length.of.stay.sex.prep <- function(input.tbl){
+  
+  input.tbl %>%
+    mutate(dur_ho=as.numeric(dur_ho))%>%
+    mutate(dur_ho=case_when(dur_ho>89~NA_real_,
+                            TRUE~dur_ho))%>%
+    lazy_dt(immutable = TRUE) %>%
+    #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
+    mutate(length.of.stay=dur_ho) %>% 
+    select(slider_sex,length.of.stay) %>%
+    mutate(sex=slider_sex) %>% 
+    mutate(sex=factor(sex,levels = c("Male", "Female")))  %>%  
+    filter(!is.na(length.of.stay)) %>% 
+    filter(!is.na(sex)) %>% 
+    as_tibble() 
+}
+
+
+#' Aggregate data for hospital stay plot by age 
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the hospital stay plot by age
+#' @export length.of.stay.age.prep
+length.of.stay.age.prep <- function(input.tbl){
+  
+  input.tbl %>%
+    mutate(dur_ho=as.numeric(dur_ho))%>%
+    mutate(dur_ho=case_when(dur_ho>89~NA_real_,
+                            TRUE~dur_ho))%>%
+    lazy_dt(immutable = TRUE) %>%
+    #filter(embargo_length!=TRUE & cov_det_id=="POSITIVE") %>% 
+    mutate(length.of.stay=dur_ho) %>% 
+    select(slider_agegp10,length.of.stay) %>%
+    mutate(agegp10=as.character(slider_agegp10)) %>% 
+    mutate(agegp10=ifelse(agegp10 %in% c("70-79","80-89","90+"), "70+", agegp10)) %>% 
+    filter(!is.na(length.of.stay)) %>% 
+    filter(!is.na(agegp10)) %>% 
+    as_tibble() 
+}
+
+#' Aggregate data for hospital admission to ICU admission
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the hospital admission to ICU plot
+#' @export admission.to.icu
+admission.to.icu.prep <- function(input.tbl){
+  
+  input.tbl %>%
+    mutate(t_ad_icu=as.numeric(t_ad_icu))%>%
+    mutate(t_ad_icu=case_when(t_ad_icu>89~NA_real_,
+                              TRUE~t_ad_icu))%>%
+    lazy_dt(immutable = TRUE) %>%
+    mutate(admission.to.icu=t_ad_icu) %>% 
+    select( admission.to.icu) %>%
+    filter(!is.na(admission.to.icu)) %>% 
+    filter(admission.to.icu >= 0) %>% 
+    as_tibble() 
+}
+
+#' Aggregate data for timeline plot
+#' @param input.tbl Input tibble (output of \code{data.preprocessing})
+#' @import dtplyr dplyr tibble purrr
+#' @importFrom glue glue
+#' @return A \code{tibble} containing the input data for the timeline plot
+#' @export status.by.time.after.admission
+status.by.time.after.admission.prep <- function(input.tbl){
+  
+  timings.wrangle <- input.tbl %>% 
+    filter(!is.na(date_start)) %>% 
+    select(usubjid, date_start, icu_in, icu_out, dur_icu, dur_ho, t_ad_icu, date_outcome, date_last, slider_outcome) %>% 
+    mutate(subjid=usubjid,
+           final.status= ifelse(slider_outcome %in% c("LTFU","Ongoing care"), "unknown", slider_outcome),
+           hospital.start = 0,
+           hospital.end=date_outcome-date_start,
+           ICU.start = icu_in-date_start,
+           ICU.end= icu_out-date_start, 
+           last_date=date_last-date_start) %>% 
+    filter(icu_in>=date_start|is.na(icu_in)) %>% 
+    filter(hospital.end >= 0 | is.na(hospital.end))  %>%
+    mutate(ever.ICU = !is.na(ICU.start)) %>%
+    # If hospital end is known but ICU end is not, impossible to resolve
+    filter(!(!is.na(hospital.end) & is.na(ICU.end) & ever.ICU)) %>%
+    mutate(last.date = pmax(hospital.end, ICU.end, last_date, na.rm = T))%>%
+    filter(last.date>=0) 
+  
+  overall.start <- 0
+  overall.end <- quantile(timings.wrangle$hospital.end, 0.975, na.rm = T)
+  
+  # this generates a table of the status of every patient on every day
+  complete.timeline <- map(1:nrow(timings.wrangle), function(pat.no){  
+    times <- map(overall.start:overall.end, function(day){
+      if(!timings.wrangle$ever.ICU[pat.no]){  #no icu
+        if(is.na(timings.wrangle$hospital.end[pat.no])){
+          # this happens with an exit code but no exit date. We don't know what happened after admission
+          "unknown"
+        } else {
+          if(day <= timings.wrangle$hospital.end[pat.no]){
+            "Ward"
+          } else {
+            as.character(timings.wrangle$final.status[pat.no])
+          }
+        }
+      } else {  #had icu
+        if(is.na(timings.wrangle$hospital.end[pat.no])){
+          # this happens with an exit code but no exit date. We don't know what happened after admission
+          if(day <= timings.wrangle$ICU.start[pat.no]){
+            "Ward"
+          } else if(!is.na(timings.wrangle$ICU.end[pat.no]) & day <= timings.wrangle$ICU.end[pat.no]){
+            "ICU"
+          } else {
+            "unknown"
+          }
+        }else {
+          if(day <= timings.wrangle$hospital.end[pat.no]){
+            if(day <= timings.wrangle$ICU.start[pat.no]) {
+              "Ward"
+            } else if(is.na(timings.wrangle$ICU.end[pat.no]) | day <= timings.wrangle$ICU.end[pat.no]) {
+              "ICU"
+            } else {
+              "Ward"
+            }
+          } else {
+            as.character(timings.wrangle$final.status[pat.no])
+          }
+        }
+      }
+    })
+    names(times) <- glue::glue("day_{overall.start:overall.end}")
+    times$subjid <- timings.wrangle$subjid[pat.no]
+    times
+  }) %>%
+    bind_rows()
+  
+  n.days <- ncol(complete.timeline) - 1
+  
+  complete.timeline.2 <- complete.timeline %>%
+    pivot_longer(all_of(1:n.days), names_to = "day", values_to = "status") %>%
+    dplyr::select(subjid, day, status) %>%
+    dplyr::mutate(day = map_dbl(day, function(x) as.numeric(str_split_fixed(x, "_", 2)[2]))) %>%     
+    dplyr::mutate(status = factor(status, levels = c("Discharge", "unknown", "Ward", "ICU", "Death"))) %>%
+    ungroup() 
+  
+  
+  final_dt <- complete.timeline.2 %>% 
+    group_by(day,
+             status) %>%
+    summarise(count = n()) %>%
+    as_tibble()
+  
+  final_dt
 }
 

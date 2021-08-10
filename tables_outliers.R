@@ -72,7 +72,7 @@ setwd(folder)
 
 load("ISVARIC_dash_db.rda")
 
-#Overal table
+#Overall table
 table_outlier_flex <- table_outliers(input.tbl)
 ft_1 <- flextable(table_outlier_flex)
 ft_1 <- add_header_lines(ft_1, values = "Median, IQR, Minimum, Maximum, lower_lim (2.5%), upper_lim (97.5%) for all ages")

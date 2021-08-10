@@ -1,4 +1,47 @@
 
+#load packages (some of these are not being used but we can delete them later)
+library(RColorBrewer)
+#library(incidence)
+library(shiny)
+library(shinydashboard)
+library(magrittr)
+library(lattice)
+library(stringr)
+library(plyr)
+library(FSA)
+library(DescTools)
+library(vcd)
+library(rcompanion)
+library(ggplot2)
+library(sgr)
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(janitor)
+library(Hmisc)
+library(RColorBrewer)
+library(dtplyr) 
+library(data.table)
+library(tidyfast)
+library(naniar)
+library(shinyWidgets)
+library(viridis)
+library(hrbrthemes)
+library(splitstackshape)
+library(glue)
+library(lubridate)
+library(grid)
+library(gtable)
+library(gridExtra)
+
+
+
+
+
+
+
+
 ####
 folder <- "C:/Users/baruj003/Desktop/21/working_R/oxford/CovidClinicalDataProcessor"
 setwd(folder)
@@ -17,7 +60,6 @@ input.tbl<-random.prepr.tbl
 input.tbl<-prepr.tbl
 backup<-input.tbl
 
-
 #####cleaning dataset for the report/dashboard
 folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24/aggregated"
 setwd(folder)
@@ -25,13 +67,15 @@ memory.limit(size=120000)
 
 
 
-
+folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24/aggregated/static"
+setwd(folder)
 
 
 #####################tables pre inclusion criteria
 
 summary_input_overall<-summary.input.overall.prep(input.tbl)
-save(summary_input_overall, file = "summary_input_overall.rda") 
+save(summary_input_overall, file = "summary_input_overall.rda")
+
 
 patient.by.country.input <- patient.by.country.prep(input.tbl)
 save(patient.by.country.input, file="patient_by_country_input.rda")
@@ -42,20 +86,41 @@ save(data_map, file ="data_map.rda")
 
 
 
+<<<<<<< HEAD:CallingAggregatioFunctions.R
 ###################tables after inclusion criteria
 
 input.tbl <- input.tbl%>%
   filter((embargo_length==FALSE | is.na(embargo_length)) & cov_det_id=="POSITIVE")
+=======
+###################inclusion criteria
+input.tbl<-input.tbl%>%
+  filter((clin_diag_covid_19==TRUE & is.na(cov_det_id)) | cov_det_id=="POSITIVE")
+
+patient.site.time.map.input<-patient.site.time.map.prep(input.tbl)
+save(patient.site.time.map.input, file = "patient_site_time_map_input.rda")
+
+#################after inclusion criteria
+>>>>>>> development:R/CallingAggregatioFunctions.R
 
 patient.by.case.def<-patient.by.case.def.prep(input.tbl)
 save(patient.by.case.def, file = "spatient.by.case.def.rda")
 
+case.def.input <- patient.by.case.def.prep(input.tbl)
+save(case.def.input, file ="data_case_def_input.rda")
+
 summary_input<-summary.input.prep(input.tbl)
 save(summary_input, file = "summary_input.rda") 
 
+age.pyramid.input <- age.pyramid.prep(input.tbl)
+save(age.pyramid.input, file ="age_pyramid_input.rda")
 
-patient.site.time.map.input<-patient.site.time.map.prep(input.tbl)
-save(patient.site.time.map.input, file = "patient_site_time_map_input.rda")
+symptom.prevalence.input<-symptom.prevalence.prep(input.tbl)
+save(symptom.prevalence.input, file = "symptom_prevalence_input.rda")
+
+symptom.upset.input<-symptom.upset.prep(input.tbl)
+save(symptom.upset.input, file = "symptom_upset_input.rda")
+
+
 
 comorbidity.prevalence.input<-comorbidity.prevalence.prep(input.tbl)
 save(comorbidity.prevalence.input, file = "comorbidity_prevalence_input.rda")
@@ -75,11 +140,6 @@ save(icu.treatment.use.proportion.input, file = "icu_treatment_use_proportion_in
 icu.treatment.upset.input<-treatment.icu.upset.prep(input.tbl)
 save(icu.treatment.upset.input, file = "icu_treatment_upset_input.rda")
 
-symptom.prevalence.input<-symptom.prevalence.prep(input.tbl)
-save(symptom.prevalence.input, file = "symptom_prevalence_input.rda")
-
-symptom.upset.input<-symptom.upset.prep(input.tbl)
-save(symptom.upset.input, file = "symptom_upset_input.rda")
 
 patient.characteristic.table<-patient.characteristic.prep(input.tbl)
 save(patient.characteristic.table, file = "patient_characteristic_table.rda")
@@ -124,13 +184,14 @@ data_plot_vs_resp <- func_plots_vs_resp(input.tbl)
 data_plot_vs_hr <- func_plots_vs_hr(input.tbl)
 data_plot_vs_temp <- func_plots_vs_temp(input.tbl)
 data_plot_vs_sysbp <- func_plots_vs_sysbp(input.tbl)
-data_plot_vs_oxysat <- func_plots_vs_oxysat(input.tbl)
+data_plot_vs_oxysat_therapy <- func_plots_vs_oxysat_therapy(input.tbl)
 
 save(data_plot_vs_resp, file ="data_plot_vs_resp.rda")
 save(data_plot_vs_hr, file ="data_plot_vs_hr.rda")
 save(data_plot_vs_temp, file ="data_plot_vs_temp.rda")
 save(data_plot_vs_sysbp, file ="data_plot_vs_sysbp.rda")
 save(data_plot_vs_oxysat, file ="data_plot_vs_oxysat.rda")
+save(data_plot_vs_oxysat_therapy, file ="data_plot_vs_oxysat_therapy.rda")
 
 #Lab data
 data_plot_lab_crp <- func_plot_lab_crp(input.tbl)  
@@ -205,20 +266,7 @@ data_plot_heatmap <- symptom.heatmap(data = input.tbl, admission.symptoms = admi
 save(data_plot_heatmap, file ="data_plot_heatmap.rda")
 
 
-#age_pyramid_table
-age.pyramid.input <- age.pyramid.prep(input.tbl)
-save(age.pyramid.input, file ="age_pyramid_input.rda")
 
-
-#Map
-data_map <- patient.by.country.map.prep(input.tbl)
-save(data_map, file ="data_map.rda")
-
-
-
-#case defnitions table
-case.def.input <- patient.by.case.def.prep(input.tbl)
-save(case.def.input, file ="data_case_def_input.rda")
 
 
 
