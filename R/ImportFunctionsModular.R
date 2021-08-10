@@ -927,6 +927,7 @@ process.treatment.icu.data <- function(file.name,imp_icu,imp_dm,imp_ds, minimum=
                                  treatment=="invasive_ventilation" |
                                  treatment=="mask_oxygen_therapy" |
                                  treatment=="nasal_oxygen_therapy" |
+                                 treatment=="oxygen_therapy"|
                                  treatment=="non_invasive_ventilation"~"treat_oxygen_therapy",
                                TRUE~treatment))%>%
     filter(treatment=="treat_oxygen_therapy")%>%
