@@ -38,8 +38,10 @@ summary.input.prep<- function(input.tbl){
            outcome,
            #slider_outcome,
            #slider_icu_ever,
+           d1_oxygen_therapy,
            oxygen_therapy,
            icu_oxygen_therapy,
+           treat_oxygen_therapy,
            treat_high_flow_nasal_cannula,
            treat_non_invasive_ventilation,
            treat_invasive_ventilation,
@@ -50,6 +52,7 @@ summary.input.prep<- function(input.tbl){
            vs_oxysat_oxygen_therapy,
            vs_oxysat_room_air,
            vs_oxysat_unknown,
+           icu_treat_oxygen_therapy,
            icu_treat_antibiotic_agents,
            icu_treat_antiviral_agents,
            icu_treat_non_invasive_ventilation,
@@ -452,6 +455,7 @@ treatment.use.proportion.prep <- function(input.tbl){
   treatment.use.proportion.input %>%
     lazy_dt(immutable = TRUE) %>%
     left_join(nice.treatment.mapper) %>%
+    filter(times.recorded>90000) %>% 
     as_tibble()
 }
 
@@ -486,6 +490,7 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   most.common <- data2 %>%
     group_by(Treatment) %>%
     dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
+    filter(Total>90000) %>% 
     mutate(prop=Present/Total)%>%
     ungroup() %>%
     arrange(desc(prop)) %>%
