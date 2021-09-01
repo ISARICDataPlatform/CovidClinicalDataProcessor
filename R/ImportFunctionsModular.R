@@ -65,6 +65,9 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
   
   site_id_country<-out%>%
     mutate(country=ifelse(siteid_final=="321cub_erasme__bru","BEL",country))%>% 
+    mutate(country=ifelse(siteid_final=="435civil_hospital","BEL",country))%>%
+    mutate(country=ifelse(siteid_final=="00657hospital_de_c","PRT",country))%>% 
+    mutate(country=ifelse(siteid_final==" 00727clinica_unive","COL",country))%>%
     mutate(country=ifelse(siteid_final=="00580netcare_unita","ITA",country))%>%
     mutate(country=ifelse(siteid_final=="00835consortium_im","POL",country))%>%
     mutate(country=ifelse(siteid_final=="00831nicvd_dhaka","BGD",country))%>%
@@ -917,7 +920,7 @@ process.treatment.icu.data <- function(file.name,imp_icu,imp_dm,imp_ds, minimum=
     #filter(!is.na(hoendy)& hoendy>-1 &!is.na(hostdy)& hostdy>-1)%>%
     #filter(!is.na(hoendy) & !is.na(hostdy))%>%
     #left_join(imp_int)%>%
-  treat_oxy <- imp_int%>%
+  treat_oxy_icu <- imp_int%>%
     mutate(treatment=case_when(treatment=="extracorporeal" | 
                                  treatment=="inhaled_nitric_oxide" |
                                  treatment=="prone_position_ventilation" |
