@@ -829,7 +829,7 @@ process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = F
     dt_pivot_wider(id_cols = usubjid, names_from = treatment,  values_from = indur_clean)%>%
     as_tibble()
   
-  
+  rrr
   
   vent_st_instdtc<-imp_int%>%select(usubjid,treatment, inoccur,indur,indtc,instdtc)%>%
     filter(treatment=="invasive_ventilation"|treatment=="non_invasive_ventilation")%>%
