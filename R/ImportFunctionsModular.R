@@ -13,7 +13,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
   wdi_dat <- WDI(indicator = c("NY.GDP.PCAP.KD", "SP.DYN.LE00.IN", "SP.DYN.IMRT.IN"), 
                  start = 2020, end = 2020, extra = TRUE)%>%
                   filter(region != "Aggregates")%>%
-                  select("Alpha_3"=iso3c,income)
+                  select("Alpha_3"=iso3c,income,region)
 
   
   country.lookup <- ISOcodes::ISO_3166_1 %>% as_tibble%>%
@@ -78,7 +78,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     filter(!is.na(country))%>%
     arrange(desc(country, income, siteid_final))%>%
     distinct(siteid_final, .keep_all =T)%>% 
-    select(siteid_final, 'country_2'=country,income)
+    select(siteid_final, 'country_2'=country,income, region)
   
   out<-out%>% 
     left_join(site_id_country)%>%
