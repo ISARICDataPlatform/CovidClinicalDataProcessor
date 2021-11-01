@@ -86,6 +86,7 @@ save(data_map, file ="data_map.rda")
 
 
 
+###################inclusion criteria
 input.tbl<-input.tbl%>%
   filter((clin_diag_covid_19==TRUE & is.na(cov_det_id)) | cov_det_id=="POSITIVE")
 
