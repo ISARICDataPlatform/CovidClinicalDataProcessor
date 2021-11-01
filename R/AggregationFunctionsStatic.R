@@ -38,8 +38,10 @@ summary.input.prep<- function(input.tbl){
            outcome,
            #slider_outcome,
            #slider_icu_ever,
+           d1_oxygen_therapy,
            oxygen_therapy,
            icu_oxygen_therapy,
+           treat_oxygen_therapy,
            treat_high_flow_nasal_cannula,
            treat_non_invasive_ventilation,
            treat_invasive_ventilation,
@@ -50,6 +52,7 @@ summary.input.prep<- function(input.tbl){
            vs_oxysat_oxygen_therapy,
            vs_oxysat_room_air,
            vs_oxysat_unknown,
+           icu_treat_oxygen_therapy,
            icu_treat_antibiotic_agents,
            icu_treat_antiviral_agents,
            icu_treat_non_invasive_ventilation,
@@ -126,14 +129,21 @@ age.pyramid.prep <- function(input.tbl){
 #' @export outcome.admission.date.prep
 outcome.admission.date.prep <- function(input.tbl){
   
-  epiweek.order <- glue("{c(rep(2019,4), rep(2020, 53), rep(2021,max(input.tbl$epiweek.admit[which(input.tbl$year.admit == 2021 & input.tbl$epiweek.admit!=53)], na.rm = T)))}-{c(49:52, 1:53, 1:max(input.tbl$epiweek.admit[which(input.tbl$year.admit == 2021 & input.tbl$epiweek.admit!=53)], na.rm = T))}")
+  input.tbl <- input.tbl %>% 
+    mutate(epiweek.admit=epiweek(date_start),
+           year.admit=year(date_start),
+           year.epiweek.admit=paste0(year.admit,"-",epiweek.admit),
+           calendar.year.admit=year(date_start),
+           calendar.month.admit=month(date_start)) 
   
+  epiweek.order <- glue("{c(rep(2019,4), rep(2020, 53), rep(2021,max(input.tbl$epiweek.admit[which(input.tbl$year.admit == 2021 & input.tbl$epiweek.admit!=53)], na.rm = T)))}-{c(49:52, 1:53, 1:max(input.tbl$epiweek.admit[which(input.tbl$year.admit == 2021 & input.tbl$epiweek.admit!=53)], na.rm = T))}")
+
   input.tbl %>%
     lazy_dt(immutable = TRUE) %>%
     mutate(year.epiweek.admit = factor(year.epiweek.admit, levels = epiweek.order)) %>%
     filter(!is.na(year.epiweek.admit) & !is.na(slider_outcome)) %>%
-    select(calendar.year.admit, calendar.month.admit, year.epiweek.admit) %>%
-    group_by(slider_outcome) %>%
+    select(calendar.year.admit, calendar.month.admit, year.epiweek.admit,slider_outcome) %>%
+    group_by(calendar.year.admit, calendar.month.admit,year.epiweek.admit,slider_outcome) %>%
     summarise(count = n()) %>%
     as_tibble() 
 }
@@ -445,6 +455,7 @@ treatment.use.proportion.prep <- function(input.tbl){
   treatment.use.proportion.input %>%
     lazy_dt(immutable = TRUE) %>%
     left_join(nice.treatment.mapper) %>%
+    filter(times.recorded>90000) %>% 
     as_tibble()
 }
 
@@ -479,6 +490,7 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
   most.common <- data2 %>%
     group_by(Treatment) %>%
     dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
+    filter(Total>90000) %>% 
     mutate(prop=Present/Total)%>%
     ungroup() %>%
     arrange(desc(prop)) %>%
@@ -1152,7 +1164,10 @@ key.times.prep <- function(input.tbl){
     summarise(mean=mean(value,na.rm=T),
               sd=sd(value,na.rm=T),
               median=median(value,na.rm=T),
-              iqr=IQR(value,na.rm=T))%>%
+              #iqr=IQR(value,na.rm=T),
+              q1=quantile(value,na.rm=T,0.25),
+              q3=quantile(value,na.rm=T,0.75))%>%
+    mutate(IQR=paste0(q1,"-",q3)) %>% 
     mutate(mean=round(mean,digit=1))%>%
     mutate(sd=round(sd,digit=1))%>%
     full_join(key_time)%>%
@@ -1176,10 +1191,10 @@ key.times.prep <- function(input.tbl){
                               key_time=='t_ad_niv'~'Admission to NIV',
                               key_time=='dur_niv'~'Duration of NIV'))%>%
     rename("Time (in days)"=key_time)%>%
-    rename("Mean (observed)"=mean)%>%
-    rename("SD (observed)"=sd)%>%
-    rename("Median (observed)"=median)%>%
-    rename("IQR (observed)"=iqr)
+    rename("Mean"=mean)%>%
+    rename("SD"=sd)%>%
+    rename("Median"=median) %>% 
+    select(-q1,-q3)
   
 }
 
@@ -1433,7 +1448,7 @@ func_plot_symptoms_cough <- function(input.tbl){
 
 #symptoms_cough_fever
 func_plot_symptoms_cough_fever <- function(input.tbl){
-  data_plot_symptoms_cough_fever <- select(input.tbl, slider_agegp10,symptoms_history_of_fever) %>%
+  data_plot_symptoms_cough_fever <- select(input.tbl, slider_agegp10,symptoms_history_of_fever,symptoms_cough) %>%
     filter(!is.na(slider_agegp10)) %>%
     unite(col = "symptoms_cough_fever",c(symptoms_history_of_fever,symptoms_cough),sep = "_",remove = FALSE,na.rm = FALSE) %>%
     filter(symptoms_cough_fever != "NA_NA") %>%
@@ -1741,6 +1756,7 @@ patient.by.country.prep <- function(input.tbl){
     lazy_dt(immutable = TRUE) %>%
     select(slider_country) %>%
     filter(!is.na(slider_country)) %>% 
+    mutate(slider_country=ifelse(slider_country=="Congo","Colombia",slider_country)) %>% 
     as_tibble() 
 }
 
