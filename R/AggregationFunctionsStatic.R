@@ -216,6 +216,7 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
     dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
     mutate(prop=Present/Total)%>%
     ungroup() %>%
+    filter(Total>50000) %>% 
     filter(Condition != "symptoms_other_signs_and_symptoms") %>%
     arrange(desc(prop)) %>%
     #slice(1:max.symptoms) %>%
@@ -354,6 +355,7 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
     dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
     mutate(prop=Present/Total)%>%
     ungroup() %>%
+    filter(Total>50000) %>% 
     filter(Condition != "other_mhyn") %>%
     filter(Condition!="comorbid_other_comorbidities")%>%
     arrange(desc(prop)) %>%
@@ -617,6 +619,7 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
     dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
     mutate(prop=Present/Total)%>%
     ungroup() %>%
+    filter(Total>10000) %>% 
     arrange(desc(prop)) %>%
     slice(1:max.treatments) %>%
     pull(Treatment)
@@ -1805,7 +1808,15 @@ patient.by.case.def.prep <- function(input.tbl){
   input.tbl$sars_cov2 <- as.character(input.tbl$cov_id_sarscov2 == "POSITIVE" | input.tbl$cov_det_sarscov2 == "POSITIVE")
   input.tbl[is.na(input.tbl$sars_cov2),]$sars_cov2 <- "Unknown"
   input.tbl$sars_cov2 <- factor(input.tbl$sars_cov2, labels = c("Positive", "Unknown"))
-  symptoms_long <- input.tbl[,c("symptoms_WHO", "symptoms_CDC", "symptoms_PHE", "symptoms_ECDC","date_admit", "slider_country", "slider_agegp10", "sars_cov2")] %>% 
+ 
+  symptoms_long <- input.tbl %>% 
+    filter_at(vars("symptoms_history_of_fever", "symptoms_cough", "symptoms_fatigue_malaise", 
+                   "symptoms_headache", "symptoms_muscle_aches_joint_pain", "symptoms_sore_throat",
+                   "symptoms_runny_nose", "symptoms_shortness_of_breath",
+                   "symptoms_lost_altered_sense_of_smell", 
+                   "symptoms_lost_altered_sense_of_taste",
+                   "symptoms_vomiting_nausea", "symptoms_diarrhoea", "symptoms_altered_consciousness_confusion"), all_vars(!is.na(.))) %>% 
+    select("symptoms_WHO", "symptoms_CDC", "symptoms_PHE", "symptoms_ECDC","date_admit", "slider_country", "slider_agegp10", "sars_cov2")  %>% 
     pivot_longer(cols = -c(date_admit,slider_country,slider_agegp10, sars_cov2), names_to = "symptom", values_to = "value")
   symptoms_long$value <- factor(symptoms_long$value, levels = c("TRUE", "FALSE"), labels = c("Yes", "No"))
   # change symptom labels
@@ -1994,3 +2005,185 @@ status.by.time.after.admission.prep <- function(input.tbl){
   final_dt
 }
 
+
+
+##################################################################
+region_data <- read_csv('region.definitions.csv')
+
+# Modifying the country names in the data I used for regions to match ISARIC data
+region_data[which(region_data$whoname == "United States of America"),]$whoname <- "United States"
+region_data[which(region_data$whoname == "Bolivia (Plurinational State of)"),]$whoname <- "Bolivia"
+region_data[which(region_data$whoname == "Lao People's Democratic Republic"),]$whoname <- "Lao PDR"
+region_data[which(region_data$whoname == "Viet Nam"),]$whoname <- "Vietnam"
+region_data[which(region_data$whoname == "Republic of Korea"),]$whoname <- "Korea, Republic of"
+gib <- data.frame(iso3="GIB",whoname="Gibraltar",wb_region="Europe_and_Central_Asia",wb_income="")
+
+region_data <- rbind(region_data,gib)
+
+number_by_region <- function(input.tbl){
+  
+  ### Figure 1
+  data_country <- patient.by.country.map.prep(input.tbl)
+  
+  data_country <- left_join(data_country, region_data, by = c("slider_country" = "whoname"))
+  
+  data_country[which(data_country$slider_country == "Taiwan"),]$wb_region <- "East_Asia_and_Pacific"
+  data_country[which(data_country$slider_country == "Hong Kong"),]$wb_region <- "East_Asia_and_Pacific"
+  data_country[which(data_country$slider_country == "Gibraltar"),]$wb_region <- "Europe_and_Central_Asia"
+  
+  data_country$new_region <- recode(data_country$wb_region, East_Asia_and_Pacific = "East Asia and Pacific", 
+                                    Europe_and_Central_Asia = "Europe and Central Asia",
+                                    Middle_East_and_North_Africa = "Middle East and North Africa", 
+                                    North_America = "North America", 
+                                    South_Asia = "South Asia", 
+                                    Latin_America_and_Caribbean = "Latin America and Caribbean",
+                                    "Sub-Saharan_Africa" = "Sub-Saharan Africa")
+  
+  
+  # This is to create the x-axis order -- sorting regions, within-regions freq, 
+  # and creating space between regions (there is probably a much faster way of doing this)
+  data_country <- data_country %>% arrange(wb_region, Freq) %>% mutate(order_var = 1) %>% mutate(order_var = cumsum(order_var))
+  data_country <- data_country %>% mutate(previous = lag(wb_region, default = NA)) %>% 
+    mutate(previous = wb_region != previous) %>%
+    mutate(previous = replace(previous, is.na(previous), 0)) %>%
+    mutate(previous = cumsum(previous*2)) %>%
+    mutate(x_axis = order_var + previous)
+  
+  return(data_country)
+  
+}
+
+
+patient.by.country_date.map.prep <- function(input.tbl){
+  input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
+    select(slider_country, slider_monthyear) %>%
+    filter(!is.na(slider_country)) %>%
+    filter(!is.na(slider_monthyear)) %>%
+    mutate(Freq = 1) %>%
+    group_by(slider_country, slider_monthyear)%>%
+    mutate(Freq = sum(Freq))%>%
+    distinct()%>%
+    as_tibble() 
+}
+
+
+month_by_region <- function(input.tbl){
+  data_country_date <- patient.by.country_date.map.prep(input.tbl)
+  
+  data_country_date <- left_join(data_country_date, region_data, by = c("slider_country" = "whoname"))
+  
+  data_country_date[which(data_country_date$slider_country == "Taiwan"),]$wb_region <- "East_Asia_and_Pacific"
+  data_country_date[which(data_country_date$slider_country == "Hong Kong"),]$wb_region <- "East_Asia_and_Pacific"
+  data_country_date[which(data_country_date$slider_country == "Gibraltar"),]$wb_region <- "Europe_and_Central_Asia"
+  
+  data_country_date$new_region <- recode(data_country_date$wb_region, East_Asia_and_Pacific = "East Asia and Pacific", 
+                                         Europe_and_Central_Asia = "Europe and Central Asia",
+                                         Middle_East_and_North_Africa = "Middle East and North Africa", 
+                                         North_America = "North America", 
+                                         South_Asia = "South Asia", 
+                                         Latin_America_and_Caribbean = "Latin America and Caribbean",
+                                         "Sub-Saharan_Africa" = "Sub-Saharan Africa")
+  
+  data_country_date <- data_country_date %>% 
+    separate(slider_monthyear, c("month_adm", "year_adm"), sep="-") %>% 
+    arrange(year_adm, month_adm, new_region)
+  
+  summary_country_date <-  data_country_date %>%
+    group_by(year_adm, month_adm, new_region) %>%
+    summarise(sum_records = sum(Freq)) %>%
+    filter(year_adm>2019)
+  
+  
+  summary_country_date$time_id <- as.numeric(summary_country_date$month_adm)
+  summary_country_date$time_id <- if_else(summary_country_date$year_adm == "2020",summary_country_date$time_id, summary_country_date$time_id + 12 )
+  summary_country_date$new_month <- recode(summary_country_date$month_adm,  "01" = "Jan", 
+                                           "02" = "Feb",
+                                           "03" = "Mar", 
+                                           "04" = "Apr",
+                                           "05" = "May", 
+                                           "06" = "Jun", 
+                                           "07" = "Jul", 
+                                           "08" = "Aug", 
+                                           "09" = "Sep", 
+                                           "10" = "Oct", 
+                                           "11" = "Nov", 
+                                           "12" = "Dec")
+  
+  return(summary_country_date)
+}
+
+data_com_sym <- function(data_1, data_2, comorb_symp) {
+  ## data_1 is the actual data
+  ## data_2 is the dataset with regions
+  ## comorb_symp = "comorb"for comorbidities and 
+  ## comorb_symp = "symptoms"for symptooms and 
+  
+  data_1=data_1 %>%
+    lazy_dt(immutable = TRUE) %>%
+    select(slider_country, slider_monthyear, any_of(starts_with(comorb_symp))) %>%
+    as_tibble() %>%
+    
+    left_join(., data_2, by = c("slider_country" = "whoname")) %>%
+    
+    pivot_longer(any_of(starts_with(comorb_symp)), names_to = "outcome", values_to = "present") %>%
+    lazy_dt(immutable = TRUE) %>%
+    group_by(wb_region, outcome) %>% 
+    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)), times.total = n())%>% 
+    
+    as.data.frame() 
+  
+  nice.comorbidity.mapper <- tibble(comorbidity = unique(comorbidity.prevalence.input$comorbidity)) %>%
+    mutate(nice.comorbidity = map_chr(comorbidity, function(st){
+      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      #temp2
+    })) %>%
+    mutate(nice.comorbidity = case_when(nice.comorbidity=="Aids hiv" ~ "HIV/AIDS",
+                                        TRUE ~ nice.comorbidity))%>%
+    as.data.frame()
+  
+  nice.symptom.mapper <- tibble(symptom = unique(symptom.prevalence.input$symptom)) %>%
+    mutate(nice.symptom = map_chr(symptom, function(st){
+      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      temp2
+    })) %>%
+    mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
+                                    nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
+                                    nice.symptom=="Vomiting nausea"~ "Vomiting/nausea",
+                                    nice.symptom=="Lost altered sense of smell"~ "Lost/altered sense of smell",
+                                    nice.symptom=="Lost altered sense of taste"~ "Lost/altered sense of taste",
+                                    TRUE ~ nice.symptom))
+  
+  
+  data_1=data_1 %>% 
+    left_join(nice.symptom.mapper, by=c("outcome" = "symptom")) %>%
+    left_join(nice.comorbidity.mapper, by=c("outcome" = "comorbidity"))
+  
+}
+
+
+plot_by_region <- function(input.tbl,com_sym = "comorb",current_region ='Latin_America_and_Caribbean'){
+  
+  data_outcome <- data_com_sym(input.tbl, region_data, com_sym)
+  
+  current_title <- str_replace_all(current_region, '_', ' ')
+  
+  data_plot <- data_outcome %>%
+    filter(wb_region == current_region) %>%
+    mutate(freq_outcome = 100*times.present/times.recorded) %>%
+    arrange(freq_outcome) %>%
+    filter(times.recorded>0) %>%
+    mutate(order_var = 1:length(freq_outcome)) %>%
+    mutate(alpha_outcome = if_else(freq_outcome<50,freq_outcome/50,1))
+  
+  if(com_sym=="comorb"){
+    data_plot <- data_plot %>% 
+      rename(outcome_names=nice.comorbidity)
+  }else{
+    data_plot <- data_plot %>% 
+      rename(outcome_names=nice.symptom)
+  }
+  
+}
