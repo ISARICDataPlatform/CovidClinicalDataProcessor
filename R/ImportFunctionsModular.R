@@ -13,7 +13,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
   wdi_dat <- WDI(indicator = c("NY.GDP.PCAP.KD", "SP.DYN.LE00.IN", "SP.DYN.IMRT.IN"), 
                  start = 2020, end = 2020, extra = TRUE)%>%
                   filter(region != "Aggregates")%>%
-                  select("Alpha_3"=iso3c,income)
+                  select("Alpha_3"=iso3c,income,region)
 
   
   country.lookup <- ISOcodes::ISO_3166_1 %>% as_tibble%>%
@@ -65,6 +65,9 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
   
   site_id_country<-out%>%
     mutate(country=ifelse(siteid_final=="321cub_erasme__bru","BEL",country))%>% 
+    mutate(country=ifelse(siteid_final=="435civil_hospital","BEL",country))%>%
+    mutate(country=ifelse(siteid_final=="00657hospital_de_c","PRT",country))%>% 
+    mutate(country=ifelse(siteid_final==" 00727clinica_unive","COL",country))%>%
     mutate(country=ifelse(siteid_final=="00580netcare_unita","ITA",country))%>%
     mutate(country=ifelse(siteid_final=="00835consortium_im","POL",country))%>%
     mutate(country=ifelse(siteid_final=="00831nicvd_dhaka","BGD",country))%>%
@@ -75,7 +78,7 @@ import.demographic.data <- function(file.name, dtplyr.step = FALSE){
     filter(!is.na(country))%>%
     arrange(desc(country, income, siteid_final))%>%
     distinct(siteid_final, .keep_all =T)%>% 
-    select(siteid_final, 'country_2'=country,income)
+    select(siteid_final, 'country_2'=country,income, region)
   
   out<-out%>% 
     left_join(site_id_country)%>%
@@ -827,7 +830,6 @@ process.common.treatment.data <- function(file.name, minimum=10, dtplyr.step = F
     as_tibble()
   
   
-  
   vent_st_instdtc<-imp_int%>%select(usubjid,treatment, inoccur,indur,indtc,instdtc)%>%
     filter(treatment=="invasive_ventilation"|treatment=="non_invasive_ventilation")%>%
     mutate(treatment=case_when(treatment=='non_invasive_ventilation'~'date_niv_st',
@@ -917,7 +919,7 @@ process.treatment.icu.data <- function(file.name,imp_icu,imp_dm,imp_ds, minimum=
     #filter(!is.na(hoendy)& hoendy>-1 &!is.na(hostdy)& hostdy>-1)%>%
     #filter(!is.na(hoendy) & !is.na(hostdy))%>%
     #left_join(imp_int)%>%
-  treat_oxy <- imp_int%>%
+  treat_oxy_icu <- imp_int%>%
     mutate(treatment=case_when(treatment=="extracorporeal" | 
                                  treatment=="inhaled_nitric_oxide" |
                                  treatment=="prone_position_ventilation" |
