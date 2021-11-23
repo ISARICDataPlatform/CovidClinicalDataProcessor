@@ -2119,19 +2119,37 @@ data_com_sym <- function(data_1, data_2, comorb_symp) {
   ## comorb_symp = "comorb"for comorbidities and 
   ## comorb_symp = "symptoms"for symptooms and 
   
-  data_1=data_1 %>%
-    lazy_dt(immutable = TRUE) %>%
-    select(slider_country, slider_monthyear, any_of(starts_with(comorb_symp))) %>%
-    as_tibble() %>%
-    
-    left_join(., data_2, by = c("slider_country" = "whoname")) %>%
-    
-    pivot_longer(any_of(starts_with(comorb_symp)), names_to = "outcome", values_to = "present") %>%
-    lazy_dt(immutable = TRUE) %>%
-    group_by(wb_region, outcome) %>% 
-    summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)), times.total = n())%>% 
-    
-    as.data.frame() 
+  if (comorb_symp=="comorb"){
+    data_1=data_1 %>%
+      lazy_dt(immutable = TRUE) %>%
+      select(slider_country, slider_monthyear, any_of(starts_with(comorb_symp))) %>%
+      as_tibble() %>%
+      mutate(comorbid_other=ifelse(comorbid_other==T| comorbid_other_comorbidities==T&is.na(comorbid_other_comorbidities)==F, T, comorbid_other)) %>% 
+      select(-comorbid_other_comorbidities) %>% 
+      left_join(., data_2, by = c("slider_country" = "whoname")) %>%
+      
+      pivot_longer(any_of(starts_with(comorb_symp)), names_to = "outcome", values_to = "present") %>%
+      lazy_dt(immutable = TRUE) %>%
+      group_by(wb_region, outcome) %>% 
+      summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)), times.total = n())%>% 
+      
+      as.data.frame() 
+  }else{
+    data_1=data_1 %>%
+      lazy_dt(immutable = TRUE) %>%
+      select(slider_country, slider_monthyear, any_of(starts_with(comorb_symp))) %>%
+      as_tibble() 
+      
+      left_join(., data_2, by = c("slider_country" = "whoname")) %>%
+      
+      pivot_longer(any_of(starts_with(comorb_symp)), names_to = "outcome", values_to = "present") %>%
+      lazy_dt(immutable = TRUE) %>%
+      group_by(wb_region, outcome) %>% 
+      summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)), times.total = n())%>% 
+      
+      as.data.frame() 
+  }
+
   
   nice.comorbidity.mapper <- tibble(comorbidity = unique(comorbidity.prevalence.input$comorbidity)) %>%
     mutate(nice.comorbidity = map_chr(comorbidity, function(st){
@@ -2180,7 +2198,8 @@ plot_by_region <- function(input.tbl,com_sym = "comorb",current_region ='Latin_A
   
   if(com_sym=="comorb"){
     data_plot <- data_plot %>% 
-      rename(outcome_names=nice.comorbidity)
+      rename(outcome_names=nice.comorbidity) 
+
   }else{
     data_plot <- data_plot %>% 
       rename(outcome_names=nice.symptom)
