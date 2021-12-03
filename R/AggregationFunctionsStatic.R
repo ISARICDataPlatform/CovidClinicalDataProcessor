@@ -48,6 +48,7 @@ summary.input.prep<- function(input.tbl){
            treat_antibiotic_agents,
            treat_antiviral_agents,
            treat_corticosteroids,
+           treat_oxygen_therapy_noimv,
            vs_oxysat,
            vs_oxysat_oxygen_therapy,
            vs_oxysat_room_air,
@@ -58,6 +59,7 @@ summary.input.prep<- function(input.tbl){
            icu_treat_non_invasive_ventilation,
            icu_treat_invasive_ventilation,
            icu_treat_high_flow_nasal_cannula,
+           icu_treat_oxygen_therapy_noimv,
            t_ad_niv,
            t_ad_imv,
            dur_niv,
@@ -1842,8 +1844,181 @@ patient.by.case.def.prep <- function(input.tbl){
   
 }
 
-
-
+patient.by.case.def.prep_new <- function(input.tbl){
+  #############################
+  #   Case definitions
+  #############################
+  
+  # • WHO:
+  #   1. A combination of acute fever and cough,
+  # Or
+  # 2. A combination of three or more of: fever, cough, general weakness and fatigue, headache, myalgia,
+  # sore throat, coryza, dyspnoea, anorexia, nausea and vomiting, diarrhoea, altered mental status
+  # • Centers for Disease Control (CDC), United States:
+  #   1. At least two of: fever, chills (not available), rigors (not available), myalgia, headache, sore throat,
+  # new olfactory and taste disorder,
+  # Or
+  # 2. At least one of: cough, shortness of breath, difficulty breathing (not available)
+  # 
+  # 
+  # • Public Health England
+  # New cough, or temperature ff37.8°C, or a loss or change in sense of smell or taste
+  # • European Centre for Disease Prevention and Control
+  # At least one of: cough, fever, shortness of breath, sudden onset anosmia, ageusia or dysgeusia
+  
+  prep=input.tbl
+  #ECDC
+  ECDC_case_def <- prep   %>%
+    select(symptoms_cough, symptoms_history_of_fever,symptoms_shortness_of_breath, symptoms_lost_altered_sense_of_smell,
+           symptoms_lost_altered_sense_of_taste,slider_agegp10)%>%
+    #The first step is to mark all of those that at least meet one of the mentioned symptoms as yes
+    mutate(ECDC_yes = ifelse(symptoms_cough == TRUE | symptoms_history_of_fever == TRUE |
+                               symptoms_shortness_of_breath == TRUE | symptoms_lost_altered_sense_of_smell == TRUE |
+                               symptoms_lost_altered_sense_of_taste == TRUE , 1, 0)) %>%
+    filter(!is.na(ECDC_yes))%>%
+    group_by(ECDC_yes, slider_agegp10)%>%
+    mutate(indicator = 1)%>%
+    mutate(total = sum(indicator))%>%
+    select(ECDC_yes, total, slider_agegp10)%>%
+    unique()%>%
+    pivot_wider(names_from = ECDC_yes,  values_from = total)%>%
+    mutate(Yes_ECDC = `1`)%>%
+    mutate(No_ECDC = `0`)%>%
+    mutate(percentage_met_ECDC = round(Yes_ECDC/(No_ECDC+Yes_ECDC)*100,2))%>%
+    select(slider_agegp10, Yes_ECDC,No_ECDC, percentage_met_ECDC )
+  
+  #PHE                                                        
+  PHE_case_def <- prep   %>%
+    select(symptoms_cough, symptoms_history_of_fever,symptoms_shortness_of_breath, symptoms_lost_altered_sense_of_smell,
+           symptoms_lost_altered_sense_of_taste,slider_agegp10)%>%
+    #Combine lack of taste or smell
+    mutate(smell_or_taste = ifelse(symptoms_lost_altered_sense_of_taste == TRUE |  symptoms_lost_altered_sense_of_smell == TRUE, TRUE, FALSE))%>%
+    
+    #The first step is to mark all of those that at least meet one of the mentioned symptoms as yes
+    mutate(PHE_yes = ifelse(symptoms_cough == TRUE | symptoms_history_of_fever == TRUE |smell_or_taste == TRUE , 1, 0)) %>%
+    filter(!is.na(PHE_yes))%>%
+    group_by(PHE_yes, slider_agegp10)%>%
+    mutate(indicator = 1)%>%
+    mutate(total = sum(indicator))%>%
+    select(PHE_yes, total, slider_agegp10)%>%
+    unique()%>%
+    pivot_wider(names_from = PHE_yes,  values_from = total)%>%
+    mutate(Yes_PHE = `1`)%>%
+    mutate(No_PHE = `0`)%>%
+    mutate(percentage_met_PHE = round(Yes_PHE/(No_PHE+Yes_PHE)*100,2))%>%
+    select(slider_agegp10, Yes_PHE,No_PHE, percentage_met_PHE )
+  
+  #WHO
+  WHO_case_def <- prep %>%
+    select(symptoms_cough, symptoms_history_of_fever, symptoms_fatigue_malaise, symptoms_headache,
+           symptoms_sore_throat,symptoms_shortness_of_breath, symptoms_vomiting_nausea,symptoms_altered_consciousness_confusion,
+           slider_agegp10)%>%
+    mutate(n_symptoms_cough = ifelse(symptoms_cough == TRUE,1,0))%>%
+    mutate(n_symptoms_history_of_fever = ifelse(symptoms_history_of_fever == TRUE,1,0))%>%
+    mutate(n_symptoms_fatigue_malaise = ifelse(symptoms_fatigue_malaise == TRUE,1,0))%>%
+    mutate(n_symptoms_headache = ifelse(symptoms_headache == TRUE,1,0))%>%
+    mutate(n_symptoms_sore_throat = ifelse(symptoms_sore_throat == TRUE,1,0))%>%
+    mutate(n_symptoms_shortness_of_breath = ifelse(symptoms_shortness_of_breath == TRUE,1,0))%>%
+    mutate(n_symptoms_vomiting_nausea = ifelse(symptoms_vomiting_nausea == TRUE,1,0))%>%
+    mutate(n_symptoms_altered_consciousness_confusion = ifelse(symptoms_altered_consciousness_confusion == TRUE,1,0))%>%
+    mutate(case_def =n_symptoms_cough +n_symptoms_history_of_fever +n_symptoms_fatigue_malaise+
+             n_symptoms_headache+n_symptoms_sore_throat+n_symptoms_shortness_of_breath+
+             n_symptoms_vomiting_nausea+ n_symptoms_altered_consciousness_confusion)%>%
+    #These are all that meet but ignores that some might have missing on a bunch of these sympt but still meet if 3 are reported yes
+    mutate(WHO_yes_1 = ifelse(case_def>2, 1, 0))%>%
+    rowwise() %>% 
+    mutate(case_def2 = sum(c(n_symptoms_cough, n_symptoms_history_of_fever, n_symptoms_fatigue_malaise,
+                             n_symptoms_headache,n_symptoms_sore_throat,n_symptoms_shortness_of_breath,
+                             n_symptoms_vomiting_nausea, n_symptoms_altered_consciousness_confusion), na.rm = T))%>%
+    mutate(WHO_yes_2 = ifelse(case_def2>2, 1, 0))%>%
+    filter(!(is.na(WHO_yes_1) & WHO_yes_2 == 0))%>%
+    
+    mutate(WHO_yes = ifelse(WHO_yes_1== 1 | WHO_yes_2 == 1, 1, 0))%>%
+    group_by(WHO_yes, slider_agegp10)%>%
+    mutate(indicator = 1)%>%
+    mutate(total = sum(indicator))%>%
+    select(WHO_yes, total, slider_agegp10)%>%
+    unique()%>%
+    pivot_wider(names_from = WHO_yes,  values_from = total)%>%
+    mutate(Yes_WHO = `1`)%>%
+    mutate(No_WHO = `0`)%>%
+    mutate(percentage_met_WHO = round(Yes_WHO/(No_WHO+Yes_WHO)*100,2))%>%
+    select(slider_agegp10, Yes_WHO,No_WHO, percentage_met_WHO )
+  
+  
+  # • Centers for Disease Control (CDC), United States:
+  #   1. At least two of: fever, chills (not available), rigors (not available), myalgia, headache, sore throat,
+  # new olfactory and taste disorder,
+  # Or
+  # 2. At least one of: cough, shortness of breath, difficulty breathing (not available)
+  
+  #CDC
+  CDC_case_def <- prep %>%
+    select(symptoms_cough, symptoms_history_of_fever, symptoms_fatigue_malaise, symptoms_headache,
+           symptoms_sore_throat,symptoms_shortness_of_breath, symptoms_lost_altered_sense_of_taste, symptoms_lost_altered_sense_of_smell,
+           slider_agegp10)%>%
+    #Combined taste and smell
+    mutate(smell_or_taste = ifelse(symptoms_lost_altered_sense_of_taste == TRUE |  symptoms_lost_altered_sense_of_smell == TRUE, TRUE, FALSE))%>%
+    
+    mutate(n_symptoms_cough = ifelse(symptoms_cough == TRUE,1,0))%>%
+    mutate(n_symptoms_history_of_fever = ifelse(symptoms_history_of_fever == TRUE,1,0))%>%
+    mutate(n_symptoms_fatigue_malaise = ifelse(symptoms_fatigue_malaise == TRUE,1,0))%>%
+    mutate(n_symptoms_headache = ifelse(symptoms_headache == TRUE,1,0))%>%
+    mutate(n_symptoms_sore_throat = ifelse(symptoms_sore_throat == TRUE,1,0))%>%
+    mutate(n_smell_or_taste = ifelse(smell_or_taste == TRUE,1,0))%>%
+    mutate(n_symptoms_shortness_of_breath = ifelse(symptoms_shortness_of_breath == TRUE,1,0))%>%
+    
+    mutate(case_def_1 =n_symptoms_history_of_fever +n_symptoms_headache+n_symptoms_sore_throat+
+             n_symptoms_shortness_of_breath +n_smell_or_taste)%>%
+    mutate(case_def_2 = n_symptoms_cough + n_symptoms_shortness_of_breath)%>%
+    
+    #These are all that meet but ignores that some might have missing on a bunch of these sympt but still meet if 3 are reported yes
+    mutate(CDC_1_def = ifelse(case_def_1>1, 1, 0))%>%
+    mutate(CDC_2_def = ifelse(case_def_2>0, 1, 0))%>%
+    
+    rowwise() %>% 
+    mutate(case_def_1_sum = sum(c(n_symptoms_history_of_fever,n_symptoms_headache , n_symptoms_sore_throat,
+                                  n_symptoms_shortness_of_breath ,n_smell_or_taste), na.rm = T))%>%
+    
+    mutate(case_def_2_sum = sum(c(n_symptoms_cough , n_symptoms_shortness_of_breath), na.rm = T))%>%
+    
+    mutate(CDC_yes_1 = ifelse(case_def_1_sum>1, 1, 0))%>%
+    mutate(CDC_yes_2 = ifelse(case_def_2_sum>0, 1, 0))%>%
+    
+    filter(!((is.na(CDC_1_def) & CDC_yes_1 == 0) | (is.na(CDC_2_def) & CDC_yes_2 == 0)))%>%
+    
+    mutate(CDC_yes = ifelse(CDC_1_def== 1 | CDC_2_def == 1 | CDC_yes_1== 1 | CDC_yes_2 == 1, 1, 0))%>%
+    group_by(CDC_yes, slider_agegp10)%>%
+    mutate(indicator = 1)%>%
+    mutate(total = sum(indicator))%>%
+    select(CDC_yes, total, slider_agegp10)%>%
+    unique()%>%
+    pivot_wider(names_from = CDC_yes,  values_from = total)%>%
+    mutate(Yes_CDC = `1`)%>%
+    mutate(No_CDC = `0`)%>%
+    mutate(percentage_met_CDC = round(Yes_CDC/(No_CDC+Yes_CDC)*100,2))%>%
+    select(slider_agegp10, Yes_CDC,No_CDC, percentage_met_CDC )
+  
+  
+  
+  #Bind them all together
+  case_def_final_1 <- left_join(ECDC_case_def, CDC_case_def, by="slider_agegp10")
+  case_def_final_2 <- left_join(case_def_final_1, WHO_case_def, by="slider_agegp10")
+  case_def_final <- left_join(case_def_final_2, PHE_case_def, by="slider_agegp10")
+  
+  case_def_final <- case_def_final %>%
+    filter(!is.na(slider_agegp10))%>%
+    arrange(slider_agegp10)%>%
+    mutate(slider_agegp10 =as.character(slider_agegp10)) %>% 
+    select(slider_agegp10,starts_with("percentage")) %>% 
+    pivot_longer(starts_with("percentage"),names_to = "symptom",values_to = "proportion") %>% 
+    mutate(symptom=gsub("percentage_met_","",symptom),
+           proportion=proportion/100)
+  
+  case_def_final
+  
+   
+}
 
 #' Aggregate data for hospital stay plot by sex
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -2138,7 +2313,7 @@ data_com_sym <- function(data_1, data_2, comorb_symp) {
     data_1=data_1 %>%
       lazy_dt(immutable = TRUE) %>%
       select(slider_country, slider_monthyear, any_of(starts_with(comorb_symp))) %>%
-      as_tibble() 
+      as_tibble() %>% 
       
       left_join(., data_2, by = c("slider_country" = "whoname")) %>%
       

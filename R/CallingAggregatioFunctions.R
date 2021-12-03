@@ -53,7 +53,7 @@ folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24"
 setwd(folder)
 
 load("prepr.tbl.all.rda")
-input.tbl<-prepr.tbl_v2
+input.tbl<-prepr.tbl_v5 %>% filter(date_start<="2021-09-20"| is.na(date_start))
 
 input.tbl<-random.prepr.tbl
 
@@ -102,10 +102,7 @@ save(patient.site.time.map.input, file = "patient_site_time_map_input.rda")
 
 #################after inclusion criteria
 
-patient.by.case.def<-patient.by.case.def.prep(input.tbl)
-save(patient.by.case.def, file = "patient.by.case.def.rda")
-
-case.def.input <- patient.by.case.def.prep(input.tbl)
+case.def.input <- patient.by.case.def.prep_new(input.tbl)
 save(case.def.input, file ="data_case_def_input.rda")
 
 summary_input<-summary.input.prep(input.tbl)
@@ -176,7 +173,7 @@ save(status.by.time.after.admission.input, file="status_by_time_after_admission_
 
 
 #outcome by admision date
-outcome_admission_date_input <- outcome.admission.date.prep(input.tbl)
+outcome_admission_date_input <- outcome.admission.date.prep(input.tbl) 
 save(outcome_admission_date_input, file ="outcome_admission_date_input.rda")
 
 #vital signs
