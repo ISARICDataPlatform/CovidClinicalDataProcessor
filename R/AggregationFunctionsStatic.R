@@ -479,6 +479,9 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
                                    treat_immunostimulants, 
                                    treat_antiinflammatory, 
                                    treat_oxygen_therapy_noimv,
+                                   treat_high_flow_nasal_cannula,
+                                   treat_non_invasive_ventilation,
+                                   treat_invasive_ventilation,
                                    treat_other_interventions,
                                    treat_antimalarial_agents,
                                    treat_agents_acting_on_the_renin_angiotensin_system))
