@@ -48,6 +48,7 @@ summary.input.prep<- function(input.tbl){
            treat_antibiotic_agents,
            treat_antiviral_agents,
            treat_corticosteroids,
+           treat_oxygen_therapy_noimv,
            vs_oxysat,
            vs_oxysat_oxygen_therapy,
            vs_oxysat_room_air,
@@ -58,6 +59,7 @@ summary.input.prep<- function(input.tbl){
            icu_treat_non_invasive_ventilation,
            icu_treat_invasive_ventilation,
            icu_treat_high_flow_nasal_cannula,
+           icu_treat_oxygen_therapy_noimv,
            t_ad_niv,
            t_ad_imv,
            dur_niv,
@@ -100,7 +102,6 @@ patient.site.time.map.prep <- function(input.tbl){
     group_by(siteid_final,date_start)%>%
     summarise(n_patients=sum(count,na.rm=T))
   
-  
 }
 
 
@@ -132,7 +133,13 @@ outcome.admission.date.prep <- function(input.tbl){
   input.tbl <- input.tbl %>% 
     mutate(epiweek.admit=epiweek(date_start),
            year.admit=year(date_start),
-           year.epiweek.admit=paste0(year.admit,"-",epiweek.admit),
+           year.epiweek.admit=map2_chr(date_start, function(ds){
+             if(month(ds) == 1 & epiweek(ds) >= 50){
+               glue("{year(ds)-1}-{epiweek(ds)")
+             } else {
+               glue("{year(ds)}-{epiweek(ds)")
+             }
+           }),
            calendar.year.admit=year(date_start),
            calendar.month.admit=month(date_start)) 
   
@@ -216,6 +223,7 @@ symptom.upset.prep <- function(input.tbl, max.symptoms = 5){
     dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
     mutate(prop=Present/Total)%>%
     ungroup() %>%
+    filter(Total>50000) %>% 
     filter(Condition != "symptoms_other_signs_and_symptoms") %>%
     arrange(desc(prop)) %>%
     #slice(1:max.symptoms) %>%
@@ -354,6 +362,7 @@ comorbidity.upset.prep <- function(input.tbl, max.comorbidities = 5){
     dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
     mutate(prop=Present/Total)%>%
     ungroup() %>%
+    filter(Total>50000) %>% 
     filter(Condition != "other_mhyn") %>%
     filter(Condition!="comorbid_other_comorbidities")%>%
     arrange(desc(prop)) %>%
@@ -429,6 +438,7 @@ treatment.use.proportion.prep <- function(input.tbl){
                                    #treat_mechanical_support, 
                                    treat_immunostimulants, 
                                    treat_antiinflammatory, 
+                                   treat_oxygen_therapy_noimv,
                                    treat_other_interventions,
                                    treat_antimalarial_agents,
                                    treat_agents_acting_on_the_renin_angiotensin_system))
@@ -473,6 +483,10 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
                                    #treat_mechanical_support, 
                                    treat_immunostimulants, 
                                    treat_antiinflammatory, 
+                                   treat_oxygen_therapy_noimv,
+                                   treat_high_flow_nasal_cannula,
+                                   treat_non_invasive_ventilation,
+                                   treat_invasive_ventilation,
                                    treat_other_interventions,
                                    treat_antimalarial_agents,
                                    treat_agents_acting_on_the_renin_angiotensin_system))
@@ -566,6 +580,7 @@ treatment.upset.prep <- function(input.tbl, max.treatments = 5){
 icu.treatment.use.proportion.prep <- function(input.tbl){
   
   icu.treatment.use.proportion.input <- input.tbl %>%
+    select(-icu_treat_oxygen_therapy_noimv) %>% 
     select(slider_sex, slider_agegp10, slider_country, calendar.year.admit, calendar.month.admit, slider_monthyear, slider_outcome, slider_icu_ever, any_of(starts_with("icu_treat")), lower.age.bound, upper.age.bound) %>%
     as.data.table() %>%
     pivot_longer(any_of(starts_with("icu_treat")), names_to = "treatment", values_to = "present") %>%
@@ -602,7 +617,8 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
   
   
   data2 <- input.tbl %>%
-    select(usubjid, starts_with("icu_treat"))
+    select(usubjid, starts_with("icu_treat")) %>% 
+    select(-icu_treat_oxygen_therapy_noimv) 
   
   n.treat <- ncol(data2) - 1
   
@@ -617,6 +633,7 @@ treatment.icu.upset.prep <- function(input.tbl, max.treatments = 5){
     dplyr::summarise(Present = sum(Present, na.rm = TRUE), Total = n()) %>%
     mutate(prop=Present/Total)%>%
     ungroup() %>%
+    filter(Total>10000) %>% 
     arrange(desc(prop)) %>%
     slice(1:max.treatments) %>%
     pull(Treatment)
@@ -1017,8 +1034,9 @@ symptoms.prep <- function(input.tbl){
 comorbidity.prep <- function(input.tbl){
   
   tot=nrow(input.tbl)
-  data<-select(input.tbl, c(starts_with("comorbid_"))) %>%
-    pivot_longer(starts_with("comorbid_"), names_to = "comorbidity", values_to = "value")
+  data<-select(input.tbl, c(starts_with("comorbid_")),slider_sex) %>%
+    pivot_longer(starts_with("comorbid_"), names_to = "comorbidity", values_to = "value") %>% 
+    filter(!(slider_sex=="Male"&comorbidity=="comorbid_pregnancy"&is.na(value)))
   
   out<-data%>%
     mutate(value=case_when(is.na(value)~"Unknown",
@@ -1077,6 +1095,7 @@ treatments.prep <- function(input.tbl){
                                    #treat_mechanical_support, 
                                    treat_immunostimulants, 
                                    treat_antiinflammatory, 
+                                   treat_oxygen_therapy_noimv,
                                    treat_other_interventions,
                                    treat_antimalarial_agents,
                                    treat_agents_acting_on_the_renin_angiotensin_system))
@@ -1805,7 +1824,15 @@ patient.by.case.def.prep <- function(input.tbl){
   input.tbl$sars_cov2 <- as.character(input.tbl$cov_id_sarscov2 == "POSITIVE" | input.tbl$cov_det_sarscov2 == "POSITIVE")
   input.tbl[is.na(input.tbl$sars_cov2),]$sars_cov2 <- "Unknown"
   input.tbl$sars_cov2 <- factor(input.tbl$sars_cov2, labels = c("Positive", "Unknown"))
-  symptoms_long <- input.tbl[,c("symptoms_WHO", "symptoms_CDC", "symptoms_PHE", "symptoms_ECDC","date_admit", "slider_country", "slider_agegp10", "sars_cov2")] %>% 
+ 
+  symptoms_long <- input.tbl %>% 
+    filter_at(vars("symptoms_history_of_fever", "symptoms_cough", "symptoms_fatigue_malaise", 
+                   "symptoms_headache", "symptoms_muscle_aches_joint_pain", "symptoms_sore_throat",
+                   "symptoms_runny_nose", "symptoms_shortness_of_breath",
+                   "symptoms_lost_altered_sense_of_smell", 
+                   "symptoms_lost_altered_sense_of_taste",
+                   "symptoms_vomiting_nausea", "symptoms_diarrhoea", "symptoms_altered_consciousness_confusion"), all_vars(!is.na(.))) %>% 
+    select("symptoms_WHO", "symptoms_CDC", "symptoms_PHE", "symptoms_ECDC","date_admit", "slider_country", "slider_agegp10", "sars_cov2")  %>% 
     pivot_longer(cols = -c(date_admit,slider_country,slider_agegp10, sars_cov2), names_to = "symptom", values_to = "value")
   symptoms_long$value <- factor(symptoms_long$value, levels = c("TRUE", "FALSE"), labels = c("Yes", "No"))
   # change symptom labels
@@ -1831,8 +1858,216 @@ patient.by.case.def.prep <- function(input.tbl){
   
 }
 
-
-
+patient.by.case.def.prep_new <- function(input.tbl){
+  #############################
+  #   Case definitions
+  #############################
+  prep=input.tbl
+  
+  ######################################################################################################
+  # • European Centre for Disease Prevention and Control
+  # At least one of: cough, fever, shortness of breath, sudden onset anosmia, ageusia or dysgeusia
+  ######################################################################################################
+  
+  #ECDC
+  ECDC_case_def <- prep   %>%
+    select(symptoms_cough, symptoms_history_of_fever,symptoms_shortness_of_breath, symptoms_lost_altered_sense_of_smell,
+           symptoms_lost_altered_sense_of_taste,slider_agegp10)%>%
+    #The first step is to mark all of those that at least meet one of the mentioned symptoms as yes
+    mutate(ECDC_yes = ifelse(symptoms_cough == TRUE | symptoms_history_of_fever == TRUE |
+                               symptoms_shortness_of_breath == TRUE | symptoms_lost_altered_sense_of_smell == TRUE |
+                               symptoms_lost_altered_sense_of_taste == TRUE , 1, 0)) %>%
+    filter(!is.na(ECDC_yes))%>%
+    group_by(ECDC_yes, slider_agegp10)%>%
+    mutate(indicator = 1)%>%
+    mutate(total = sum(indicator))%>%
+    select(ECDC_yes, total, slider_agegp10)%>%
+    unique()%>%
+    pivot_wider(names_from = ECDC_yes,  values_from = total)%>%
+    mutate(Yes_ECDC = `1`)%>%
+    mutate(No_ECDC = `0`)%>%
+    mutate(percentage_met_ECDC = round(Yes_ECDC/(No_ECDC+Yes_ECDC)*100,2))%>%
+    select(slider_agegp10, Yes_ECDC,No_ECDC, percentage_met_ECDC )
+  
+  ######################################################################################################
+  # • Public Health England
+  # New cough (we use cough), or temperature f37.8°C (we use hitory of fever), or a loss or change in sense of smell or taste
+  ######################################################################################################
+  
+  #PHE                                                        
+  PHE_case_def <- prep   %>%
+    select(symptoms_cough, symptoms_history_of_fever,symptoms_shortness_of_breath, symptoms_lost_altered_sense_of_smell,
+           symptoms_lost_altered_sense_of_taste,slider_agegp10)%>%
+    #Combine lack of taste or smell
+    mutate(smell_or_taste = ifelse(symptoms_lost_altered_sense_of_taste == TRUE |  symptoms_lost_altered_sense_of_smell == TRUE, TRUE, FALSE))%>%
+    
+    #The first step is to mark all of those that at least meet one of the mentioned symptoms as yes
+    mutate(PHE_yes = ifelse(symptoms_cough == TRUE | symptoms_history_of_fever == TRUE |smell_or_taste == TRUE , 1, 0)) %>%
+    filter(!is.na(PHE_yes))%>%
+    group_by(PHE_yes, slider_agegp10)%>%
+    mutate(indicator = 1)%>%
+    mutate(total = sum(indicator))%>%
+    select(PHE_yes, total, slider_agegp10)%>%
+    unique()%>%
+    pivot_wider(names_from = PHE_yes,  values_from = total)%>%
+    mutate(Yes_PHE = `1`)%>%
+    mutate(No_PHE = `0`)%>%
+    mutate(percentage_met_PHE = round(Yes_PHE/(No_PHE+Yes_PHE)*100,2))%>%
+    select(slider_agegp10, Yes_PHE,No_PHE, percentage_met_PHE )
+  
+  ######################################################################################################
+  #   • WHO:
+  #   1. A combination of acute fever and cough,
+  # Or
+  # 2. A combination of three or more of: fever, cough, general weakness and fatigue, headache, myalgia (we use muscle aches, joint pain),
+  # sore throat, coryza  (we use runny nose), dyspnoea (we use SOB), anorexia (not available), nausea and vomiting,
+  # diarrhoea, altered mental status (we use altered consciousness or confusion)
+  ######################################################################################################
+  
+  #WHO
+  WHO_case_def <- prep %>%
+    select(symptoms_cough, symptoms_history_of_fever, symptoms_fatigue_malaise, symptoms_headache,
+           
+           symptoms_diarrhoea,symptoms_muscle_aches_joint_pain, symptoms_runny_nose,
+           
+           symptoms_sore_throat,symptoms_shortness_of_breath, symptoms_vomiting_nausea,symptoms_altered_consciousness_confusion,
+           slider_agegp10)%>%
+    mutate(n_symptoms_cough = ifelse(symptoms_cough == TRUE,1,0))%>%
+    mutate(n_symptoms_history_of_fever = ifelse(symptoms_history_of_fever == TRUE,1,0))%>%
+    mutate(n_symptoms_fatigue_malaise = ifelse(symptoms_fatigue_malaise == TRUE,1,0))%>%
+    mutate(n_symptoms_headache = ifelse(symptoms_headache == TRUE,1,0))%>%
+    
+    mutate(n_symptoms_diarrhoea = ifelse(symptoms_diarrhoea == TRUE,1,0))%>%
+    mutate(n_symptoms_muscle_aches_joint_pain = ifelse(symptoms_muscle_aches_joint_pain == TRUE,1,0))%>%
+    mutate(n_symptoms_runny_nose = ifelse(symptoms_runny_nose == TRUE,1,0))%>%
+    
+    
+    mutate(n_symptoms_sore_throat = ifelse(symptoms_sore_throat == TRUE,1,0))%>%
+    mutate(n_symptoms_shortness_of_breath = ifelse(symptoms_shortness_of_breath == TRUE,1,0))%>%
+    mutate(n_symptoms_vomiting_nausea = ifelse(symptoms_vomiting_nausea == TRUE,1,0))%>%
+    mutate(n_symptoms_altered_consciousness_confusion = ifelse(symptoms_altered_consciousness_confusion == TRUE,1,0))%>%
+    mutate(case_def =n_symptoms_cough +n_symptoms_history_of_fever +n_symptoms_fatigue_malaise+
+             n_symptoms_headache+
+             
+             n_symptoms_diarrhoea + n_symptoms_muscle_aches_joint_pain+ n_symptoms_runny_nose+
+             
+             n_symptoms_sore_throat+n_symptoms_shortness_of_breath+
+             n_symptoms_vomiting_nausea+ n_symptoms_altered_consciousness_confusion)%>%
+    
+    #These are all that meet but ignores that some might have missing on a bunch of these sympt but still meet if 3 are reported yes
+    mutate(WHO_yes_1 = ifelse(case_def>2, 1, 0))%>%
+    rowwise() %>% 
+    mutate(case_def2 = sum(c(n_symptoms_cough, n_symptoms_history_of_fever, n_symptoms_fatigue_malaise,
+                             n_symptoms_headache,
+                             
+                             n_symptoms_diarrhoea, n_symptoms_muscle_aches_joint_pain, n_symptoms_runny_nose,
+                             
+                             n_symptoms_sore_throat,n_symptoms_shortness_of_breath,
+                             n_symptoms_vomiting_nausea, n_symptoms_altered_consciousness_confusion), na.rm = T))%>%
+    mutate(WHO_yes_2 = ifelse(case_def2>2, 1, 0))%>%
+    filter(!(is.na(WHO_yes_1) & WHO_yes_2 == 0))%>%
+    
+    mutate(WHO_yes = ifelse(WHO_yes_1== 1 | WHO_yes_2 == 1, 1, 0))%>%
+    group_by(WHO_yes, slider_agegp10)%>%
+    mutate(indicator = 1)%>%
+    mutate(total = sum(indicator))%>%
+    select(WHO_yes, total, slider_agegp10)%>%
+    unique()%>%
+    pivot_wider(names_from = WHO_yes,  values_from = total)%>%
+    mutate(Yes_WHO = `1`)%>%
+    mutate(No_WHO = `0`)%>%
+    mutate(percentage_met_WHO = round(Yes_WHO/(No_WHO+Yes_WHO)*100,2))%>%
+    select(slider_agegp10, Yes_WHO,No_WHO, percentage_met_WHO )
+  
+  #################################################################################################################
+  # • Centers for Disease Control (CDC), United States:
+  #   1. At least two of: fever, chills (not available), rigors (not available), myalgia, headache, sore throat,
+  # new olfactory and taste disorder,
+  # Or
+  # 2. At least one of: cough, shortness of breath, difficulty breathing (not available)
+  #################################################################################################################
+  
+  #CDC
+  CDC_case_def <- prep %>%
+    select(symptoms_cough, symptoms_history_of_fever, symptoms_muscle_aches_joint_pain, symptoms_headache,
+           symptoms_sore_throat,symptoms_shortness_of_breath, symptoms_lost_altered_sense_of_taste, symptoms_lost_altered_sense_of_smell,
+           slider_agegp10)%>%
+    #Combined taste and smell
+    mutate(smell_or_taste = ifelse(symptoms_lost_altered_sense_of_taste == TRUE |  symptoms_lost_altered_sense_of_smell == TRUE, TRUE, FALSE))%>%
+    
+    mutate(n_symptoms_cough = ifelse(symptoms_cough == TRUE,1,0))%>%
+    mutate(n_symptoms_history_of_fever = ifelse(symptoms_history_of_fever == TRUE,1,0))%>%
+    mutate(n_symptoms_muscle_aches_joint_pain = ifelse(symptoms_muscle_aches_joint_pain == TRUE,1,0))%>%
+    mutate(n_symptoms_headache = ifelse(symptoms_headache == TRUE,1,0))%>%
+    mutate(n_symptoms_sore_throat = ifelse(symptoms_sore_throat == TRUE,1,0))%>%
+    mutate(n_smell_or_taste = ifelse(smell_or_taste == TRUE,1,0))%>%
+    mutate(n_symptoms_shortness_of_breath = ifelse(symptoms_shortness_of_breath == TRUE,1,0))%>%
+    
+    mutate(case_def_1 =n_symptoms_history_of_fever +n_symptoms_headache+n_symptoms_sore_throat+
+             n_symptoms_shortness_of_breath +n_smell_or_taste +n_symptoms_muscle_aches_joint_pain)%>%
+    mutate(case_def_2 = n_symptoms_cough + n_symptoms_shortness_of_breath)%>%
+    
+    #These are all that meet but ignores that some might have missing on a bunch of these sympt but still meet if 3 are reported yes
+    mutate(CDC_1_def = ifelse(case_def_1>1, 1, 0))%>%
+    mutate(CDC_2_def = ifelse(case_def_2>0, 1, 0))%>%
+    
+    rowwise() %>% 
+    mutate(case_def_1_sum = sum(c(n_symptoms_history_of_fever,n_symptoms_headache , n_symptoms_sore_throat,n_symptoms_muscle_aches_joint_pain,
+                                  n_symptoms_shortness_of_breath ,n_smell_or_taste), na.rm = T))%>%
+    
+    mutate(case_def_2_sum = sum(c(n_symptoms_cough , n_symptoms_shortness_of_breath), na.rm = T))%>%
+    
+    mutate(CDC_yes_1 = ifelse(case_def_1_sum>1, 1, 0))%>%
+    mutate(CDC_yes_2 = ifelse(case_def_2_sum>0, 1, 0))%>%
+    
+    filter(!((is.na(CDC_1_def) & CDC_yes_1 == 0) | (is.na(CDC_2_def) & CDC_yes_2 == 0)))%>%
+    
+    mutate(CDC_yes = ifelse(CDC_1_def== 1 | CDC_2_def == 1 | CDC_yes_1== 1 | CDC_yes_2 == 1, 1, 0))%>%
+    group_by(CDC_yes, slider_agegp10)%>%
+    mutate(indicator = 1)%>%
+    mutate(total = sum(indicator))%>%
+    select(CDC_yes, total, slider_agegp10)%>%
+    unique()%>%
+    pivot_wider(names_from = CDC_yes,  values_from = total)%>%
+    mutate(Yes_CDC = `1`)%>%
+    mutate(No_CDC = `0`)%>%
+    mutate(percentage_met_CDC = round(Yes_CDC/(No_CDC+Yes_CDC)*100,2))%>%
+    select(slider_agegp10, Yes_CDC,No_CDC, percentage_met_CDC )
+  
+  
+  
+  #Bind them all together
+  case_def_final_1 <- left_join(ECDC_case_def, CDC_case_def, by="slider_agegp10")
+  case_def_final_2 <- left_join(case_def_final_1, WHO_case_def, by="slider_agegp10")
+  case_def_final <- left_join(case_def_final_2, PHE_case_def, by="slider_agegp10")
+  # 
+  # case_def_final_print <- case_def_final %>%
+  #   filter(!is.na(slider_agegp10))%>%
+  #   arrange(slider_agegp10)%>%
+  #   mutate(slider_agegp10 =as.character(slider_agegp10))
+  # 
+  # 
+  # overal_who <- round(sum(case_def_final_print$Yes_WHO)/(sum(case_def_final_print$Yes_WHO)+sum(case_def_final_print$No_WHO))*100,2)
+  # overal_ECDC <- round(sum(case_def_final_print$Yes_ECDC)/(sum(case_def_final_print$Yes_ECDC)+sum(case_def_final_print$No_ECDC))*100,2)
+  # overal_PHE <- round(sum(case_def_final_print$Yes_PHE)/(sum(case_def_final_print$Yes_PHE)+sum(case_def_final_print$No_PHE))*100,2)
+  # overal_CDC <- round(sum(case_def_final_print$Yes_CDC)/(sum(case_def_final_print$Yes_CDC)+sum(case_def_final_print$No_CDC))*100,2)
+  # 
+  
+  case_def_final <- case_def_final %>%
+    filter(!is.na(slider_agegp10))%>%
+    arrange(slider_agegp10)%>%
+    mutate(slider_agegp10 =as.character(slider_agegp10)) %>% 
+    select(slider_agegp10,starts_with("percentage")) %>% 
+    pivot_longer(starts_with("percentage"),names_to = "symptom",values_to = "proportion") %>% 
+    mutate(symptom=gsub("percentage_met_","",symptom),
+           proportion=proportion/100)
+  
+  case_def_final
+  
+  
+  
+   
+}
 
 #' Aggregate data for hospital stay plot by sex
 #' @param input.tbl Input tibble (output of \code{data.preprocessing})
@@ -1994,3 +2229,204 @@ status.by.time.after.admission.prep <- function(input.tbl){
   final_dt
 }
 
+
+
+##################################################################
+region_data <- read_csv('region.definitions.csv')
+
+# Modifying the country names in the data I used for regions to match ISARIC data
+region_data[which(region_data$whoname == "United States of America"),]$whoname <- "United States"
+region_data[which(region_data$whoname == "Bolivia (Plurinational State of)"),]$whoname <- "Bolivia"
+region_data[which(region_data$whoname == "Lao People's Democratic Republic"),]$whoname <- "Lao PDR"
+region_data[which(region_data$whoname == "Viet Nam"),]$whoname <- "Vietnam"
+region_data[which(region_data$whoname == "Republic of Korea"),]$whoname <- "Korea, Republic of"
+gib <- data.frame(iso3="GIB",whoname="Gibraltar",wb_region="Europe_and_Central_Asia",wb_income="")
+
+region_data <- rbind(region_data,gib)
+
+number_by_region <- function(input.tbl){
+  
+  ### Figure 1
+  data_country <- patient.by.country.map.prep(input.tbl)
+  
+  data_country <- left_join(data_country, region_data, by = c("slider_country" = "whoname"))
+  
+  data_country[which(data_country$slider_country == "Taiwan"),]$wb_region <- "East_Asia_and_Pacific"
+  data_country[which(data_country$slider_country == "Hong Kong"),]$wb_region <- "East_Asia_and_Pacific"
+  data_country[which(data_country$slider_country == "Gibraltar"),]$wb_region <- "Europe_and_Central_Asia"
+  
+  data_country$new_region <- recode(data_country$wb_region, East_Asia_and_Pacific = "East Asia and Pacific", 
+                                    Europe_and_Central_Asia = "Europe and Central Asia",
+                                    Middle_East_and_North_Africa = "Middle East and North Africa", 
+                                    North_America = "North America", 
+                                    South_Asia = "South Asia", 
+                                    Latin_America_and_Caribbean = "Latin America and Caribbean",
+                                    "Sub-Saharan_Africa" = "Sub-Saharan Africa")
+  
+  
+  # This is to create the x-axis order -- sorting regions, within-regions freq, 
+  # and creating space between regions (there is probably a much faster way of doing this)
+  data_country <- data_country %>% arrange(wb_region, Freq) %>% mutate(order_var = 1) %>% mutate(order_var = cumsum(order_var))
+  data_country <- data_country %>% mutate(previous = lag(wb_region, default = NA)) %>% 
+    mutate(previous = wb_region != previous) %>%
+    mutate(previous = replace(previous, is.na(previous), 0)) %>%
+    mutate(previous = cumsum(previous*2)) %>%
+    mutate(x_axis = order_var + previous)
+  
+  return(data_country)
+  
+}
+
+
+patient.by.country_date.map.prep <- function(input.tbl){
+  input.tbl %>%
+    lazy_dt(immutable = TRUE) %>%
+    select(slider_country, slider_monthyear) %>%
+    filter(!is.na(slider_country)) %>%
+    filter(!is.na(slider_monthyear)) %>%
+    mutate(Freq = 1) %>%
+    group_by(slider_country, slider_monthyear)%>%
+    mutate(Freq = sum(Freq))%>%
+    distinct()%>%
+    as_tibble() 
+}
+
+
+month_by_region <- function(input.tbl){
+  data_country_date <- patient.by.country_date.map.prep(input.tbl)
+  
+  data_country_date <- left_join(data_country_date, region_data, by = c("slider_country" = "whoname"))
+  
+  data_country_date[which(data_country_date$slider_country == "Taiwan"),]$wb_region <- "East_Asia_and_Pacific"
+  data_country_date[which(data_country_date$slider_country == "Hong Kong"),]$wb_region <- "East_Asia_and_Pacific"
+  data_country_date[which(data_country_date$slider_country == "Gibraltar"),]$wb_region <- "Europe_and_Central_Asia"
+  
+  data_country_date$new_region <- recode(data_country_date$wb_region, East_Asia_and_Pacific = "East Asia and Pacific", 
+                                         Europe_and_Central_Asia = "Europe and Central Asia",
+                                         Middle_East_and_North_Africa = "Middle East and North Africa", 
+                                         North_America = "North America", 
+                                         South_Asia = "South Asia", 
+                                         Latin_America_and_Caribbean = "Latin America and Caribbean",
+                                         "Sub-Saharan_Africa" = "Sub-Saharan Africa")
+  
+  data_country_date <- data_country_date %>% 
+    separate(slider_monthyear, c("month_adm", "year_adm"), sep="-") %>% 
+    arrange(year_adm, month_adm, new_region)
+  
+  summary_country_date <-  data_country_date %>%
+    group_by(year_adm, month_adm, new_region) %>%
+    summarise(sum_records = sum(Freq)) %>%
+    filter(year_adm>2019)
+  
+  
+  summary_country_date$time_id <- as.numeric(summary_country_date$month_adm)
+  summary_country_date$time_id <- if_else(summary_country_date$year_adm == "2020",summary_country_date$time_id, summary_country_date$time_id + 12 )
+  summary_country_date$new_month <- recode(summary_country_date$month_adm,  "01" = "Jan", 
+                                           "02" = "Feb",
+                                           "03" = "Mar", 
+                                           "04" = "Apr",
+                                           "05" = "May", 
+                                           "06" = "Jun", 
+                                           "07" = "Jul", 
+                                           "08" = "Aug", 
+                                           "09" = "Sep", 
+                                           "10" = "Oct", 
+                                           "11" = "Nov", 
+                                           "12" = "Dec")
+  
+  return(summary_country_date)
+}
+
+data_com_sym <- function(data_1, data_2, comorb_symp) {
+  ## data_1 is the actual data
+  ## data_2 is the dataset with regions
+  ## comorb_symp = "comorb"for comorbidities and 
+  ## comorb_symp = "symptoms"for symptooms and 
+  
+  if (comorb_symp=="comorb"){
+    data_1=data_1 %>%
+      lazy_dt(immutable = TRUE) %>%
+      select(slider_country, slider_monthyear, any_of(starts_with(comorb_symp))) %>%
+      as_tibble() %>%
+      mutate(comorbid_other=ifelse(comorbid_other==T| comorbid_other_comorbidities==T&is.na(comorbid_other_comorbidities)==F, T, comorbid_other)) %>% 
+      select(-comorbid_other_comorbidities) %>% 
+      left_join(., data_2, by = c("slider_country" = "whoname")) %>%
+      
+      pivot_longer(any_of(starts_with(comorb_symp)), names_to = "outcome", values_to = "present") %>%
+      lazy_dt(immutable = TRUE) %>%
+      group_by(wb_region, outcome) %>% 
+      summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)), times.total = n())%>% 
+      
+      as.data.frame() 
+  }else{
+    data_1=data_1 %>%
+      lazy_dt(immutable = TRUE) %>%
+      select(slider_country, slider_monthyear, any_of(starts_with(comorb_symp))) %>%
+      as_tibble() %>% 
+      
+      left_join(., data_2, by = c("slider_country" = "whoname")) %>%
+      
+      pivot_longer(any_of(starts_with(comorb_symp)), names_to = "outcome", values_to = "present") %>%
+      lazy_dt(immutable = TRUE) %>%
+      group_by(wb_region, outcome) %>% 
+      summarise(times.present = sum(present, na.rm = TRUE), times.recorded = sum(!is.na(present)), times.total = n())%>% 
+      
+      as.data.frame() 
+  }
+
+  
+  nice.comorbidity.mapper <- tibble(comorbidity = unique(comorbidity.prevalence.input$comorbidity)) %>%
+    mutate(nice.comorbidity = map_chr(comorbidity, function(st){
+      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      #temp2
+    })) %>%
+    mutate(nice.comorbidity = case_when(nice.comorbidity=="Aids hiv" ~ "HIV/AIDS",
+                                        TRUE ~ nice.comorbidity))%>%
+    as.data.frame()
+  
+  nice.symptom.mapper <- tibble(symptom = unique(symptom.prevalence.input$symptom)) %>%
+    mutate(nice.symptom = map_chr(symptom, function(st){
+      temp <- substr(st, 10, nchar(st)) %>% str_replace_all("_", " ")
+      temp2 <- glue("{toupper(substr(temp, 1, 1))}{substr(temp, 2, nchar(temp))}")
+      temp2
+    })) %>%
+    mutate(nice.symptom = case_when(nice.symptom=="Altered consciousness confusion" ~ "Altered consciousness/confusion",
+                                    nice.symptom=="Fatigue malaise" ~ "Fatigue/malaise",
+                                    nice.symptom=="Vomiting nausea"~ "Vomiting/nausea",
+                                    nice.symptom=="Lost altered sense of smell"~ "Lost/altered sense of smell",
+                                    nice.symptom=="Lost altered sense of taste"~ "Lost/altered sense of taste",
+                                    TRUE ~ nice.symptom))
+  
+  
+  data_1=data_1 %>% 
+    left_join(nice.symptom.mapper, by=c("outcome" = "symptom")) %>%
+    left_join(nice.comorbidity.mapper, by=c("outcome" = "comorbidity"))
+  
+}
+
+
+plot_by_region <- function(input.tbl,com_sym = "comorb",current_region ='Latin_America_and_Caribbean'){
+  
+  data_outcome <- data_com_sym(input.tbl, region_data, com_sym)
+  
+  current_title <- str_replace_all(current_region, '_', ' ')
+  
+  data_plot <- data_outcome %>%
+    filter(wb_region == current_region) %>%
+    mutate(freq_outcome = 100*times.present/times.recorded) %>%
+    arrange(freq_outcome) %>%
+    filter(times.recorded>0) %>%
+    mutate(order_var = 1:length(freq_outcome)) %>%
+    mutate(alpha_outcome = if_else(freq_outcome<50,freq_outcome/50,1))
+  
+  if(com_sym=="comorb"){
+    data_plot <- data_plot %>% 
+      rename(outcome_names=nice.comorbidity) 
+
+  }else{
+    data_plot <- data_plot %>% 
+      rename(outcome_names=nice.symptom)
+  }
+  
+}

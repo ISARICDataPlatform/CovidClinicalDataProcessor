@@ -52,8 +52,8 @@ setwd(folder)
 folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24"
 setwd(folder)
 
-load("prepr.tbl.rda")
-input.tbl<-prepr.tbl
+load("prepr.tbl.all.rda")
+input.tbl<-prepr.tbl_v5 %>% filter(date_start<="2021-09-20"| is.na(date_start))
 
 input.tbl<-random.prepr.tbl
 
@@ -67,7 +67,7 @@ memory.limit(size=120000)
 
 
 
-folder <- "C:/Users/marti/OneDrive/Documents/ISARIC/data/2021-05-24/2021-05-24/aggregated/static"
+folder <- "C:/Users/K/OneDrive - Nexus365/ISARIC-dashboard/CovidClinicalDataProcessor/data"
 setwd(folder)
 
 
@@ -83,6 +83,13 @@ save(patient.by.country.input, file="patient_by_country_input.rda")
 data_map <- patient.by.country.map.prep(input.tbl)
 save(data_map, file ="data_map.rda")
 
+data_country_input=number_by_region(input.tbl)
+save(data_country_input,file="data_country_input.rda")
+
+summary_country_date_input=month_by_region(input.tbl)
+save(summary_country_date_input,file="summary_country_date_input.rda")
+
+
 
 
 
@@ -95,10 +102,7 @@ save(patient.site.time.map.input, file = "patient_site_time_map_input.rda")
 
 #################after inclusion criteria
 
-patient.by.case.def<-patient.by.case.def.prep(input.tbl)
-save(patient.by.case.def, file = "spatient.by.case.def.rda")
-
-case.def.input <- patient.by.case.def.prep(input.tbl)
+case.def.input <- patient.by.case.def.prep_new(input.tbl)
 save(case.def.input, file ="data_case_def_input.rda")
 
 summary_input<-summary.input.prep(input.tbl)
@@ -169,7 +173,7 @@ save(status.by.time.after.admission.input, file="status_by_time_after_admission_
 
 
 #outcome by admision date
-outcome_admission_date_input <- outcome.admission.date.prep(input.tbl)
+outcome_admission_date_input <- outcome.admission.date.prep(input.tbl) 
 save(outcome_admission_date_input, file ="outcome_admission_date_input.rda")
 
 #vital signs
@@ -177,6 +181,7 @@ data_plot_vs_resp <- func_plots_vs_resp(input.tbl)
 data_plot_vs_hr <- func_plots_vs_hr(input.tbl)
 data_plot_vs_temp <- func_plots_vs_temp(input.tbl)
 data_plot_vs_sysbp <- func_plots_vs_sysbp(input.tbl)
+data_plot_vs_oxysat <- func_plots_vs_oxysat(input.tbl)
 data_plot_vs_oxysat_therapy <- func_plots_vs_oxysat_therapy(input.tbl)
 
 save(data_plot_vs_resp, file ="data_plot_vs_resp.rda")
@@ -258,12 +263,38 @@ data_plot_heatmap <- symptom.heatmap(data = input.tbl, admission.symptoms = admi
 
 save(data_plot_heatmap, file ="data_plot_heatmap.rda")
 
+####new plots by region
+
+comorb_South_Asia_input=plot_by_region(input.tbl,"comorb","South_Asia")
+comorb_Sub_Saharan_Africa_input=plot_by_region(input.tbl,"comorb","Sub-Saharan_Africa")
+comorb_Europe_and_Central_Asia_input=plot_by_region(input.tbl,"comorb","Europe_and_Central_Asia")
+comorb_Middle_East_and_North_Africa_input=plot_by_region(input.tbl,"comorb","Middle_East_and_North_Africa")
+comorb_Latin_America_and_Caribbean_input=plot_by_region(input.tbl,"comorb","Latin_America_and_Caribbean")
+comorb_East_Asia_and_Pacific_input=plot_by_region(input.tbl,"comorb","East_Asia_and_Pacific")
+comorb_North_America_input=plot_by_region(input.tbl,"comorb","North_America")
+
+save(comorb_South_Asia_input,file="comorb_South_Asia_input.rda")
+save(comorb_Sub_Saharan_Africa_input,file="comorb_Sub_Saharan_Africa_input.rda")
+save(comorb_Europe_and_Central_Asia_input,file="comorb_Europe_and_Central_Asia_input.rda")
+save(comorb_Middle_East_and_North_Africa_input,file="comorb_Middle_East_and_North_Africa_input.rda")
+save(comorb_Latin_America_and_Caribbean_input,file="comorb_Latin_America_and_Caribbean_input.rda")
+save(comorb_East_Asia_and_Pacific_input,file="comorb_East_Asia_and_Pacific_input.rda")
+save(comorb_North_America_input,file="comorb_North_America_input.rda")
 
 
 
+symptoms_South_Asia_input=plot_by_region(input.tbl,"symptoms","South_Asia")
+symptoms_Sub_Saharan_Africa_input=plot_by_region(input.tbl,"symptoms","Sub-Saharan_Africa")
+symptoms_Europe_and_Central_Asia_input=plot_by_region(input.tbl,"symptoms","Europe_and_Central_Asia")
+symptoms_Middle_East_and_North_Africa_input=plot_by_region(input.tbl,"symptoms","Middle_East_and_North_Africa")
+symptoms_Latin_America_and_Caribbean_input=plot_by_region(input.tbl,"symptoms","Latin_America_and_Caribbean")
+symptoms_East_Asia_and_Pacific_input=plot_by_region(input.tbl,"symptoms","East_Asia_and_Pacific")
+symptoms_North_America_input=plot_by_region(input.tbl,"symptoms","North_America")
 
-
-
-
-
-
+save(symptoms_South_Asia_input,file="symptoms_South_Asia_input.rda")
+save(symptoms_Sub_Saharan_Africa_input,file="symptoms_Sub_Saharan_Africa_input.rda")
+save(symptoms_Europe_and_Central_Asia_input,file="symptoms_Europe_and_Central_Asia_input.rda")
+save(symptoms_Middle_East_and_North_Africa_input,file="symptoms_Middle_East_and_North_Africa_input.rda")
+save(symptoms_Latin_America_and_Caribbean_input,file="symptoms_Latin_America_and_Caribbean_input.rda")
+save(symptoms_East_Asia_and_Pacific_input,file="symptoms_East_Asia_and_Pacific_input.rda")
+save(symptoms_North_America_input,file="symptoms_North_America_input.rda")
