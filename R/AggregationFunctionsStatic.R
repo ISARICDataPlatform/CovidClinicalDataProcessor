@@ -135,9 +135,9 @@ outcome.admission.date.prep <- function(input.tbl){
            year.admit=year(date_start),
            year.epiweek.admit=map_chr(date_start, function(ds){
              if(month(ds) == 1 & epiweek(ds) >= 50){
-               glue("{year(ds)-1}-{epiweek(ds)")
+               glue("{year(ds)-1}-{epiweek(ds)}")
              } else {
-               glue("{year(ds)}-{epiweek(ds)")
+               glue("{year(ds)}-{epiweek(ds)}")
              }
            }),
            calendar.year.admit=year(date_start),
