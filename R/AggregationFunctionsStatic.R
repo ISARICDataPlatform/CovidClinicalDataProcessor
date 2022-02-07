@@ -102,7 +102,6 @@ patient.site.time.map.prep <- function(input.tbl){
     group_by(siteid_final,date_start)%>%
     summarise(n_patients=sum(count,na.rm=T))
   
-  
 }
 
 
@@ -134,7 +133,13 @@ outcome.admission.date.prep <- function(input.tbl){
   input.tbl <- input.tbl %>% 
     mutate(epiweek.admit=epiweek(date_start),
            year.admit=year(date_start),
-           year.epiweek.admit=paste0(year.admit,"-",epiweek.admit),
+           year.epiweek.admit=map2_chr(date_start, function(ds){
+             if(month(ds) == 1 & epiweek(ds) >= 50){
+               glue("{year(ds)-1}-{epiweek(ds)")
+             } else {
+               glue("{year(ds)}-{epiweek(ds)")
+             }
+           }),
            calendar.year.admit=year(date_start),
            calendar.month.admit=month(date_start)) 
   
